@@ -50,7 +50,7 @@ If (-Not (Test-Path $pythonPath)) {
     # (Get-Content $pthFile) -replace "#import site", 'import site' | Set-Content $pthFile
     # (Get-Content $pthFile) -replace "python", 'Lib\site-packages\python' | Set-Content $pthFile
     $text = [string]::Join("`n", (Get-Content $pthFile))
-    [regex]::Replace($text, "\.`n", ".`nLib\site-packages`n", "Singleline") | Set-Content $pthFile
+    [regex]::Replace($text, "\.`n", ".`nLib\site-packages`n..\..\..\`n", "Singleline") | Set-Content $pthFile
 }
 
 $getPipPath = [IO.Path]::Combine($pythonDir, 'get-pip.py')
