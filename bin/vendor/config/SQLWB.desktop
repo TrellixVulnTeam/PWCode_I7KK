@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=SQL Workbench/J
+GenericName=Database Administration Tool
+Exec=./bin/sqlwb
+Icon=/home/bba/bin/PWCode/bin/img/sqlwb.png
+Terminal=false
+Type=Application
+Keywords=SQL Query Tool
+Categories=Development;Database;Java;
+StartupNotify=false

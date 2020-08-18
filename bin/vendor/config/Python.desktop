@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Python
+Exec=./bin/vendor/linux/python/AppRun
+Comment=A Python runtime
+Icon=/home/bba/bin/PWCode/bin/img/python.png
+Categories=Development;
+Terminal=true

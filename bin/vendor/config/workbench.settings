@@ -1,0 +1,6 @@
+workbench.gui.MainWindow.macropopup.visible=false
+workbench.gui.MainWindow.state=0
+workbench.gui.macros.replaceOnRun=false
+workbench.profiles.saveonclose=true
+workbench.help.singlepage=true
+workbench.gui.display.showurl=true

@@ -1,0 +1,38 @@
+# Ignore directories and files
+projects/*
+bin/tmp/*
+bin/vendor/linux/*
+bin/vendor/windows/*
+bin/vendor/jdbc/*
+config/tmp/*
+Python.desktop
+SQLWB.desktop
+
+# exceptions to above rule
+!projects/.gitkeep
+!bin/tmp/.gitkeep
+!config/tmp/.gitkeep
+!bin/vendor/linux/.gitkeep
+!bin/vendor/windows/download_deps.ps1
+!bin/vendor/jdbc/WbDrivers.xml
+!bin/vendor/jdbc/WbMacros.xml
+!bin/vendor/jdbc/h2-*.jar
+!bin/vendor/jdbc/mssql-jdbc-*.jar
+!bin/vendor/jdbc/postgresql-*.jar
+!bin/vendor/jdbc/mysql-connector-java-*.jar
+!bin/vendor/jdbc/sqlite-jdbc-*.jar
+!bin/vendor/jdbc/sqlworkbench.jar
+!bin/vendor/jdbc/*-LICENSE
+!bin/vendor/config/*.desktop
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[co]
+
+# Ignore logs
+*.log
+
+# Include files
+!.gitignore
+
+
