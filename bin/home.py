@@ -202,6 +202,10 @@ class HomeTab(ttk.Frame):
         def_name = inspect.currentframe().f_code.co_name
         config_dir = self.export_check(app)
 
+        if len(subsystem_frames) == 0:
+            msg_label.config(text='No subsystems added')
+            return
+
         if config_dir:
             project_name = self.project_frame.name_entry.get()
             self.run_plugin(app, project_name, config_dir, def_name)
@@ -349,6 +353,12 @@ class HomeTab(ttk.Frame):
 
             db_name = subsystem.db_name_entry.get().lower() 
             db_schema = subsystem.db_schema_entry.get().lower()
+            jdbc_url = subsystem.jdbc_url_entry.get()
+            db_user = subsystem.db_user_entry.get()
+            db_pwd = subsystem.db_pwd_entry.get()
+            tables_option = subsystem.tbl_var.get().lower()[:-1]
+            tables = subsystem.tables_entry.get()
+            overwrite_tables = subsystem.overwrite_entry.get()
 
             msg = None
             if (len(db_name) == 0 or len(db_schema) == 0):
@@ -360,7 +370,13 @@ class HomeTab(ttk.Frame):
             elif subsystem_name in subsystem_names:
                 msg = 'Duplicate subsystem name'
             else: 
-                subsystem_name = db_name + '_' + db_schema              
+                subsystem_name = db_name + '_' + db_schema  
+                if len(jdbc_url) == 0:
+                    msg = "Missing jdbc connection url for '"  + subsystem_name + "'"
+                elif (len(db_user) == 0 or len(db_pwd) == 0):  
+                    if not jdbc_url.lower().startswith('jdbc:h2:'): 
+                        # WAIT: Andre enn h2 som skal unntas? Slå sammen med kode i get_db_details?
+                        msg = "Missing user or password for '" + subsystem_name + "'"
 
             if msg:
                 msg_label.config(text=msg)
@@ -373,6 +389,11 @@ class HomeTab(ttk.Frame):
 
             config.put('subsystems/' + subsystem_name + '/db_name', db_name)
             config.put('subsystems/' + subsystem_name + '/schema_name', db_schema)
+            config.put('subsystems/' + subsystem_name + '/jdbc_url', jdbc_url)
+            config.put('subsystems/' + subsystem_name + '/db_user', db_user)
+            config.put('subsystems/' + subsystem_name + '/db_password', db_pwd)
+            config.put('subsystems/' + subsystem_name + '/' + tables_option.replace(' ', '_'), tables)
+            config.put('subsystems/' + subsystem_name + '/overwrite_tables', overwrite_tables)            
 
             j = 0
             for path in folder_paths: 
@@ -458,10 +479,10 @@ class SubSystem(ttk.LabelFrame):
         self.frame5.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
 
         options = ['', 'Exclude Tables (comma separated)', 'Include Tables (comma separated)']
-        self.var = tk.StringVar()
-        self.var.set(' '.join(options[1].split(' ')[:2]) + ':')
-        self.var.trace("w", self.get_option)
-        self.tables_option = ttk.OptionMenu(self.frame5, self.var, *options)
+        self.tbl_var = tk.StringVar()
+        self.tbl_var.set(' '.join(options[1].split(' ')[:2]) + ':')
+        self.tbl_var.trace("w", self.get_option)
+        self.tables_option = ttk.OptionMenu(self.frame5, self.tbl_var, *options)
         self.tables_option.pack(side=tk.LEFT, anchor=tk.N, pady=3, padx=(8, 0))
         self.tables_option.configure(width=12)
         self.tables_entry = make_entry(self.frame5, app, 57)
@@ -483,8 +504,8 @@ class SubSystem(ttk.LabelFrame):
         self.folders_frame.add_folder(path, lambda p=path: app.command_callable("open_folder")(p), 70)
 
     def get_option(self, *args):
-        value = ' '.join(self.var.get().split(' ')[:2]) + ':'
-        self.var.set(value)
+        value = ' '.join(self.tbl_var.get().split(' ')[:2]) + ':'
+        self.tbl_var.set(value)
         self.tables_option.configure(state=tk.NORMAL)  # Just for refreshing widget
 
     def subsystem_remove(self):

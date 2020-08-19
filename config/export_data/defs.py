@@ -30,6 +30,7 @@ from common.xml import indent
 
 
 def get_db_details(jdbc_url, bin_dir):
+    # TODO: Legg inn støtte for flere dbtyper
     if 'jdbc:h2:' in jdbc_url:  # H2 database
         if 'LAZY_QUERY_EXECUTION' not in jdbc_url:
             jdbc_url = jdbc_url + ';LAZY_QUERY_EXECUTION=1;'  # Modify url for less memory use
@@ -158,6 +159,31 @@ def export_schema(class_path, max_java_heap, subsystem_dir, jdbc, db_tables):
     batch.runScript(gen_report_str)
     add_row_count_to_schema_file(subsystem_dir, db_tables)
 
+# TODO: Fjern duplisering av kode mellom denn og export_db_schema
+def test_db_connect(JDBC_URL, bin_dir, class_path, MAX_JAVA_HEAP, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES):
+    url, driver_jar, driver_class = get_db_details(JDBC_URL, bin_dir)
+    if driver_jar and driver_class:
+        # Start Java virtual machine if not started already:
+        class_paths = class_path + ':' + driver_jar
+        init_jvm(class_paths, MAX_JAVA_HEAP)
+
+        try:
+            jdbc = Jdbc(url, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, driver_jar, driver_class, True, True)
+            if jdbc:
+                # Get database metadata:
+                db_tables, table_columns = get_db_meta(jdbc)
+                export_tables, overwrite_tables = table_check(INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, db_tables)
+                return 'ok'
+
+            if not export_tables:
+                return 'No table data to export. Exiting.'
+
+        except Exception as e:
+            return e
+
+    else:
+        return 'Not a supported jdbc url. Exiting'
+
 
 def export_db_schema(JDBC_URL, bin_dir, class_path, MAX_JAVA_HEAP, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, subsystem_dir, INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, DDL_GEN):
     url, driver_jar, driver_class = get_db_details(JDBC_URL, bin_dir)
@@ -172,7 +198,7 @@ def export_db_schema(JDBC_URL, bin_dir, class_path, MAX_JAVA_HEAP, DB_USER, DB_P
                 # Get database metadata:
                 db_tables, table_columns = get_db_meta(jdbc)
                 export_schema(class_path, MAX_JAVA_HEAP, subsystem_dir, jdbc, db_tables)
-                export_tables, overwrite_tables = table_check(INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, db_tables, subsystem_dir)
+                export_tables, overwrite_tables = table_check(INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, db_tables)
 
             if export_tables:
                 # Copy schema data:
@@ -204,7 +230,7 @@ def get_db_meta(jdbc):
         cursor.execute('SELECT * from "' + table + '"')
         columns = [desc[0] for desc in cursor.description]
 
-        for column in columns:
+        for column in columns: # TODO: Fjernet kode her siden ubrukt variabel?
             table_columns[table] = columns
 
     cursor.close()
@@ -241,7 +267,7 @@ def add_row_count_to_schema_file(subsystem_dir, db_tables):
     tree.write(schema_file)
 
 
-def table_check(incl_tables, skip_tables, overwrite_tables, db_tables, subsystem_dir):
+def table_check(incl_tables, skip_tables, overwrite_tables, db_tables):
     non_empty_tables = {k: v for (k, v) in db_tables.items() if v > 0}
     if incl_tables:
         for tbl in incl_tables:

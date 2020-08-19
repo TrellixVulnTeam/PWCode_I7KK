@@ -9,6 +9,7 @@ from defs import (
     export_db_schema,
     export_files,
     capture_files,
+    test_db_connect
 )
 
 # """ SYSTEM """
@@ -53,6 +54,8 @@ from defs import (
 
 
 def main():
+    bin_dir = os.environ["pwcode_bin_dir"]  # Get PWCode executable path
+    class_path = os.environ['CLASSPATH']  # Get Java jar path
     config_dir = os.environ['pwcode_config_dir']
     tmp_dir = config_dir + 'tmp'
     os.chdir(tmp_dir)  # Avoid littering from subprocesses
@@ -80,13 +83,33 @@ def main():
         shutil.copyfile(tmp_config_path, config_path)
 
     config = XMLSettings(config_path)
-    memory = config.get('options/memory').split(' ')[0]
+    memory = '-Xmx' + config.get('options/memory').split(' ')[0] + 'g'
     ddl = config.get('options/ddl')
 
     tree = ET.parse(config_path)
-    subsystems = list(tree.find('subsystems'))
+    subsystems = list(tree.find('subsystems'))  
+
+     # TODO: Splitte ut som egen def for å fjerne duplisering av kode
     for subsystem in subsystems:
-        name = subsystem.tag
+        subsystem_name = subsystem.tag
+        db_name = config.get('subsystems/' + subsystem_name + '/db_name')
+        schema_name = config.get('subsystems/' + subsystem_name + '/schema_name')
+        jdbc_url = config.get('subsystems/' + subsystem_name + '/jdbc_url')
+        db_user = config.get('subsystems/' + subsystem_name + '/db_user')
+        db_password = config.get('subsystems/' + subsystem_name + '/db_password')
+        exclude_tables = config.get('subsystems/' + subsystem_name + '/exclude_tables')
+        include_tables = config.get('subsystems/' + subsystem_name + '/include_tables')
+        overwrite_tables = config.get('subsystems/' + subsystem_name + '/overwrite_tables')
+
+        db_check = test_db_connect(jdbc_url, bin_dir, class_path, memory, db_user, db_password, db_name, schema_name, include_tables, exclude_tables, overwrite_tables)
+        if not db_check == 'ok':
+            print(db_check)
+            return
+
+
+    for subsystem in subsystems:
+        subsystem_name = subsystem.tag
+        # subsystem_dir = system_dir + '/content/sub_systems/' + name
         db_name = subsystem.find('db_name')
         schema_name = subsystem.find('schema_name')
         folders_tag = subsystem.find('folders')
@@ -97,7 +120,11 @@ def main():
                     print("'" + folder.text + "' is not a valid path. Exiting.")
                     return   
 
-        # export_files(system_dir, subsystem_dir, EXPORT_TYPE, project_name, DIR_PATHS, bin_dir, ARCHIVE_FORMAT)
+        # TODO: Sjekk på db kobling her
+
+
+
+        # export_files(project_dir, subsystem_dir, EXPORT_TYPE, project_name, DIR_PATHS, bin_dir, ARCHIVE_FORMAT)
 
 #         # Create data package directories and extract any files:
 
