@@ -89,7 +89,7 @@ def main():
     tree = ET.parse(config_path)
     subsystems = list(tree.find('subsystems'))  
 
-     # TODO: Splitte ut som egen def for å fjerne duplisering av kode
+     # TODO: Splitte ut som egen def for å fjerne duplisering av kode -> Skrive alle variabler til dict heller?
     for subsystem in subsystems:
         subsystem_name = subsystem.tag
         db_name = config.get('subsystems/' + subsystem_name + '/db_name')
@@ -102,6 +102,9 @@ def main():
         overwrite_tables = config.get('subsystems/' + subsystem_name + '/overwrite_tables')
 
         db_check = test_db_connect(jdbc_url, bin_dir, class_path, memory, db_user, db_password, db_name, schema_name, include_tables, exclude_tables, overwrite_tables)
+
+        # return # TODO: For test. Fjern senere
+
         if not db_check == 'ok':
             print(db_check)
             return

@@ -20,8 +20,8 @@ ARCHIVE_FORMAT = 'wim'  # TODO: Implementer tar som alternativ + autodekter hva 
 # Extract all files from these directories:
 DIR_PATHS = [
     # 'path/to/extract/on/linux',
-    '/home/bba/Downloads/RationalPlan/',
-    '/home/bba/Downloads/python/',
+#    '/home/bba/Downloads/RationalPlan/',
+#    '/home/bba/Downloads/python/',
     # '/home/bba/Downloads/vscode-icons-master/'
     # 'c:\path\on\windows'
 ]
@@ -136,3 +136,4 @@ if __name__ == '__main__':
 
     msg = main()
     # print(msg)
+

@@ -34,7 +34,8 @@ def get_db_details(jdbc_url, bin_dir):
     if 'jdbc:h2:' in jdbc_url:  # H2 database
         if 'LAZY_QUERY_EXECUTION' not in jdbc_url:
             jdbc_url = jdbc_url + ';LAZY_QUERY_EXECUTION=1;'  # Modify url for less memory use
-        driver_jar = bin_dir + '/vendor/jdbc/h2-1.4.199.jar'
+        driver_jar = bin_dir + '/vendor/jdbc/h2-1.4.199.jar' # WAIT: Juster så ikke hardkodet og sjekk at finnes
+        # print(driver_jar)
         driver_class = 'org.h2.Driver'
 
     return jdbc_url, driver_jar, driver_class
@@ -169,7 +170,12 @@ def test_db_connect(JDBC_URL, bin_dir, class_path, MAX_JAVA_HEAP, DB_USER, DB_PA
 
         try:
             jdbc = Jdbc(url, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, driver_jar, driver_class, True, True)
+            # TODO: Legg inn forståelig melding hvis db_name eller db_schema er feil/ikke finnes
             if jdbc:
+                # TODO: Noe under her som gir: -> må være over i linjen under try
+                # java.lang.ExceptionInInitializerError
+                # 'NoneType' object has no attribute 'cursor'
+
                 # Get database metadata:
                 db_tables, table_columns = get_db_meta(jdbc)
                 export_tables, overwrite_tables = table_check(INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, db_tables)

@@ -353,8 +353,7 @@ class Jdbc:
             # print(self.url)
             # test = JDBC_DRIVERS[self.type]['class']
             # print(test)
-            self.connection = connect(self.driver_class,
-                                      self.url, [self.usr,self.pwd], self.driver_jar,)
+            self.connection = connect(self.driver_class,self.url, [self.usr,self.pwd], self.driver_jar,)
             self.connection.jconn.setAutoCommit(auto_commit)
         except Exception as error:
             error_msg = str(error)
