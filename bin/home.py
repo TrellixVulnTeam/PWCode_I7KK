@@ -351,8 +351,8 @@ class HomeTab(ttk.Frame):
             for frame, path in subsystem.folders_frame.folders.items():
                 folder_paths.append(path)
 
-            db_name = subsystem.db_name_entry.get().lower() 
-            db_schema = subsystem.db_schema_entry.get().lower()
+            db_name = subsystem.db_name_entry.get()
+            db_schema = subsystem.db_schema_entry.get()
             jdbc_url = subsystem.jdbc_url_entry.get()
             db_user = subsystem.db_user_entry.get()
             db_pwd = subsystem.db_pwd_entry.get()

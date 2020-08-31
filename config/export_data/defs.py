@@ -15,6 +15,7 @@
 
 import os
 import subprocess
+from subprocess import check_output, STDOUT
 import jpype as jp
 import jpype.imports
 from pathlib import Path
@@ -41,94 +42,23 @@ def get_db_details(jdbc_url, bin_dir):
     return jdbc_url, driver_jar, driver_class
 
 
-def export_files(system_dir, subsystem_dir, export_type, system_name, dir_paths, bin_dir, archive_format):
-    Path(system_dir + '/content/sub_systems/').mkdir(parents=True, exist_ok=True)
-    file_export_done = False
-    exported_dirs = []
-    if export_type != 'DATABASE':
-        source_paths = set(dir_paths)  # Remove duplicates
-        for source_path in source_paths:  # Validate source paths
-            if not os.path.isdir(source_path):
-                print_and_exit("'" + source_path + "' is not a valid path. Exiting.")
-
-        subdirs = os.listdir(system_dir + '/content/sub_systems/')
-        existing_subsystem = False
-        for sub_dir in subdirs:
-            source_paths_file = system_dir + '/content/sub_systems/' + sub_dir + '/content/documents/source_paths.txt'
-            if os.path.isfile(source_paths_file):
-                exported_dirs = [line.rstrip('\n') for line in open(source_paths_file)]
-                count = 0
-                for dir in source_paths:
-                    if dir in exported_dirs:
-                        count += 1
-                        print("'" + dir + "' already exported.")
-                        existing_subsystem = True
-                        subsystem_dir = system_dir + '/content/sub_systems/' + sub_dir
-
-                if count == len(source_paths):
-                    print("All files already exported to '" + sub_dir + "'.")
-                    file_export_done = True
-
-            else:
-                existing_subsystem = True
-                subsystem_dir = system_dir + '/content/sub_systems/' + sub_dir
-
-            if existing_subsystem:
-                break
-
-        if export_type == 'FILES' and not existing_subsystem:
-            subsystem_dir = get_unique_dir(system_dir + '/content/sub_systems/' + system_name + '_')
-
-    dirs = [
-        system_dir + '/administrative_metadata/',
-        system_dir + '/descriptive_metadata/',
-        system_dir + '/content/documentation/',
-        subsystem_dir + '/header',
-        subsystem_dir + '/content/documents/',
-        subsystem_dir + '/documentation/dip/'
-    ]
-
-    for dir in dirs:
-        Path(dir).mkdir(parents=True, exist_ok=True)
-
-    if export_type == 'DATABASE':
-        return
-
-    if source_paths and not file_export_done:
-        source_paths_file = subsystem_dir + '/content/documents/source_paths.txt'
-        with open(source_paths_file, 'w') as f:
-            for dir in exported_dirs:
-                if dir not in source_paths:
-                    f.write(dir + '\n')
-
-            i = 0
-            for source_path in source_paths:
-                if source_path in exported_dirs:
-                    f.write(source_path + '\n')
-                    continue
-
-                done = False
-                while not done:
-                    i += 1
-                    target_path = subsystem_dir + '/content/documents/' + "dir" + str(i) + "." + archive_format
-                    if not os.path.isfile(target_path):
-                        if source_path not in exported_dirs:
-                            capture_files(bin_dir, source_path, target_path)
-                            f.write(source_path + '\n')
-                            done = True
-
-
 def capture_files(bin_dir, source_path, target_path):
     Path(os.path.dirname(target_path)).mkdir(parents=True, exist_ok=True)
     archive_format = Path(target_path).suffix[1:]
 
     if archive_format == 'wim':
-        cmd = bin_dir + "/vendor/wimlib-imagex capture "
-        if os.name == "posix":
-            cmd = "wimcapture "  # WAIT: Bruk tar eller annet som kan mountes på posix. Trenger ikke wim da
+        cmd = bin_dir + "/vendor/wimlib-imagex capture " + source_path + " " + target_path + " --no-acls --compress=none"
+        # subprocess.run(cmd + source_path + " " + target_path + " --no-acls --compress=none", shell=True)
     else:
-        print_and_exit("'" + archive_format + "' not implemented yet")
-    subprocess.run(cmd + source_path + " " + target_path + " --no-acls --compress=none", shell=True)
+        cmd = "cd " + str(Path(source_path).parent) + " && tar -cvf " + target_path + " " + os.path.basename(source_path)
+        # subprocess.run("cd " + str(Path(source_path).parent) + " && tar -cvf " + target_path + " " + os.path.basename(source_path), shell=True)
+
+    try:
+        check_output(cmd, stderr=STDOUT, shell=True).decode()
+    except Exception as e:
+        return e 
+
+    return 'ok'          
 
 
 def get_tables(conn, schema):
@@ -172,10 +102,6 @@ def test_db_connect(JDBC_URL, bin_dir, class_path, MAX_JAVA_HEAP, DB_USER, DB_PA
             jdbc = Jdbc(url, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, driver_jar, driver_class, True, True)
             # TODO: Legg inn forståelig melding hvis db_name eller db_schema er feil/ikke finnes
             if jdbc:
-                # TODO: Noe under her som gir: -> må være over i linjen under try
-                # java.lang.ExceptionInInitializerError
-                # 'NoneType' object has no attribute 'cursor'
-
                 # Get database metadata:
                 db_tables, table_columns = get_db_meta(jdbc)
                 export_tables, overwrite_tables = table_check(INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, db_tables)
@@ -203,20 +129,26 @@ def export_db_schema(JDBC_URL, bin_dir, class_path, MAX_JAVA_HEAP, DB_USER, DB_P
             if jdbc:
                 # Get database metadata:
                 db_tables, table_columns = get_db_meta(jdbc)
+                print(table_columns) # TODO: Fiks at ikke henter tabeller og kolonner riktig
                 export_schema(class_path, MAX_JAVA_HEAP, subsystem_dir, jdbc, db_tables)
                 export_tables, overwrite_tables = table_check(INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, db_tables)
 
             if export_tables:
+                print('test')
                 # Copy schema data:
                 copy_db_schema(subsystem_dir, jdbc, class_path, MAX_JAVA_HEAP, export_tables, bin_dir, table_columns, overwrite_tables, DDL_GEN)
+                return 'ok'
             else:
-                print_and_exit('No table data to export. Exiting.')
+                print('No table data to export. Exiting.')
+                return
 
         except Exception as e:
-            print_and_exit(e)
+            print(e)
+            return
 
     else:
-        print_and_exit('Not a supported jdbc url. Exiting')
+        print('Not a supported jdbc url. Exiting')
+        return
 
 
 def get_db_meta(jdbc):
@@ -232,12 +164,9 @@ def get_db_meta(jdbc):
         (row_count,) = cursor.fetchone()
         db_tables[table] = row_count
 
-        # Get column names per table:
+        # Get column names of table:
         cursor.execute('SELECT * from "' + table + '"')
-        columns = [desc[0] for desc in cursor.description]
-
-        for column in columns: # TODO: Fjernet kode her siden ubrukt variabel?
-            table_columns[table] = columns
+        table_columns[table] = [desc[0] for desc in cursor.description]
 
     cursor.close()
     conn.close()
@@ -462,7 +391,7 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
     unique_dict = get_unique_indexes(subsystem_dir, export_tables)
     blob_columns = get_blob_columns(subsystem_dir, export_tables)
 
-    if DDL_GEN == 'PWCode':
+    if DDL_GEN == 'Native':
         ddl_columns = get_ddl_columns(subsystem_dir)
 
     mode = '-mode=INSERT'
@@ -495,17 +424,15 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
 
         if insert:
             print("Copying table '" + table + "':")
-            if DDL_GEN == 'SQLWB':
+            if DDL_GEN == 'SQL Workbench':
                 params = mode + std_params + ' -createTarget=true -dropTarget=true'
-            elif DDL_GEN == 'PWCode':
+            elif DDL_GEN == 'Native':
                 t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)
                 ddl = '\nCREATE TABLE "' + table + '"\n(\n' + ddl_columns[table][:-1] + '\n);'
                 ddl = create_index(table, pk_dict, unique_dict, ddl)
                 print(ddl)
                 sql = 'DROP TABLE IF EXISTS "' + table + '"; ' + ddl
                 run_ddl(t_jdbc, sql)
-            else:
-                print_and_exit("Valid values for DDL generation are 'PWCode' and 'SQLWB'. Exiting.")
 
             if table in blob_columns:
                 for column in blob_columns[table]:

@@ -1,5 +1,6 @@
 import shutil
 import os
+from pathlib import Path
 from configparser import ConfigParser
 from common.xml_settings import XMLSettings
 from common.config import add_config_section
@@ -7,50 +8,9 @@ import xml.etree.ElementTree as ET
 from common.file import md5sum
 from defs import (
     export_db_schema,
-    export_files,
     capture_files,
     test_db_connect
 )
-
-# """ SYSTEM """
-# project_name = 'test2'  # Will also be the name of the generated data package
-# EXPORT_TYPE = 'FILES'  # DATABASE | FILES | BOTH
-# PACKAGE = True  # Set to true when all export runs are done to package as a wim or tar file with checksum
-# ARCHIVE_FORMAT = 'wim'  # TODO: Implementer tar som alternativ + autodekter hva som er tilgjengelig
-
-# """ FILES """
-# # Extract all files from these directories:
-# DIR_PATHS = [
-#     # 'path/to/extract/on/linux',
-#     '/home/bba/Downloads/RationalPlan/',
-#     '/home/bba/Downloads/python/',
-#     # '/home/bba/Downloads/vscode-icons-master/'
-#     # 'c:\path\on\windows'
-# ]
-
-# """ DATABASE """
-# DB_NAME = 'DOCULIVEHIST_DBO'
-# DB_SCHEMA = 'PUBLIC'
-# JDBC_URL = 'jdbc:h2:/home/bba/Desktop/DOCULIVEHIST_DBO_PUBLIC'
-# DB_USER = ''
-# DB_PASSWORD = ''
-# MAX_JAVA_HEAP = '-Xmx4g'  # g=GB. Increase available memory as needed
-# DDL_GEN = 'PWCode'  # PWCode | SQLWB -> Choose between generators for 'create table'
-# # Copy all tables in schema except these:
-# SKIP_TABLES = [
-#     #    'EDOKFILES',
-#     # 'tabnavn',
-# ]
-# # Copy only these tables (overrides 'SKIP_TABLES') :
-# INCL_TABLES = [
-#     # 'EDOKFILES',
-#     # 'ALL',
-# ]
-# # Overwrite table rather than sync if exists in target:
-# OVERWRITE_TABLES = [
-#     # 'EDOKFILES',
-#     # 'OA_SAK',
-# ]
 
 
 def main():
@@ -89,8 +49,13 @@ def main():
     tree = ET.parse(config_path)
     subsystems = list(tree.find('subsystems'))  
 
-     # TODO: Splitte ut som egen def for å fjerne duplisering av kode -> Skrive alle variabler til dict heller?
-    for subsystem in subsystems:
+    archive_format = 'wim'
+    if os.name == "posix":
+        archive_format = 'tar'
+
+    # TODO: Skrive til xml når ferdig eksportert de forskjellige delene?        
+     # TODO: Splitte ut som egen def for å fjerne duplisering av kode -> Skrive alle variabler til dict heller? Egen config-klasse?
+    for subsystem in subsystems: 
         subsystem_name = subsystem.tag
         db_name = config.get('subsystems/' + subsystem_name + '/db_name')
         schema_name = config.get('subsystems/' + subsystem_name + '/schema_name')
@@ -101,20 +66,17 @@ def main():
         include_tables = config.get('subsystems/' + subsystem_name + '/include_tables')
         overwrite_tables = config.get('subsystems/' + subsystem_name + '/overwrite_tables')
 
+        if not jdbc_url:
+            continue
+        
+        # TODO: Sjekk her om skjema og db finnes. Ikke bare at kan koble til databasemotor. Evt. bare gi tilbakemelding hvis ingen tabeller hentes?
         db_check = test_db_connect(jdbc_url, bin_dir, class_path, memory, db_user, db_password, db_name, schema_name, include_tables, exclude_tables, overwrite_tables)
-
-        # return # TODO: For test. Fjern senere
 
         if not db_check == 'ok':
             print(db_check)
             return
 
-
     for subsystem in subsystems:
-        subsystem_name = subsystem.tag
-        # subsystem_dir = system_dir + '/content/sub_systems/' + name
-        db_name = subsystem.find('db_name')
-        schema_name = subsystem.find('schema_name')
         folders_tag = subsystem.find('folders')
         if folders_tag:
             folders = list(folders_tag)
@@ -123,128 +85,93 @@ def main():
                     print("'" + folder.text + "' is not a valid path. Exiting.")
                     return   
 
-        # TODO: Sjekk på db kobling her
+    dirs = [
+        project_dir  + '/administrative_metadata/',
+        project_dir  + '/descriptive_metadata/',
+        project_dir  + '/content/documentation/'
+    ]
 
+    for dir in dirs:
+        Path(dir).mkdir(parents=True, exist_ok=True)
 
+    for subsystem in subsystems:
+        subsystem_name = subsystem.tag
+        subsystem_dir = project_dir + '/content/sub_systems/' + subsystem_name
+        db_user = config.get('subsystems/' + subsystem_name + '/db_user')
 
-        # export_files(project_dir, subsystem_dir, EXPORT_TYPE, project_name, DIR_PATHS, bin_dir, ARCHIVE_FORMAT)
+        dirs = [
+            subsystem_dir + '/header',
+            subsystem_dir + '/content/documents/',
+            subsystem_dir + '/documentation/dip/'
+        ]
 
-#         # Create data package directories and extract any files:
+        for dir in dirs:
+            Path(dir).mkdir(parents=True, exist_ok=True)
 
-#         # Export database schema:
-#         if DB_NAME and DB_SCHEMA and JDBC_URL and EXPORT_TYPE != 'FILES':
-#             export_db_schema(
-#                 JDBC_URL,
-#                 bin_dir,
-#                 class_path,
-#                 MAX_JAVA_HEAP,
-#                 DB_USER,
-#                 DB_PASSWORD,
-#                 DB_NAME,
-#                 DB_SCHEMA,
-#                 subsystem_dir,
-#                 INCL_TABLES,
-#                 SKIP_TABLES,
-#                 OVERWRITE_TABLES,
-#                 DDL_GEN
-#             )
+        folders_tag = subsystem.find('folders')
+        if folders_tag:
+            file_status = config.get('subsystems/' + subsystem_name + '/status/file')
+            if file_status =='exported':
+                print("Files in subsystem '" + subsystem_name + "' already exported.")
+            else:                
+                folders = list(folders_tag)
+                for folder in folders:
+                    target_path = subsystem_dir + '/content/documents/' + folder.tag + "." + archive_format
+                    if os.path.isfile(target_path):
+                        continue
 
-#         if PACKAGE:
-#             capture_files(bin_dir, system_dir, archive)
-#             checksum = md5sum(archive)
+                    file_result = capture_files(bin_dir, folder.text, target_path) 
+                    if file_result != 'ok':
+                        print(file_result)
+                        config.put('subsystems/' + subsystem_name + '/status/files', 'failed') 
+                        config.save() 
+                        return
 
-#             config = ConfigParser()
-#             config_file = system_dir[:-1] + "/pwcode.ini"
+                config.put('subsystems/' + subsystem_name + '/status/files', 'exported')
+                config.save()
 
-#             config.read(config_file)
-#             add_config_section(config, 'SYSTEM')
-#             config.set('SYSTEM', 'checksum', checksum)
-#             config.set('SYSTEM', 'archive_format', ARCHIVE_FORMAT)
-#             config.set('SYSTEM', 'checksum_verified', "False")
-#             with open(config_file, "w+") as f:
-#                 config.write(f, space_around_delimiters=False)
+        jdbc_url = config.get('subsystems/' + subsystem_name + '/jdbc_url')
+        db_user = config.get('subsystems/' + subsystem_name + '/db_user')
+        db_password = config.get('subsystems/' + subsystem_name + '/db_password')
+        db_name = config.get('subsystems/' + subsystem_name + '/db_name')
+        schema_name = config.get('subsystems/' + subsystem_name + '/schema_name')
+        jdbc_url = config.get('subsystems/' + subsystem_name + '/jdbc_url')
+        exclude_tables = config.get('subsystems/' + subsystem_name + '/exclude_tables')
+        include_tables = config.get('subsystems/' + subsystem_name + '/include_tables')
+        overwrite_tables = config.get('subsystems/' + subsystem_name + '/overwrite_tables')
+        db_status = config.get('subsystems/' + subsystem_name + '/status/db')
 
-#             shutil.rmtree(system_dir, ignore_errors=True)
-#             return 'All data copied and system data package created.'
+        if db_status == 'exported':
+            print("Database in subsystem '" + subsystem_name + "' already exported.")
+            continue
 
-#         else:
-#             return 'All data copied. Create system data package now if finished extracting system data.'
-           
+        if not jdbc_url:
+            continue
+        
+        db_result = export_db_schema(
+            jdbc_url,
+            bin_dir,
+            class_path,
+            memory,
+            db_user,
+            db_password,
+            db_name,
+            schema_name,
+            subsystem_dir,
+            include_tables,
+            exclude_tables,
+            overwrite_tables,
+            ddl
+            )    
 
+        if db_result != 'ok':
+            print(db_result)
+            config.put('subsystems/' + subsystem_name + '/status/db', 'failed')
+            config.save()   
+            return                               
 
-
-# def main():
-#     bin_dir = os.environ["pwcode_bin_dir"]  # Get PWCode executable path
-#     class_path = os.environ['CLASSPATH']  # Get Java jar path
-#     data_dir = os.environ["pwcode_data_dir"]  # Get PWCode data path (projects)
-#     config_dir = os.environ["pwcode_config_dir"]  # Get PWCode config path
-#     subsystem_dir = None
-#     tmp_dir = config_dir + 'tmp'
-
-#     os.chdir(tmp_dir)  # Avoid littering from subprocesses
-
-#     if project_name:
-#         system_dir = data_dir + project_name + '_'  # --> projects/[system_]
-#         archive = system_dir[:-1] + '/' + project_name + '.' + ARCHIVE_FORMAT
-#         if os.path.isfile(archive):
-#             return "'" + archive + "' already exists. Exiting."
-
-
-
-
-#         if EXPORT_TYPE != 'FILES':
-#             if not (DB_NAME and DB_SCHEMA):
-#                 return 'Missing database- or schema -name. Exiting.'
-#             else:
-#                 subsystem_dir = system_dir + '/content/sub_systems/' + DB_NAME + '_' + DB_SCHEMA
-
-#         if EXPORT_TYPE != 'DATABASE' and not DIR_PATHS:
-#             return 'Missing directory paths. Exiting.'
-
-#         # Create data package directories and extract any files:
-#         export_files(system_dir, subsystem_dir, EXPORT_TYPE, project_name, DIR_PATHS, bin_dir, ARCHIVE_FORMAT)
-
-#         # Export database schema:
-#         if DB_NAME and DB_SCHEMA and JDBC_URL and EXPORT_TYPE != 'FILES':
-#             export_db_schema(
-#                 JDBC_URL,
-#                 bin_dir,
-#                 class_path,
-#                 MAX_JAVA_HEAP,
-#                 DB_USER,
-#                 DB_PASSWORD,
-#                 DB_NAME,
-#                 DB_SCHEMA,
-#                 subsystem_dir,
-#                 INCL_TABLES,
-#                 SKIP_TABLES,
-#                 OVERWRITE_TABLES,
-#                 DDL_GEN
-#             )
-
-#         if PACKAGE:
-#             capture_files(bin_dir, system_dir, archive)
-#             checksum = md5sum(archive)
-
-#             config = ConfigParser()
-#             config_file = system_dir[:-1] + "/pwcode.ini"
-
-#             config.read(config_file)
-#             add_config_section(config, 'SYSTEM')
-#             config.set('SYSTEM', 'checksum', checksum)
-#             config.set('SYSTEM', 'archive_format', ARCHIVE_FORMAT)
-#             config.set('SYSTEM', 'checksum_verified', "False")
-#             with open(config_file, "w+") as f:
-#                 config.write(f, space_around_delimiters=False)
-
-#             shutil.rmtree(system_dir, ignore_errors=True)
-#             return 'All data copied and system data package created.'
-
-#         else:
-#             return 'All data copied. Create system data package now if finished extracting system data.'
-
-#     else:
-#         return 'Missing system name. Exiting.'
+        config.put('subsystems/' + subsystem_name + '/status/db', 'exported')           
+        config.save()
 
 
 if __name__ == '__main__':
