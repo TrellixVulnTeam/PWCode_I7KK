@@ -144,10 +144,7 @@ def main():
         if db_status == 'exported':
             print("Database in subsystem '" + subsystem_name + "' already exported.")
             continue
-
-        if not jdbc_url:
-            continue
-        
+    
         db_result = export_db_schema(
             jdbc_url,
             bin_dir,
@@ -172,6 +169,8 @@ def main():
 
         config.put('subsystems/' + subsystem_name + '/status/db', 'exported')           
         config.save()
+
+    return "System exported successfully."
 
 
 if __name__ == '__main__':

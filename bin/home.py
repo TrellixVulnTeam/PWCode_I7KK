@@ -23,6 +23,7 @@
 
 # from console import ConsoleUi, Processing
 from common.xml_settings import XMLSettings
+from collections import Counter
 import inspect
 import commands
 import os
@@ -398,7 +399,12 @@ class HomeTab(ttk.Frame):
             j = 0
             for path in folder_paths: 
                 config.put('subsystems/' + subsystem_name + '/folders/folder' + str(j), path)
-                j += 1                           
+                j += 1   
+
+        duplicate_names = [k for k,v in Counter(subsystem_names).items() if v>1]    
+        for name in duplicate_names:
+            msg_label.config(text="Duplicate subsystem name '" + name + "'.")
+            return                                    
 
         config.save()
         return config_dir

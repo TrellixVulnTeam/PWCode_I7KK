@@ -129,12 +129,10 @@ def export_db_schema(JDBC_URL, bin_dir, class_path, MAX_JAVA_HEAP, DB_USER, DB_P
             if jdbc:
                 # Get database metadata:
                 db_tables, table_columns = get_db_meta(jdbc)
-                print(table_columns) # TODO: Fiks at ikke henter tabeller og kolonner riktig
                 export_schema(class_path, MAX_JAVA_HEAP, subsystem_dir, jdbc, db_tables)
                 export_tables, overwrite_tables = table_check(INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, db_tables)
 
             if export_tables:
-                print('test')
                 # Copy schema data:
                 copy_db_schema(subsystem_dir, jdbc, class_path, MAX_JAVA_HEAP, export_tables, bin_dir, table_columns, overwrite_tables, DDL_GEN)
                 return 'ok'
@@ -459,7 +457,7 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
 
 
 # WAIT: Mangler disse for å ha alle i JDBC 4.0: ROWID=-8 og SQLXML=2009
-#                        jdbc-id  iso-name               jdbc-name
+#jdbc-id  iso-name               jdbc-name
 jdbc_to_iso_data_type = {
     '-16': 'clob',               # LONGNVARCHAR
     '-15': 'varchar',            # NCHAR
