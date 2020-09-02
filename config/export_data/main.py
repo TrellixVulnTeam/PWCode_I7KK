@@ -53,8 +53,10 @@ def main():
 
     # TODO: Skrive til xml når ferdig eksportert de forskjellige delene?        
      # TODO: Splitte ut som egen def for å fjerne duplisering av kode -> Skrive alle variabler til dict heller? Egen config-klasse?
+    all_exported = True
     for subsystem in subsystems: 
         subsystem_name = subsystem.tag
+        db_status = config.get('subsystems/' + subsystem_name + '/db/status')
         db_name = config.get('subsystems/' + subsystem_name + '/db/name')
         schema_name = config.get('subsystems/' + subsystem_name + '/schema_name')
         jdbc_url = config.get('subsystems/' + subsystem_name + '/jdbc_url')
@@ -64,7 +66,10 @@ def main():
         include_tables = config.get('subsystems/' + subsystem_name + '/db/include_tables')
         overwrite_tables = config.get('subsystems/' + subsystem_name + '/db/overwrite_tables')
 
-        if not jdbc_url:
+        if db_status != 'exported':
+            all_exported = False        
+
+        if not jdbc_url or db_status == 'exported':
             continue
         
         db_check = test_db_connect(jdbc_url, bin_dir, class_path, memory, db_user, db_password, db_name, schema_name, include_tables, exclude_tables, overwrite_tables)
@@ -77,9 +82,16 @@ def main():
         if folders_tag:
             folders = list(folders_tag)
             for folder in folders:
+                status = config.get('subsystems/' + subsystem_name + '/folders/' + folder.tag + '/status')
+                if status == 'exported':
+                    all_exported = False
+                
                 source_path = config.get('subsystems/' + subsystem_name + '/folders/' + folder.tag + '/path')
                 if not os.path.isdir(source_path):
                     return "'" + source_path + "' is not a valid path. Exiting." 
+
+    if all_exported == True:
+        return "System already exported."                  
 
     dirs = [
         project_dir  + '/administrative_metadata/',
@@ -142,7 +154,6 @@ def main():
             print("Database in subsystem '" + subsystem_name + "' already exported.")
             continue
 
-    
         db_result = export_db_schema(
             jdbc_url,
             bin_dir,
@@ -160,11 +171,11 @@ def main():
             )    
 
         if db_result != 'ok':
-            config.put('subsystems/' + subsystem_name + '/status/db', 'failed')
+            config.put('subsystems/' + subsystem_name + '/db/status', 'failed')
             config.save()   
             return db_result                           
 
-        config.put('subsystems/' + subsystem_name + '/status', 'exported')           
+        config.put('subsystems/' + subsystem_name + '/db/status', 'exported')           
         config.save()
 
     return "System exported successfully."

@@ -294,18 +294,18 @@ class HomeTab(ttk.Frame):
 
         options_frame = ttk.Frame(self.project_frame, style="SubHeading.TLabel")
         options_frame.pack(side=tk.TOP, anchor=tk.W, fill=tk.X, pady=(0, 20))
-        options_label = ttk.Label(options_frame, text="Database Options:", width=16)
-        options_label.pack(side=tk.LEFT, anchor=tk.N, padx=(8, 0), pady=3)
+        # options_label = ttk.Label(options_frame, text="Database Options:", width=16)
+        # options_label.pack(side=tk.LEFT, anchor=tk.N, padx=(8, 0), pady=3)
         # # TODO: Flytt denne linjen opp på system nivå
         # # TODO: Legg inn sjekk på at ikke duplikat folder --> i choose_folder kode?
 
         memory_label = ttk.Label(options_frame, text="Allocated memory:")
-        memory_label.pack(side=tk.LEFT, anchor=tk.N, pady=3)
+        memory_label.pack(side=tk.LEFT, anchor=tk.N, padx=(8, 0), pady=3)
         options = ['', '3 Gb', '4 Gb', '5 Gb', '6 Gb', '7 Gb', '8 Gb']
         self.project_frame.memory_option = tk.StringVar()
         self.project_frame.memory_option.set(options[2])
         memory_option = ttk.OptionMenu(options_frame, self.project_frame.memory_option, *options)
-        memory_option.pack(side=tk.LEFT, anchor=tk.N, pady=3, padx=(0, 55))
+        memory_option.pack(side=tk.LEFT, anchor=tk.N, pady=3, padx=(0, 12))
         memory_option.configure(width=4)
 
         ddl_label = ttk.Label(options_frame, text="DDL Generation:")
@@ -314,8 +314,17 @@ class HomeTab(ttk.Frame):
         self.project_frame.ddl_option = tk.StringVar()
         self.project_frame.ddl_option.set(options[1])
         ddl_option = ttk.OptionMenu(options_frame, self.project_frame.ddl_option, *options)
-        ddl_option.pack(side=tk.LEFT, anchor=tk.N, pady=3)
+        ddl_option.pack(side=tk.LEFT, anchor=tk.N, pady=3, padx=(0, 12))
         ddl_option.configure(width=12)
+
+        package_label = ttk.Label(options_frame, text="Create Package:")
+        package_label.pack(side=tk.LEFT, anchor=tk.N, pady=3)
+        options = ['', 'Yes', 'No']
+        self.project_frame.package_option = tk.StringVar()
+        self.project_frame.package_option.set(options[1])
+        package_option = ttk.OptionMenu(options_frame, self.project_frame.package_option, *options)
+        package_option.pack(side=tk.LEFT, anchor=tk.N, pady=3)
+        package_option.configure(width=4)        
 
 
     def subsystem_entry(self, app):
@@ -341,7 +350,8 @@ class HomeTab(ttk.Frame):
         config, config_dir = self.config_init('pwcode')
         config.put('system_name', self.project_frame.name_entry.get())
         config.put('options/memory', self.project_frame.memory_option.get()) 
-        config.put('options/ddl', self.project_frame.ddl_option.get())         
+        config.put('options/ddl', self.project_frame.ddl_option.get())   
+        config.put('options/create_package', self.project_frame.package_option.get())        
 
         i = 0
         subsystem_names = []
@@ -423,6 +433,7 @@ class Project(ttk.LabelFrame):
         self.merge_option_frame = None
         self.memory_option = None
         self.ddl_option = None
+        self.package_option = None
 
         self.name_frame = ttk.Frame(self, style="SubHeading.TLabel")
         self.name_frame.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)

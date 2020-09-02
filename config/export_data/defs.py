@@ -28,7 +28,7 @@ from common.xml import indent
 
 
 # TODO: Bytt ut print_and_exit og fjern så den (må sjekke at da avslutter hele med return heller)
-
+# WAIT: Har path til schema file som arg heller enn at hardkodet flere steder
 
 def get_db_details(jdbc_url, bin_dir):
     # TODO: Legg inn støtte for flere dbtyper
@@ -72,7 +72,7 @@ def get_tables(conn, schema):
 
 
 def export_schema(class_path, max_java_heap, subsystem_dir, jdbc, db_tables):
-    base_dir = subsystem_dir + '/documentation/'
+    base_dir = subsystem_dir + '/header/'
 
     if os.path.isfile(base_dir + 'metadata.xml'):
         return
@@ -175,7 +175,7 @@ def get_db_meta(jdbc):
 
 
 def add_row_count_to_schema_file(subsystem_dir, db_tables):
-    schema_file = subsystem_dir + '/documentation/metadata.xml'
+    schema_file = subsystem_dir + '/header/metadata.xml'
     tree = ET.parse(schema_file)
 
     table_defs = tree.findall("table-def")
@@ -246,7 +246,7 @@ def get_target_tables(jdbc):
 
 def get_blob_columns(subsystem_dir, export_tables):
     blob_columns = {}
-    schema_file = subsystem_dir + '/documentation/metadata.xml'
+    schema_file = subsystem_dir + '/header/metadata.xml'
     tree = ET.parse(schema_file)
 
     table_defs = tree.findall("table-def")
@@ -271,7 +271,7 @@ def get_blob_columns(subsystem_dir, export_tables):
 
 def get_primary_keys(subsystem_dir, export_tables):
     pk_dict = {}
-    schema_file = subsystem_dir + '/documentation/metadata.xml'
+    schema_file = subsystem_dir + '/header/metadata.xml'
     tree = ET.parse(schema_file)
 
     table_defs = tree.findall("table-def")
@@ -297,7 +297,7 @@ def get_primary_keys(subsystem_dir, export_tables):
 
 def get_unique_indexes(subsystem_dir, export_tables):
     unique_dict = {}
-    schema_file = subsystem_dir + '/documentation/metadata.xml'
+    schema_file = subsystem_dir + '/header/metadata.xml'
     tree = ET.parse(schema_file)
 
     table_defs = tree.findall("table-def")
@@ -384,7 +384,8 @@ def create_index(table, pk_dict, unique_dict, ddl):
 
 def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tables, bin_dir, table_columns, overwrite_tables, DDL_GEN):
     batch = wb_batch(class_path, max_java_heap)
-    target_url = 'jdbc:h2:' + subsystem_dir + '/documentation/' + s_jdbc.db_name + '_' + s_jdbc.db_schema + ';autocommit=off'
+    Path(subsystem_dir + '/content/data/',).mkdir(parents=True, exist_ok=True)
+    target_url = 'jdbc:h2:' + subsystem_dir + '/content/data/' + s_jdbc.db_name + '_' + s_jdbc.db_schema + ';autocommit=off'
     target_url, driver_jar, driver_class = get_db_details(target_url, bin_dir)
     t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)
     target_tables = get_target_tables(t_jdbc)
@@ -496,7 +497,7 @@ jdbc_to_iso_data_type = {
 
 def get_ddl_columns(subsystem_dir):
     ddl_columns = {}
-    schema_file = subsystem_dir + '/documentation/metadata.xml'
+    schema_file = subsystem_dir + '/header/metadata.xml'
     tree = ET.parse(schema_file)
 
     table_defs = tree.findall("table-def")
