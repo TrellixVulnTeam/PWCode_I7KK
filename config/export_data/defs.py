@@ -100,10 +100,13 @@ def test_db_connect(JDBC_URL, bin_dir, class_path, MAX_JAVA_HEAP, DB_USER, DB_PA
 
         try:
             jdbc = Jdbc(url, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, driver_jar, driver_class, True, True)
-            # TODO: Legg inn forståelig melding hvis db_name eller db_schema er feil/ikke finnes
+            # TODO: Legg inn sjekk på at jdbc url er riktig, ikke bare på om db_name og skjema returnerer tabeller
             if jdbc:
                 # Get database metadata:
                 db_tables, table_columns = get_db_meta(jdbc)
+                if not db_tables:
+                    return "Database '" + DB_NAME + "', schema '" + DB_SCHEMA + "' returns no tables."
+
                 export_tables, overwrite_tables = table_check(INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, db_tables)
                 return 'ok'
 

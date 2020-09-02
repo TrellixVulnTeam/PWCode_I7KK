@@ -336,10 +336,10 @@ class HomeTab(ttk.Frame):
 
 
     def export_check(self, app):
-        # TODO: Sjekk kobling eller at kan brukes som mappenavn her hvis db subsystem og ikke bare filer
+        # TODO: Sjekk kobling mm her heller enn i subprocess så kan endre i gui enklere hvis noe er feil
 
         config, config_dir = self.config_init('pwcode')
-        config.put('name', self.project_frame.name_entry.get())
+        config.put('system_name', self.project_frame.name_entry.get())
         config.put('options/memory', self.project_frame.memory_option.get()) 
         config.put('options/ddl', self.project_frame.ddl_option.get())         
 
@@ -388,18 +388,23 @@ class HomeTab(ttk.Frame):
             subsystem_names.append(subsystem_name)
             subsystem.configure(text=' ' + subsystem_name + ' ')
 
-            config.put('subsystems/' + subsystem_name + '/db_name', db_name)
-            config.put('subsystems/' + subsystem_name + '/schema_name', db_schema)
-            config.put('subsystems/' + subsystem_name + '/jdbc_url', jdbc_url)
-            config.put('subsystems/' + subsystem_name + '/db_user', db_user)
-            config.put('subsystems/' + subsystem_name + '/db_password', db_pwd)
-            config.put('subsystems/' + subsystem_name + '/' + tables_option.replace(' ', '_'), tables)
-            config.put('subsystems/' + subsystem_name + '/overwrite_tables', overwrite_tables)            
+            config.put('subsystems/' + subsystem_name + '/db/name', db_name)
+            config.put('subsystems/' + subsystem_name + '/db/schema_name', db_schema)
+            config.put('subsystems/' + subsystem_name + '/db/jdbc_url', jdbc_url)
+            config.put('subsystems/' + subsystem_name + '/db/user', db_user)
+            config.put('subsystems/' + subsystem_name + '/db/password', db_pwd)
+            config.put('subsystems/' + subsystem_name + '/db/' + tables_option.replace(' ', '_'), tables)
+            config.put('subsystems/' + subsystem_name + '/db/overwrite_tables', overwrite_tables) 
+
+            if jdbc_url:
+                config.put('subsystems/' + subsystem_name + '/db/status', 'pending')             
 
             j = 0
             for path in folder_paths: 
-                config.put('subsystems/' + subsystem_name + '/folders/folder' + str(j), path)
+                config.put('subsystems/' + subsystem_name + '/folders/folder' + str(j) + '/path', path)
+                config.put('subsystems/' + subsystem_name + '/folders/folder' + str(j) + '/status', 'pending')
                 j += 1   
+
 
         duplicate_names = [k for k,v in Counter(subsystem_names).items() if v>1]    
         for name in duplicate_names:

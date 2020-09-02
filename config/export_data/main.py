@@ -24,15 +24,13 @@ def main():
     tmp_config = XMLSettings(tmp_config_path)
 
     if not os.path.isfile(tmp_config_path):
-        print('No config file found. Exiting.')
-        return
+        return 'No config file found. Exiting.'
 
-    project_name = tmp_config.get('name')
+    project_name = tmp_config.get('system_name')
     project_dir = data_dir + project_name + '_'
 
     if not os.path.isdir(project_dir):
-        print('No project folder found. Exiting.')
-        return
+        return 'No project folder found. Exiting.'
 
     archive = project_dir[:-1] + '/' + project_name + '.tar' # TODO: Endre kode så 'tar' og ikke 'wim' ytterst
     if os.path.isfile(archive):
@@ -57,33 +55,31 @@ def main():
      # TODO: Splitte ut som egen def for å fjerne duplisering av kode -> Skrive alle variabler til dict heller? Egen config-klasse?
     for subsystem in subsystems: 
         subsystem_name = subsystem.tag
-        db_name = config.get('subsystems/' + subsystem_name + '/db_name')
+        db_name = config.get('subsystems/' + subsystem_name + '/db/name')
         schema_name = config.get('subsystems/' + subsystem_name + '/schema_name')
         jdbc_url = config.get('subsystems/' + subsystem_name + '/jdbc_url')
-        db_user = config.get('subsystems/' + subsystem_name + '/db_user')
-        db_password = config.get('subsystems/' + subsystem_name + '/db_password')
-        exclude_tables = config.get('subsystems/' + subsystem_name + '/exclude_tables')
-        include_tables = config.get('subsystems/' + subsystem_name + '/include_tables')
-        overwrite_tables = config.get('subsystems/' + subsystem_name + '/overwrite_tables')
+        db_user = config.get('subsystems/' + subsystem_name + '/db/user')
+        db_password = config.get('subsystems/' + subsystem_name + '/db/password')
+        exclude_tables = config.get('subsystems/' + subsystem_name + '/db/exclude_tables')
+        include_tables = config.get('subsystems/' + subsystem_name + '/db/include_tables')
+        overwrite_tables = config.get('subsystems/' + subsystem_name + '/db/overwrite_tables')
 
         if not jdbc_url:
             continue
         
-        # TODO: Sjekk her om skjema og db finnes. Ikke bare at kan koble til databasemotor. Evt. bare gi tilbakemelding hvis ingen tabeller hentes?
         db_check = test_db_connect(jdbc_url, bin_dir, class_path, memory, db_user, db_password, db_name, schema_name, include_tables, exclude_tables, overwrite_tables)
 
         if not db_check == 'ok':
-            print(db_check)
-            return
+            return db_check
 
     for subsystem in subsystems:
         folders_tag = subsystem.find('folders')
         if folders_tag:
             folders = list(folders_tag)
             for folder in folders:
-                if not os.path.isdir(folder.text):
-                    print("'" + folder.text + "' is not a valid path. Exiting.")
-                    return   
+                source_path = config.get('subsystems/' + subsystem_name + '/folders/' + folder.tag + '/path')
+                if not os.path.isdir(source_path):
+                    return "'" + source_path + "' is not a valid path. Exiting." 
 
     dirs = [
         project_dir  + '/administrative_metadata/',
@@ -97,7 +93,7 @@ def main():
     for subsystem in subsystems:
         subsystem_name = subsystem.tag
         subsystem_dir = project_dir + '/content/sub_systems/' + subsystem_name
-        db_user = config.get('subsystems/' + subsystem_name + '/db_user')
+        db_user = config.get('subsystems/' + subsystem_name + '/db/user')
 
         dirs = [
             subsystem_dir + '/header',
@@ -109,41 +105,43 @@ def main():
             Path(dir).mkdir(parents=True, exist_ok=True)
 
         folders_tag = subsystem.find('folders')
-        if folders_tag:
-            file_status = config.get('subsystems/' + subsystem_name + '/status/file')
-            if file_status =='exported':
-                print("Files in subsystem '" + subsystem_name + "' already exported.")
-            else:                
-                folders = list(folders_tag)
-                for folder in folders:
-                    target_path = subsystem_dir + '/content/documents/' + folder.tag + "." + archive_format
-                    if os.path.isfile(target_path):
-                        continue
+        if folders_tag:             
+            folders = list(folders_tag)
+            for folder in folders:
+                status = config.get('subsystems/' + subsystem_name + '/folders/' + folder.tag + '/status')
+                if status == 'exported':
+                    print("'" + folder.tag + "." + archive_format + "' already exported.")
+                    continue
+                
+                source_path = config.get('subsystems/' + subsystem_name + '/folders/' + folder.tag + '/path')
+                target_path = subsystem_dir + '/content/documents/' + folder.tag + "." + archive_format
+                file_result = capture_files(bin_dir, source_path, target_path) 
+                if file_result != 'ok':
+                    config.put('subsystems/' + subsystem_name + '/folders/' + folder.tag + '/status', 'failed') 
+                    config.save() 
+                    return file_result
 
-                    file_result = capture_files(bin_dir, folder.text, target_path) 
-                    if file_result != 'ok':
-                        print(file_result)
-                        config.put('subsystems/' + subsystem_name + '/status/files', 'failed') 
-                        config.save() 
-                        return
-
-                config.put('subsystems/' + subsystem_name + '/status/files', 'exported')
+                config.put('subsystems/' + subsystem_name + '/folders/' + folder.tag + '/status', 'exported')
                 config.save()
 
-        jdbc_url = config.get('subsystems/' + subsystem_name + '/jdbc_url')
-        db_user = config.get('subsystems/' + subsystem_name + '/db_user')
-        db_password = config.get('subsystems/' + subsystem_name + '/db_password')
-        db_name = config.get('subsystems/' + subsystem_name + '/db_name')
-        schema_name = config.get('subsystems/' + subsystem_name + '/schema_name')
-        jdbc_url = config.get('subsystems/' + subsystem_name + '/jdbc_url')
-        exclude_tables = config.get('subsystems/' + subsystem_name + '/exclude_tables')
-        include_tables = config.get('subsystems/' + subsystem_name + '/include_tables')
-        overwrite_tables = config.get('subsystems/' + subsystem_name + '/overwrite_tables')
-        db_status = config.get('subsystems/' + subsystem_name + '/status/db')
+        jdbc_url = config.get('subsystems/' + subsystem_name + '/db/jdbc_url')
+        db_user = config.get('subsystems/' + subsystem_name + '/db/user')
+        db_password = config.get('subsystems/' + subsystem_name + '/db/password')
+        db_name = config.get('subsystems/' + subsystem_name + '/db/name')
+        schema_name = config.get('subsystems/' + subsystem_name + '/db/schema_name')
+        jdbc_url = config.get('subsystems/' + subsystem_name + '/db/jdbc_url')
+        exclude_tables = config.get('subsystems/' + subsystem_name + '/db/exclude_tables')
+        include_tables = config.get('subsystems/' + subsystem_name + '/db/include_tables')
+        overwrite_tables = config.get('subsystems/' + subsystem_name + '/db/overwrite_tables')
+        db_status = config.get('subsystems/' + subsystem_name + '/db/status')
+
+        if not db_status:
+            continue
 
         if db_status == 'exported':
             print("Database in subsystem '" + subsystem_name + "' already exported.")
             continue
+
     
         db_result = export_db_schema(
             jdbc_url,
@@ -162,12 +160,11 @@ def main():
             )    
 
         if db_result != 'ok':
-            print(db_result)
             config.put('subsystems/' + subsystem_name + '/status/db', 'failed')
             config.save()   
-            return                               
+            return db_result                           
 
-        config.put('subsystems/' + subsystem_name + '/status/db', 'exported')           
+        config.put('subsystems/' + subsystem_name + '/status', 'exported')           
         config.save()
 
     return "System exported successfully."
