@@ -32,6 +32,7 @@ import pickle
 import shutil
 import tkinter as tk
 from tkinter import ttk
+from gui.dialog import multi_open
 # from tkinter import filedialog
 from settings import COLORS
 from gui.dialog import multi_open
@@ -93,7 +94,8 @@ class HomeTab(ttk.Frame):
             self.left_frame,
             "Start",
             (
-                ("Export Data", lambda: self.export_data_project(app)),
+                ("Export Data as SIP", lambda: self.export_data_project(app)),
+                ("Create AIP from SIP", lambda: self.normalize_data(app)),
                 ("Convert Files", lambda: self.convert_files_project(app)),  # TODO: Legg inn sjekk på at på PWLinux for at denne skal vises
                 ("New File", app.command_callable("new_file")),
                 ("Open File ...", app.command_callable("open_file")),
@@ -178,12 +180,16 @@ class HomeTab(ttk.Frame):
         return  XMLSettings(config_path), config_dir    
 
 
-    def run_plugin(self, app, project_name, config_dir, def_name):
-        base_path = app.data_dir + project_name
+    def run_plugin(self, app, project_name, config_dir, def_name, base_path = None):
+        if not base_path:
+            # TODO: Test at dette virker for normalize og generelt når mappe annet sted enn i projects
+            base_path = app.data_dir + project_name
+
         if def_name == 'export_data':
             base_path = app.data_dir + project_name
 
         for filename in os.listdir(config_dir + def_name):
+            # TODO: Endre kode så ikke defs.py overskriver hverandre
             new_path = base_path + '/.pwcode/' + filename           
             if filename == 'main.py':
                 new_path = base_path + '/.pwcode/' + project_name + def_name + '.py'
@@ -278,6 +284,23 @@ class HomeTab(ttk.Frame):
         self.project_frame.merge_option_frame = merge_option
 
 
+    def normalize_data(self, app):
+        project_dir = multi_open(app.data_dir, mode='dir')
+        if not project_dir:
+            return 'No folder chosen.'
+
+        config_path = project_dir + '/pwcode.xml'
+        if not os.path.isfile(config_path):
+            return 'Not a PWCode SIP project'
+
+        config = XMLSettings(config_path)
+        project_name = config.get('system/name')
+        def_name = inspect.currentframe().f_code.co_name
+        config_dir = os.environ["pwcode_config_dir"]  # Get PWCode config path
+
+        self.run_plugin(app, project_name, config_dir, def_name)        
+
+
     def export_data_project(self, app):
         self.reset_rhs("Export Data")
 
@@ -299,13 +322,13 @@ class HomeTab(ttk.Frame):
         # # TODO: Flytt denne linjen opp på system nivå
         # # TODO: Legg inn sjekk på at ikke duplikat folder --> i choose_folder kode?
 
-        memory_label = ttk.Label(options_frame, text="Allocated memory:")
+        memory_label = ttk.Label(options_frame, text="Allocated Memory:")
         memory_label.pack(side=tk.LEFT, anchor=tk.N, padx=(8, 0), pady=3)
         options = ['', '3 Gb', '4 Gb', '5 Gb', '6 Gb', '7 Gb', '8 Gb']
         self.project_frame.memory_option = tk.StringVar()
         self.project_frame.memory_option.set(options[2])
         memory_option = ttk.OptionMenu(options_frame, self.project_frame.memory_option, *options)
-        memory_option.pack(side=tk.LEFT, anchor=tk.N, pady=3, padx=(0, 12))
+        memory_option.pack(side=tk.LEFT, anchor=tk.N, pady=3, padx=(0, 6))
         memory_option.configure(width=4)
 
         ddl_label = ttk.Label(options_frame, text="DDL Generation:")
@@ -314,17 +337,17 @@ class HomeTab(ttk.Frame):
         self.project_frame.ddl_option = tk.StringVar()
         self.project_frame.ddl_option.set(options[1])
         ddl_option = ttk.OptionMenu(options_frame, self.project_frame.ddl_option, *options)
-        ddl_option.pack(side=tk.LEFT, anchor=tk.N, pady=3, padx=(0, 12))
+        ddl_option.pack(side=tk.LEFT, anchor=tk.N, pady=3, padx=(0, 6))
         ddl_option.configure(width=12)
 
-        package_label = ttk.Label(options_frame, text="Create Package:")
+        package_label = ttk.Label(options_frame, text="Tar with Checksum:")
         package_label.pack(side=tk.LEFT, anchor=tk.N, pady=3)
         options = ['', 'Yes', 'No']
         self.project_frame.package_option = tk.StringVar()
         self.project_frame.package_option.set(options[1])
         package_option = ttk.OptionMenu(options_frame, self.project_frame.package_option, *options)
         package_option.pack(side=tk.LEFT, anchor=tk.N, pady=3)
-        package_option.configure(width=4)        
+        package_option.configure(width=3)        
 
 
     def subsystem_entry(self, app):
