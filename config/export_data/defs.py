@@ -16,6 +16,7 @@
 import os
 import subprocess
 from subprocess import check_output, STDOUT
+import tarfile
 import jpype as jp
 import jpype.imports
 from pathlib import Path
@@ -42,23 +43,27 @@ def get_db_details(jdbc_url, bin_dir):
     return jdbc_url, driver_jar, driver_class
 
 
-def capture_files(bin_dir, source_path, target_path):
+def capture_files(bin_dir, source_path, target_path, exclude=None):
     Path(os.path.dirname(target_path)).mkdir(parents=True, exist_ok=True)
     archive_format = Path(target_path).suffix[1:]
 
-    if archive_format == 'wim':
-        cmd = bin_dir + "/vendor/wimlib-imagex capture " + source_path + " " + target_path + " --no-acls --compress=none"
-        # subprocess.run(cmd + source_path + " " + target_path + " --no-acls --compress=none", shell=True)
-    else:
-        cmd = "cd " + str(Path(source_path).parent) + " && tar -cvf " + target_path + " " + os.path.basename(source_path)
-        # subprocess.run("cd " + str(Path(source_path).parent) + " && tar -cvf " + target_path + " " + os.path.basename(source_path), shell=True)
+    def exclude_items(item):
+        if exclude is None:
+            return item  
+        elif source_path + '/' + item.name not in exclude:
+            return item    
 
     try:
-        check_output(cmd, stderr=STDOUT, shell=True).decode()
+        if archive_format == 'wim':
+            cmd = bin_dir + "/vendor/wimlib-imagex capture " + source_path + " " + target_path + " --no-acls --compress=none"
+            check_output(cmd, stderr=STDOUT, shell=True).decode()
+        else:
+            with tarfile.open(target_path, mode='w') as archive:
+                archive.add(source_path, recursive=True, arcname='', filter=exclude_items)  
     except Exception as e:
         return e 
-
-    return 'ok'          
+       
+    return 'ok'   
 
 
 def get_tables(conn, schema):

@@ -113,7 +113,7 @@ class HomeTab(ttk.Frame):
         else:
             msg_label.config(text='')
 
-        self.system_dir = app.data_dir + system_name + '_'  # --> projects/[system_]
+        self.system_dir = app.data_dir + system_name # --> projects/[system]
         system_dir = self.system_dir
 
         archive = system_dir[:-1] + '/' + system_name + '.tar' 
@@ -181,12 +181,12 @@ class HomeTab(ttk.Frame):
     def run_plugin(self, app, project_name, config_dir, def_name):
         base_path = app.data_dir + project_name
         if def_name == 'export_data':
-            base_path = app.data_dir + project_name + '_'
+            base_path = app.data_dir + project_name
 
         for filename in os.listdir(config_dir + def_name):
             new_path = base_path + '/.pwcode/' + filename           
             if filename == 'main.py':
-                new_path = base_path + '/.pwcode/' + project_name + '_' + def_name + '.py'
+                new_path = base_path + '/.pwcode/' + project_name + def_name + '.py'
                 path = new_path
 
             shutil.copy(config_dir + def_name + '/' + filename, new_path)
@@ -348,7 +348,8 @@ class HomeTab(ttk.Frame):
         # TODO: Sjekk kobling mm her heller enn i subprocess så kan endre i gui enklere hvis noe er feil
 
         config, config_dir = self.config_init('pwcode')
-        config.put('system_name', self.project_frame.name_entry.get())
+        config.put('system/name', self.project_frame.name_entry.get())
+        config.put('system/md5sum', 'null')
         config.put('options/memory', self.project_frame.memory_option.get()) 
         config.put('options/ddl', self.project_frame.ddl_option.get())   
         config.put('options/create_package', self.project_frame.package_option.get())        
@@ -407,12 +408,12 @@ class HomeTab(ttk.Frame):
             config.put('subsystems/' + subsystem_name + '/db/overwrite_tables', overwrite_tables) 
 
             if jdbc_url:
-                config.put('subsystems/' + subsystem_name + '/db/status', 'pending')             
+                config.put('subsystems/' + subsystem_name + '/db/status', 'null')             
 
             j = 0
             for path in folder_paths: 
                 config.put('subsystems/' + subsystem_name + '/folders/folder' + str(j) + '/path', path)
-                config.put('subsystems/' + subsystem_name + '/folders/folder' + str(j) + '/status', 'pending')
+                config.put('subsystems/' + subsystem_name + '/folders/folder' + str(j) + '/status', 'null')
                 j += 1   
 
 

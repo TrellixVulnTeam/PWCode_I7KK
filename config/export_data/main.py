@@ -26,13 +26,13 @@ def main():
     if not os.path.isfile(tmp_config_path):
         return 'No config file found. Exiting.'
 
-    project_name = tmp_config.get('system_name')
-    project_dir = data_dir + project_name + '_'
+    project_name = tmp_config.get('system/name')
+    project_dir = data_dir + project_name
 
     if not os.path.isdir(project_dir):
         return 'No project folder found. Exiting.'
 
-    archive = project_dir[:-1] + '/' + project_name + '.tar' # TODO: Endre kode så 'tar' og ikke 'wim' ytterst
+    archive = project_dir + '/' + project_name + '.tar' 
     if os.path.isfile(archive):
         return "'" + archive + "' already exists. Exiting."         
 
@@ -43,6 +43,7 @@ def main():
     config = XMLSettings(config_path)
     memory = '-Xmx' + config.get('options/memory').split(' ')[0] + 'g'
     ddl = config.get('options/ddl')
+    package = config.get('options/create_package')
 
     tree = ET.parse(config_path)
     subsystems = list(tree.find('subsystems'))  
@@ -51,7 +52,6 @@ def main():
     if os.name == "posix":
         archive_format = 'tar'
 
-    # TODO: Skrive til xml når ferdig eksportert de forskjellige delene?        
      # TODO: Splitte ut som egen def for å fjerne duplisering av kode -> Skrive alle variabler til dict heller? Egen config-klasse?
     all_exported = True
     for subsystem in subsystems: 
@@ -83,7 +83,7 @@ def main():
             folders = list(folders_tag)
             for folder in folders:
                 status = config.get('subsystems/' + subsystem_name + '/folders/' + folder.tag + '/status')
-                if status == 'exported':
+                if status != 'exported':
                     all_exported = False
                 
                 source_path = config.get('subsystems/' + subsystem_name + '/folders/' + folder.tag + '/path')
@@ -178,7 +178,24 @@ def main():
         config.put('subsystems/' + subsystem_name + '/db/status', 'exported')           
         config.save()
 
-    return "System exported successfully."
+
+    if package == 'No':        
+        return "System exported successfully."
+
+    exclude = [
+        project_dir + '/pwcode.xml',
+        project_dir + '/.pwcode'
+    ]
+    capture_files(bin_dir, project_dir, archive, exclude)
+    for sub_dir_path in [f.path for f in os.scandir(project_dir) if f.is_dir()]:
+        if sub_dir_path != project_dir + '/.pwcode':
+            shutil.rmtree(sub_dir_path, ignore_errors=True)   
+
+    checksum = md5sum(archive)
+    config.put('system/md5sum', checksum)
+    config.save()
+
+    return 'All data copied and system data package created.'    
 
 
 if __name__ == '__main__':
@@ -186,18 +203,3 @@ if __name__ == '__main__':
     print(msg)
     print('\n')  # WAIT: For flushing last print in def. Better fix later        
 
-
-# if __name__ == '__main__':
-
-#     data_dir = os.environ["pwcode_data_dir"]
-#     # from toml_config.core import Config
-#     # config_file = data_dir + 'config.toml'
-#     # my_config = Config(config_file)
-#     # my_config.add_section('app').set(key='value', other_key=[1, 2, 3])
-#     # http://spika.net/py/xmlsettings/
-#     config = XMLSettings(data_dir + "/config.xml")
-#     config.put('userdata/level', 100)
-#     config.save()
-
-#     msg = main()
-#     # print(msg)
