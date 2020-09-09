@@ -2,14 +2,14 @@ set WshShell = WScript.CreateObject("WScript.Shell" )
 set FSO = WScript.CreateObject("Scripting.FileSystemObject")
 
 SCRIPTPATH = Left(WScript.ScriptFullName, Len(WScript.ScriptFullName) - Len(WScript.ScriptName)) & "bin\"
-PYTHON_BIN=SCRIPTPATH & "vendor\windows\python\pythonw.exe"
-PIP_DONE=SCRIPTPATH & "vendor\windows\python\pip_done"
+PYTHON_BIN=SCRIPTPATH & "vendor\windows\python\python.exe"
+' PIP_DONE=SCRIPTPATH & "vendor\windows\python\pip_done"
 JAVA_BIN=SCRIPTPATH & "vendor\windows\jre\bin\javaw.exe"
 OJDBC10=SCRIPTPATH & "vendor\jdbc\ojdbc10.jar"
 PWCODE_BIN=SCRIPTPATH & "pwcode.py" 
 ' WScript.Echo PYTHON_BIN
 
-paths = Array(PYTHON_BIN, PIP_DONE, JAVA_BIN, OJDBC10)
+paths = Array(PYTHON_BIN, JAVA_BIN, OJDBC10)
 
 Installed = vbTrue
 For Each path In paths

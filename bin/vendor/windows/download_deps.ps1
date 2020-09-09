@@ -41,8 +41,11 @@ If (-Not (Test-Path $pythonPath)) {
 	New-Item -ItemType Directory -Force -Path $pythonDir 
     $filename = [System.IO.Path]::GetFileName($url); 
     Write-Host "Downloading $filename"
-    $zipFilePath = [IO.Path]::Combine($tmpDir, 'python.zip') 
-    Invoke-WebRequest -Uri $url -OutFile $zipFilePath
+    #$zipFilePath = [IO.Path]::Combine($tmpDir, 'python.zip') 
+    #Invoke-WebRequest -Uri $url -OutFile $zipFilePath
+    # Test med modifisert embedded python:
+    $zipFilePath = "D:\python-3.8.5-embed-amd64.zip"
+    Copy-Item -Path $zipFilePath -Destination $pythonDir -Force
     Write-Host "Extracting $zipFilePath to $pythonDir"
     Expand-Archive $zipFilePath -DestinationPath $pythonDir
     #Fix python path
@@ -53,21 +56,23 @@ If (-Not (Test-Path $pythonPath)) {
     [regex]::Replace($text, "\.`n", ".`nLib\site-packages`n..\..\..\`n", "Singleline") | Set-Content $pthFile
 }
 
-$getPipPath = [IO.Path]::Combine($pythonDir, 'get-pip.py')
-if(-not (Test-Path $getPipPath)) {
-    $url = "https://bootstrap.pypa.io/get-pip.py"
-    $output = $getPipPath
-    Invoke-WebRequest -Uri $url -OutFile $output
-    & $pythonPath $getPipPath
-    #$pipPath = [IO.Path]::Combine($pythonDir, 'Scripts', 'pip.exe')
-    Start-Process -NoNewWindow -FilePath $pythonPath -ArgumentList "-m pip install --no-warn-script-location --force-reinstall JPype1 psutil jaydebeapi toposort flake8 autopep8 rope beautifulsoup4 lxml pygments"
-    #Start-Process -NoNewWindow -FilePath $pythonPath -ArgumentList "-m pip install --no-warn-script-location --force-reinstall JPype1==0.6.3 psutil jaydebeapi toposort flake8 autopep8 rope beautifulsoup4 lxml pygments petl wand ocrmypdf img2pdf pdfy"
-    #ExecutePython($"-m pip install -r {_requirementsFile} --no-warn-script-location");
-    # Write-Host "Python modules installed."
-    # TODO: Legg inn sjekk mot denne tilsv. som gjort i linux script? Evt. fjerne i begge?
-    $pipDonePath = [IO.Path]::Combine($pythonDir, 'pip_done')
-    New-Item $pipDonePath -type file
-}
+#Start-Process -NoNewWindow -FilePath $pythonPath -ArgumentList "-m pip install --no-warn-script-location --force-reinstall JPype1==0.7.1 psutil jaydebeapi toposort flake8 autopep8 rope beautifulsoup4 lxml pygments petl wand ocrmypdf img2pdf pdfy"
+
+# $getPipPath = [IO.Path]::Combine($pythonDir, 'get-pip.py')
+# if(-not (Test-Path $getPipPath)) {
+#     $url = "https://bootstrap.pypa.io/get-pip.py"
+#     $output = $getPipPath
+#     Invoke-WebRequest -Uri $url -OutFile $output
+#     & $pythonPath $getPipPath
+#     #$pipPath = [IO.Path]::Combine($pythonDir, 'Scripts', 'pip.exe')
+#     Start-Process -NoNewWindow -FilePath $pythonPath -ArgumentList "-m pip install --no-warn-script-location --force-reinstall JPype1 psutil jaydebeapi toposort flake8 autopep8 rope beautifulsoup4 lxml pygments"
+#     #Start-Process -NoNewWindow -FilePath $pythonPath -ArgumentList "-m pip install --no-warn-script-location --force-reinstall JPype1==0.6.3 psutil jaydebeapi toposort flake8 autopep8 rope beautifulsoup4 lxml pygments petl wand ocrmypdf img2pdf pdfy"
+#     #ExecutePython($"-m pip install -r {_requirementsFile} --no-warn-script-location");
+#     # Write-Host "Python modules installed."
+#     # TODO: Legg inn sjekk mot denne tilsv. som gjort i linux script? Evt. fjerne i begge?
+#     $pipDonePath = [IO.Path]::Combine($pythonDir, 'pip_done')
+#     New-Item $pipDonePath -type file
+# }
 
 
 # Download wimlib

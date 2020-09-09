@@ -24,6 +24,7 @@
 # from console import ConsoleUi, Processing
 from common.xml_settings import XMLSettings
 from collections import Counter
+from pathlib import Path
 import inspect
 import commands
 import os
@@ -180,19 +181,15 @@ class HomeTab(ttk.Frame):
         return  XMLSettings(config_path), config_dir    
 
 
-    def run_plugin(self, app, project_name, config_dir, def_name, base_path = None):
-        if not base_path:
-            # TODO: Test at dette virker for normalize og generelt når mappe annet sted enn i projects
-            base_path = app.data_dir + project_name
-
-        if def_name == 'export_data':
-            base_path = app.data_dir + project_name
+    def run_plugin(self, app, project_name, config_dir, def_name):
+        base_path = app.data_dir + project_name + '/.pwcode/' + def_name 
+        Path(base_path).mkdir(parents=True, exist_ok=True)
 
         for filename in os.listdir(config_dir + def_name):
             # TODO: Endre kode så ikke defs.py overskriver hverandre
-            new_path = base_path + '/.pwcode/' + filename           
+            new_path = base_path + '/' + filename           
             if filename == 'main.py':
-                new_path = base_path + '/.pwcode/' + project_name + def_name + '.py'
+                new_path = base_path + '/' + project_name + '_' + def_name + '.py'
                 path = new_path
 
             shutil.copy(config_dir + def_name + '/' + filename, new_path)
@@ -201,7 +198,8 @@ class HomeTab(ttk.Frame):
         tab_id = app.editor_frame.path2id[path]
         file_obj = app.editor_frame.id2path[tab_id]
         text_editor = app.editor_frame.notebook.nametowidget(tab_id)
-        self.show_help(app)
+        if def_name != 'normalize_data': # WAIT: Endre når gui for normalize for messages mm
+            self.show_help(app)
         text_editor.run_file(file_obj, False)            
 
 

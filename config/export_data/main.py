@@ -1,7 +1,6 @@
 import shutil
 import os
 from pathlib import Path
-from configparser import ConfigParser
 from common.xml_settings import XMLSettings
 from common.config import add_config_section
 import xml.etree.ElementTree as ET
@@ -16,7 +15,7 @@ from defs import (
 def main():
     bin_dir = os.environ["pwcode_bin_dir"]  # Get PWCode executable path
     class_path = os.environ['CLASSPATH']  # Get Java jar path
-    config_dir = os.environ['pwcode_config_dir']
+    config_dir = os.environ['pwcode_config_dir'] # Get PWCode config path
     tmp_dir = config_dir + 'tmp'
     os.chdir(tmp_dir)  # Avoid littering from subprocesses
     data_dir = os.environ['pwcode_data_dir']
@@ -193,6 +192,7 @@ def main():
 
     checksum = md5sum(archive)
     config.put('system/md5sum', checksum)
+    config.put('system/md5sum_verified', 'No')
     config.save()
 
     return 'All data copied and system data package created.'    
