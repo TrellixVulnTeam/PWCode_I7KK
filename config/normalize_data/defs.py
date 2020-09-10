@@ -17,6 +17,9 @@ import os
 import subprocess
 from pathlib import Path
 import glob
+import tarfile
+import jaydebeapi
+from common.jvm import init_jvm, wb_batch
 
 
 def mount_wim(filepath, mount_dir):
@@ -28,8 +31,245 @@ def mount_wim(filepath, mount_dir):
             shell=True)
 
 
-def process(project_extracted_dir, archive):
-    mount_wim(archive, project_extracted_dir)  # TODO: Legg inn støtte for tar også
+def get_files(extensions, path):
+    all_files = []
+    for ext in extensions:
+        all_files.extend(Path(path).glob(ext))
+    return all_files     
+
+
+def get_tables(driver_class,jdbc_url,driver_jar):
+    conn = jaydebeapi.connect(driver_class,jdbc_url,['', ''], driver_jar)
+    try:
+        curs = conn.cursor()
+        curs.execute("SHOW TABLES;")
+        data = curs.fetchall()
+        tables = [x[0] for x in data]
+
+    except Exception as e:
+        print(e)
+        return 'error'
+
+    finally:
+        if curs is not None:
+            curs.close()
+        if conn is not None:
+            conn.close()
+
+    return tables            
+
+
+# def export_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tables, bin_dir, table_columns, overwrite_tables, DDL_GEN):
+def export_db_schema(data_dir, sub_system, class_path, bin_dir, memory):
+    jdbc_url = 'jdbc:h2:' + data_dir + sub_system + ';LAZY_QUERY_EXECUTION=1'
+    driver_class = 'org.h2.Driver'    
+    driver_jar = bin_dir + '/vendor/jdbc/h2-1.4.199.jar' # WAIT: Fjern hardkoding av denne
+    batch = wb_batch(class_path, memory)
+    # batch.runScript("WbConnect -url='" + jdbc_url + "';")
+
+    tables = get_tables(driver_class,jdbc_url,driver_jar)
+    if tables == 'error':
+        return 'not workee'
+
+    for table in tables:
+        batch.runScript("WbConnect -url='" + jdbc_url + "';")
+        copy_data_str = "WbCopy -targetConnection=" + target_conn + " -targetSchema=PUBLIC -targetTable=" + target_table + " -sourceQuery=" + source_query + ";"
+        result = batch.runScript(copy_data_str)
+        # target_table = '"' + table + '"'
+        result = batch.runScript(copy_data_str)
+        batch.runScript("WbDisconnect;")
+        jp.java.lang.System.gc()
+        if str(result) == 'Error':
+            print_and_exit("Error on copying table '" + table + "'\nScroll up for details.")
+
+
+
+
+    return 
+
+
+
+    jdbc = Jdbc(url, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, driver_jar, driver_class, True, True)
+
+
+
+
+
+
+
+
+    return 'så langt'
+
+
+
+
+    target_url = 'jdbc:h2:' + subsystem_dir + '/content/data/' + s_jdbc.db_name + '_' + s_jdbc.db_schema + ';autocommit=off'
+    target_url, driver_jar, driver_class = get_db_details(target_url, bin_dir)
+    t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)
+    target_tables = get_target_tables(t_jdbc)
+    # pk_dict = get_primary_keys(subsystem_dir, export_tables)
+    # unique_dict = get_unique_indexes(subsystem_dir, export_tables)
+    blob_columns = get_blob_columns(subsystem_dir, export_tables)
+
+
+    mode = '-mode=INSERT'
+    std_params = ' -ignoreIdentityColumns=false -removeDefaults=true -commitEvery=1000 '
+    previous_export = []
+    for table, row_count in export_tables.items():
+        insert = True
+        params = mode + std_params
+
+        col_query = ''
+        if table in blob_columns:
+            for column in blob_columns[table]:
+                col_query = ',LENGTH("' + column + '") AS ' + column.upper() + '_BLOB_LENGTH_PWCODE'
+
+        source_query = 'SELECT "' + '","'.join(table_columns[table]) + '"' + col_query + ' FROM "' + s_jdbc.db_schema + '"."' + table + '"'
+
+        if table in target_tables and table not in overwrite_tables:
+            t_row_count = target_tables[table]
+            if t_row_count == row_count:
+                previous_export.append(table)
+                continue
+            elif t_row_count > row_count:
+                print_and_exit("Error. More data in target than in source. Table '" + table + "'. Exiting.")
+            elif table in pk_dict:
+                source_query = gen_sync_table(table, pk_dict[table], target_url, driver_jar, driver_class, source_query)
+                insert = False
+            elif table in unique_dict:
+                source_query = gen_sync_table(table, unique_dict[table], target_url, driver_jar, driver_class, source_query)
+                insert = False
+
+        if insert:
+            print("Copying table '" + table + "':")
+            if DDL_GEN == 'SQL Workbench':
+                params = mode + std_params + ' -createTarget=true -dropTarget=true'
+            elif DDL_GEN == 'Native':
+                t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)
+                ddl = '\nCREATE TABLE "' + table + '"\n(\n' + ddl_columns[table][:-1] + '\n);'
+                ddl = create_index(table, pk_dict, unique_dict, ddl)
+                print(ddl)
+                sql = 'DROP TABLE IF EXISTS "' + table + '"; ' + ddl
+                run_ddl(t_jdbc, sql)
+
+            if table in blob_columns:
+                for column in blob_columns[table]:
+                    t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)
+                    sql = 'ALTER TABLE "' + table + '" ADD COLUMN ' + column.upper() + '_BLOB_LENGTH_PWCODE VARCHAR(255);'
+                    run_ddl(t_jdbc, sql)
+
+        batch.runScript("WbConnect -url='" + s_jdbc.url + "' -password=" + s_jdbc.pwd + ";")
+        target_conn = '"username=,password=,url=' + target_url + '" ' + params
+        target_table = '"' + table + '"'
+        copy_data_str = "WbCopy -targetConnection=" + target_conn + " -targetSchema=PUBLIC -targetTable=" + target_table + " -sourceQuery=" + source_query + ";"
+        result = batch.runScript(copy_data_str)
+        batch.runScript("WbDisconnect;")
+        jp.java.lang.System.gc()
+        if str(result) == 'Error':
+            print_and_exit("Error on copying table '" + table + "'\nScroll up for details.")
+
+    if len(previous_export) == len(export_tables.keys()):
+        print('All tables already exported.')
+    elif not previous_export:
+        print('Database export complete.')
+    else:
+        print('Database export complete. ' + str(len(previous_export)) + ' of ' + str(len(export_tables.keys())) + ' tables were already exported.')
+
+
+def process(project_dir, bin_dir, class_path, memory):
+    sub_systems_dir = project_dir + '/content/sub_systems/' 
+
+
+    for sub_system in os.listdir(sub_systems_dir): 
+        #process db's:
+        data_dir = sub_systems_dir + sub_system + "/content/data/"
+        h2_file = data_dir + sub_system + ".mv.db" 
+        if os.path.isfile(h2_file):
+            data_docs_dir = sub_systems_dir + sub_system + "/content/data_documents/"
+            Path(data_docs_dir).mkdir(parents=True, exist_ok=True) 
+            export_db_schema(data_dir, sub_system, class_path, bin_dir, memory)       
+        
+
+
+        #process files:
+        docs_dir = sub_systems_dir + sub_system + "/content/documents" 
+        files = get_files(('*.wim', '*.tar'), docs_dir)
+        for file in files: 
+            export_dir = os.path.splitext(file)[0]
+            Path(export_dir).mkdir(parents=True, exist_ok=True)
+
+            if len(os.listdir(export_dir)) != 0:
+                continue
+
+            if Path(file).suffix == '.wim':
+                subprocess.run("wimapply " + file + " " + export_dir, shell=True)
+            else:
+                with tarfile.open(file) as tar:
+                    tar.extractall(path=export_dir)
+
+            os.remove(file)   
+
+    return 'endre denne'    
+
+
+
+
+    # sub_systems_dir = project_dir + '/content/sub_systems'
+    # extracted = False
+    # if os.path.isdir(sub_systems_dir):
+    #     if len(os.listdir(sub_systems_dir)) != 0:
+    #         extracted = True
+
+    # if not extracted:            
+    #     with tarfile.open(archive) as tar:
+    #         tar.extractall(path=project_dir)   
+
+
+    # for dir in os.listdir(sub_systems_dir):
+    #     # system_name = os.path.basename(SYSTEM_DIR)
+    #     # documentation_dir = sub_systems_dir + "/" + dir + "/documentation/"
+    #     data_docs_dir = sub_systems_dir + "/" + dir + "/content/data_documents"
+    #     docs_dir = sub_systems_dir + "/" + dir + "/content/documents"
+    #     data_dir = sub_systems_dir + "/" + dir + "/content/data"
+    #     h2_file = data_dir + dir + ".mv.db" 
+    #     # schema_file = sub_systems_dir + "/" + dir + "/documentation/metadata_mod.xml"
+    #     # header_schema_file = sub_systems_dir + "/" + dir + "/header/metadata.xml"
+
+    #     # TODO: Sjekk først i xml-fil om db og eller filuttrekk slik at ikke lager tommme mapper
+    #     for dir in [data_docs_dir, data_dir, docs_dir]:
+    #         Path(dir).mkdir(parents=True, exist_ok=True)
+
+    #     files = get_files(('*.wim', '*.tar'), docs_dir)
+    #     for file in files:
+    #         export_dir = os.path.splitext(file)[0]
+    #         Path(export_dir).mkdir(parents=True, exist_ok=True)
+
+    #         if len(os.listdir(export_dir)) != 0:
+    #             continue
+
+    #         if Path(file).suffix == '.wim':
+    #             subprocess.run("wimapply " + file + " " + export_dir, shell=True)
+    #         else:
+    #             with tarfile.open(file) as tar:
+    #                 tar.extractall(path=export_dir)
+
+    #         os.remove(file)
+
+        # h2_export(h2_file)   # TODO: Test om denne koden ferdig -> nei
+
+    # subdir_and_files = [
+    #     tarinfo for tarinfo in tar.getmembers()
+    #     if tarinfo.name.startswith("subfolder/")
+    # ]
+    # tar.extractall(members=subdir_and_files)
+
+
+
+
+
+
+
+    # mount_wim(archive, project_extracted_dir)  # TODO: Legg inn støtte for tar også
     # sql_file = tmp_dir + "/file_process.sql"
     # in_dir = os.path.dirname(filepath) + "/"
     # sys_name = os.path.splitext(os.path.basename(filepath))[0]
@@ -39,28 +279,10 @@ def process(project_extracted_dir, archive):
     # open(tmp_dir + "/PWB.log", 'w').close()  # Clear log file
     # open(sql_file, 'w').close()  # Blank out between runs
 
-    sub_systems_path = project_extracted_dir + "/content/sub_systems"
-    for dir in os.listdir(sub_systems_path):
-        # system_name = os.path.basename(SYSTEM_DIR)
-        documentation_dir = sub_systems_path + "/" + dir + "/documentation/"
-        h2_file = documentation_dir + dir + ".mv.db"
-        data_docs_dir = sub_systems_path + "/" + dir + "/content/data_documents"
-        docs_dir = sub_systems_path + "/" + dir + "/content/documents"
-        data_dir = sub_systems_path + "/" + dir + "/content/data"
-        schema_file = sub_systems_path + "/" + dir + "/documentation/metadata_mod.xml"
-        header_schema_file = sub_systems_path + "/" + dir + "/header/metadata.xml"
 
-        for dir in [data_docs_dir, data_dir, docs_dir]:
-            Path(dir).mkdir(parents=True, exist_ok=True)
 
-        for file in glob.glob(docs_dir + "/*." + archive_format):
-            export_dir = os.path.splitext(file)[0]
-            Path(export_dir).mkdir(parents=True, exist_ok=True)
-            if len(os.listdir(export_dir)) == 0:
-                subprocess.run("wimapply " + file + " " + export_dir, shell=True)  # TODO: Legg inn støtte for tar også
-                os.remove(file)
 
-        h2_export(h2_file)
+
 
 
 def h2_export(h2_file):

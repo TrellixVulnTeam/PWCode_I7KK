@@ -5,7 +5,7 @@ from common.xml_settings import XMLSettings
 from common.config import add_config_section
 import xml.etree.ElementTree as ET
 from common.file import md5sum
-from defs import (
+from defs import ( # .defs.py
     export_db_schema,
     capture_files,
     test_db_connect
@@ -108,7 +108,6 @@ def main():
 
         dirs = [
             subsystem_dir + '/header',
-            subsystem_dir + '/content/documents/',
             subsystem_dir + '/documentation/dip/'
         ]
 
@@ -126,6 +125,7 @@ def main():
                 
                 source_path = config.get('subsystems/' + subsystem_name + '/folders/' + folder.tag + '/path')
                 target_path = subsystem_dir + '/content/documents/' + folder.tag + "." + archive_format
+                Path(subsystem_dir + '/content/documents/').mkdir(parents=True, exist_ok=True)
                 file_result = capture_files(bin_dir, source_path, target_path) 
                 if file_result != 'ok':
                     config.put('subsystems/' + subsystem_name + '/folders/' + folder.tag + '/status', 'failed') 
@@ -185,12 +185,17 @@ def main():
         project_dir + '/pwcode.xml',
         project_dir + '/.pwcode'
     ]
-    capture_files(bin_dir, project_dir, archive, exclude)
-    for sub_dir_path in [f.path for f in os.scandir(project_dir) if f.is_dir()]:
-        if sub_dir_path != project_dir + '/.pwcode':
-            shutil.rmtree(sub_dir_path, ignore_errors=True)   
 
-    checksum = md5sum(archive)
+    if package:
+        capture_files(bin_dir, project_dir, archive, exclude)
+        for sub_dir_path in [f.path for f in os.scandir(project_dir) if f.is_dir()]:
+            if sub_dir_path != project_dir + '/.pwcode':
+                shutil.rmtree(sub_dir_path, ignore_errors=True)   
+
+        checksum = md5sum(archive)
+    else:
+        checksum = 'n/a'
+
     config.put('system/md5sum', checksum)
     config.put('system/md5sum_verified', 'No')
     config.save()

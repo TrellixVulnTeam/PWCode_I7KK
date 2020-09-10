@@ -9,7 +9,7 @@ import csv
 import petl as etl
 from common.xml_settings import XMLSettings
 # from petl import extendheader, rename, appendtsv
-from defs import file_convert
+from defs import file_convert # .defs.py
 import base64
 
 # mime_type: (keep_original, function name, new file extension)
