@@ -112,11 +112,13 @@ class App:
         root.bind("<Control-Tab>", self.perform_ctrl_tab, True)
 
         root.bind("<Control-Right>", lambda x: self.run_command('next_tab_in_index'))
-        root.bind("<Control-KP_Right>", lambda x: self.run_command('next_tab_in_index'))  # on keypad
+        # TODO: Linje under gir FM kun på windows: _tkinter.TclError: bad event type or keysym "KP_Right"
+        #root.bind("<Control-KP_Right>", lambda x: self.run_command('next_tab_in_index'))  # on keypad
         root.bind("<Control-KP_6>", lambda x: self.run_command('next_tab_in_index'))  # on keypad with num lock
 
         root.bind("<Control-Left>", lambda x: self.run_command('previous_tab_in_index'))
-        root.bind("<Control-KP_Left>", lambda x: self.run_command('previous_in_index'))  # on keypad
+        # TODO: Linje under gir FM kun på windows: _tkinter.TclError: bad event type or keysym "KP_Left"
+        #root.bind("<Control-KP_Left>", lambda x: self.run_command('previous_in_index'))  # on keypad
         root.bind("<Control-KP_4>", lambda x: self.run_command('previous_tab_in_index'))  # on keypad with num lock
 
         root.bind("<Control-plus>", lambda x: self.run_command('increase_text_font'))
