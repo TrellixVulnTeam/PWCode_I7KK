@@ -2,7 +2,7 @@ set WshShell = WScript.CreateObject("WScript.Shell" )
 set FSO = WScript.CreateObject("Scripting.FileSystemObject")
 
 SCRIPTPATH = Left(WScript.ScriptFullName, Len(WScript.ScriptFullName) - Len(WScript.ScriptName)) & "bin\"
-PYTHON_BIN=SCRIPTPATH & "vendor\windows\python\python.exe"
+PYTHON_BIN=SCRIPTPATH & "vendor\windows\python\pythonw.exe"
 ' PIP_DONE=SCRIPTPATH & "vendor\windows\python\pip_done"
 JAVA_BIN=SCRIPTPATH & "vendor\windows\jre\bin\javaw.exe"
 OJDBC10=SCRIPTPATH & "vendor\jdbc\ojdbc10.jar"
