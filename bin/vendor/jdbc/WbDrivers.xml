@@ -186,7 +186,7 @@
      <object class="java.util.Collections" method="unmodifiableList">
       <object class="java.util.ArrayList">
        <void method="add">
-        <string>h2-1.4.199.jar</string>
+        <string>h2-1.4.200.jar</string>
        </void>
       </object>
      </object>
