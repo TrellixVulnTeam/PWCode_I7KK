@@ -68,7 +68,7 @@ class HomeTab(ttk.Frame):
         # self.folder_list.pack(side=tk.TOP, anchor=tk.N, padx=(8, 0), pady=3, fill=tk.X)
 
     def open_home_url(self):
-        webbrowser.open('https://github.com/BBATools/PWCode', new=2)
+        webbrowser.open('https://github.com/Preservation-Workbench/PWCode', new=2)
 
     def show_help(self, app):
         self.subheading = ttk.Label(self, text=app.settings.desc, style="SubHeading.TLabel")
