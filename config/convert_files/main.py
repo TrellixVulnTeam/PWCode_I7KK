@@ -331,7 +331,7 @@ def run_siegfried(base_source_dir, project_dir, tsv_path):
 
     csv_path = project_dir + '/tmp.csv'
     subprocess.run(
-        'sf -z -csv ' + base_source_dir + ' > ' + csv_path,
+        'sf -z -csv "' + base_source_dir + '" > ' + csv_path,
         stderr=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,
         shell=True,
