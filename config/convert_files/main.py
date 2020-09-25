@@ -24,7 +24,7 @@ mime_to_norm = {
     'application/vnd.openxmlformats-officedocument.presentationml.presentation': (True, 'docbuilder2x', 'pdf'),
     'application/vnd.wordperfect': (False, 'docbuilder2x', 'pdf'),  # TODO: Mulig denne må endres til libreoffice
     'application/xhtml+xml; charset=UTF-8': (False, 'wkhtmltopdf', 'pdf'),
-    'application/xml': (False, 'x2utf8', 'xml'),
+    'application/xml': (False, 'file_copy', 'xml'),
     'application/x-elf': (False, 'what?', None),  # executable on lin
     'application/x-msdownload': (False, 'what?', None),  # executable on win
     'application/x-ms-installer': (False, 'what?', None),  # Installer on win
@@ -120,11 +120,20 @@ def convert_folder(project_dir, folder, merge, tmp_dir, tika=False, ocr=False):
         count_str = ('(' + str(count) + '/' + str(file_count) + '): ')
         source_file_path = row['source_file_path']
         mime_type = row['mime_type']
+        id = row['id']
+
+        if not mime_type:
+            if id == 'fmt/979':
+                mime_type = 'application/xml'
+            else:
+                mime_type = 'unknown mime type'                
+
         version = row['version']
         result = None
         old_result = row['result']
 
         if mime_type not in mime_to_norm.keys():
+            errors = True
             result = 'Conversion not supported'
             append_txt_file(txt_target_path, result + ': ' + source_file_path + ' (' + mime_type + ')')
         else:
@@ -175,13 +184,10 @@ def convert_folder(project_dir, folder, merge, tmp_dir, tika=False, ocr=False):
     if converted_now:
         if errors:
             msg = "Not all files were converted. See '" + txt_target_path + "' for details."
-            # print("\nNot all files were converted. See '" + txt_target_path + "' for details.\n")
         else:
             msg = 'All files converted succcessfully.'
-            # print('\nAll files converted succcessfully.\n')
     else:
-        msg = 'All files converted previously.' # TODO: Legg inn sjekk på at alle konvertert (converted_now ikke nok alene)
-        # print('\nAll files converted previously.\n')
+        msg = 'All files converted previously.'
 
     return msg
 
@@ -389,7 +395,7 @@ def main():
     for k, v in results.items():
         print(k + ': ', v)
 
-    return results
+    # return results
 
 
 if __name__ == '__main__':
