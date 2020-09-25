@@ -166,10 +166,10 @@ def file_copy(args):
 @add_converter()
 def image2norm(args):
     ok = False
-    if args['mime_type'] == 'image/tiff':
-        args['tmp_file_path'] = args['tmp_file_path'] + '.pdf'
-        command = ['convert', args['source_file_path'], args['tmp_file_path']]
-        run_shell_command(command)
+    # if args['mime_type'] == 'image/tiff':
+    args['tmp_file_path'] = args['tmp_file_path'] + '.pdf'
+    command = ['convert', args['source_file_path'], args['tmp_file_path']]
+    run_shell_command(command)
 
     if os.path.exists(args['tmp_file_path']):
         ok = pdf2pdfa(args)
