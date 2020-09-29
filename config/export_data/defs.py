@@ -36,7 +36,7 @@ def get_db_details(jdbc_url, bin_dir):
     if 'jdbc:h2:' in jdbc_url:  # H2 database
         if 'LAZY_QUERY_EXECUTION' not in jdbc_url:
             jdbc_url = jdbc_url + ';LAZY_QUERY_EXECUTION=1;'  # Modify url for less memory use
-        driver_jar = bin_dir + '/vendor/jdbc/h2-1.4.200.jar' # WAIT: Juster så ikke hardkodet og sjekk at finnes
+        driver_jar = bin_dir + '/vendor/jdbc/h2.jar' 
         # print(driver_jar)
         driver_class = 'org.h2.Driver'
 
