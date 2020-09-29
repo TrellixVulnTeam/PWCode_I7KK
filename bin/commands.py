@@ -28,7 +28,7 @@ from commander import command
 import tkinter as tk
 from tkinter import messagebox
 from common.file import xdg_open_file
-from vendor import filetype
+import filetype
 from gui.dialog import multi_open
 
 # WAIT: Lag file/folder chooser i left_menu -> endre dagens kode så har en knapp øverst bare og eget ikon?
