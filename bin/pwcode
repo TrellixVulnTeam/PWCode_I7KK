@@ -6,7 +6,7 @@ PYTHON_DESKTOP="$(dirname "$SCRIPTPATH")"/Python.desktop
 SQLWB_DESKTOP="$(dirname "$SCRIPTPATH")"/SQLWB.desktop
 PIP_DONE=$SCRIPTPATH/vendor/linux/python/pip_done
 JAVA_BIN=$SCRIPTPATH/vendor/linux/jre/bin/java
-OJDBC10=$SCRIPTPATH/vendor/jdbc/ojdbc10.jar
+OJDBC10=$SCRIPTPATH/vendor/jars/ojdbc10.jar
 
 install_python_runtime() {
     if [ ! -f $PYTHON_BIN ]; then
@@ -53,7 +53,7 @@ install_java() {
 
 install_ojdbc() {
     if [ ! -f $OJDBC10 ]; then
-        cd $SCRIPTPATH/vendor/jdbc
+        cd $SCRIPTPATH/vendor/jars
         wget https://repo1.maven.org/maven2/com/oracle/database/jdbc/ojdbc10/19.6.0.0/ojdbc10-19.6.0.0.jar -O ojdbc10.jar
     fi
 }

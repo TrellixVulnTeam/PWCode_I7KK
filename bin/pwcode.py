@@ -107,7 +107,7 @@ if __name__ == "__main__":
     os.environ['PYTHONPATH'] = os.pathsep.join(p)
 
     # Add to classpath for plugins:
-    class_path = bin_dir + '/vendor/jdbc/sqlworkbench.jar'
+    class_path = bin_dir + '/vendor/jars/sqlworkbench.jar'
     os.environ['CLASSPATH'] = class_path
 
     # Make paths available to plugins without hard coding:

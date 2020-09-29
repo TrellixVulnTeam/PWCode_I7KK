@@ -63,7 +63,7 @@ def get_tables(driver_class,jdbc_url,driver_jar):
 def export_db_schema(data_dir, sub_system, class_path, bin_dir, memory):
     jdbc_url = 'jdbc:h2:' + data_dir + sub_system + ';LAZY_QUERY_EXECUTION=1'
     driver_class = 'org.h2.Driver'    
-    driver_jar = bin_dir + '/vendor/jdbc/h2.jar'
+    driver_jar = bin_dir + '/vendor/jars/h2.jar'
     batch = wb_batch(class_path, memory)
     # batch.runScript("WbConnect -url='" + jdbc_url + "';")
 
