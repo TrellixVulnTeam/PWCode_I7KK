@@ -16,13 +16,6 @@ SQLWB.desktop
 !bin/vendor/windows/download_deps.ps1
 !bin/vendor/jdbc/WbDrivers.xml
 !bin/vendor/jdbc/WbMacros.xml
-!bin/vendor/jdbc/h2-*.jar
-!bin/vendor/jdbc/mssql-jdbc-*.jar
-!bin/vendor/jdbc/postgresql-*.jar
-!bin/vendor/jdbc/mysql-connector-java-*.jar
-!bin/vendor/jdbc/sqlite-jdbc-*.jar
-!bin/vendor/jdbc/sqlworkbench.jar
-!bin/vendor/jdbc/*-LICENSE
 !bin/vendor/config/*.desktop
 
 # Byte-compiled / optimized / DLL files

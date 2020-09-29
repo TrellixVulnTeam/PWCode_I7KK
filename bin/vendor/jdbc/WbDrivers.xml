@@ -186,7 +186,7 @@
      <object class="java.util.Collections" method="unmodifiableList">
       <object class="java.util.ArrayList">
        <void method="add">
-        <string>h2-1.4.200.jar</string>
+        <string>h2.jar</string>
        </void>
       </object>
      </object>
@@ -374,7 +374,7 @@
      <object class="java.util.Collections" method="unmodifiableList">
       <object class="java.util.ArrayList">
        <void method="add">
-        <string>mssql-jdbc-7.2.2.jre11.jar</string>
+        <string>mssql-jdbc.jre11.jar</string>
        </void>
       </object>
      </object>
@@ -418,7 +418,7 @@
      <object class="java.util.Collections" method="unmodifiableList">
       <object class="java.util.ArrayList">
        <void method="add">
-        <string>mysql-connector-java-8.0.17.jar</string>
+        <string>mysql-connector-java.jar</string>
        </void>
       </object>
      </object>
@@ -534,7 +534,7 @@
      <object class="java.util.Collections" method="unmodifiableList">
       <object class="java.util.ArrayList">
        <void method="add">
-        <string>postgresql-42.2.6.jar</string>
+        <string>postgresql.jar</string>
        </void>
       </object>
      </object>
@@ -556,7 +556,7 @@
      <object class="java.util.Collections" method="unmodifiableList">
       <object class="java.util.ArrayList">
        <void method="add">
-        <string>sqlite-jdbc-3.27.2.1.jar</string>
+        <string>sqlite-jdbc.jar</string>
        </void>
       </object>
      </object>
