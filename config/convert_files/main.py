@@ -23,7 +23,8 @@ mime_to_norm = {
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': (True, 'docbuilder2x', 'pdf'),
     'application/vnd.openxmlformats-officedocument.presentationml.presentation': (True, 'docbuilder2x', 'pdf'),
     'application/vnd.wordperfect': (False, 'docbuilder2x', 'pdf'),  # TODO: Mulig denne må endres til libreoffice
-    'application/xhtml+xml; charset=UTF-8': (False, 'wkhtmltopdf', 'pdf'),
+    # 'application/xhtml+xml; charset=UTF-8': (False, 'wkhtmltopdf', 'pdf'),
+    'application/xhtml+xml': (False, 'wkhtmltopdf', 'pdf'),    
     'application/xml': (False, 'file_copy', 'xml'),
     'application/x-elf': (False, 'what?', None),  # executable on lin
     'application/x-msdownload': (False, 'what?', None),  # executable on win
@@ -35,9 +36,7 @@ mime_to_norm = {
     'image/png': (False, 'file_copy', 'png'),
     'image/tiff': (False, 'image2norm', 'pdf'),
     'text/html': (False, 'html2pdf', 'pdf'),  # TODO: Legg til undervarianter her (var opprinnelig 'startswith)
-    'text/plain; charset=ISO-8859-1': (False, 'x2utf8', 'txt'),
-    'text/plain; charset=UTF-8': (False, 'x2utf8', 'txt'),
-    'text/plain; charset=windows-1252': (False, 'x2utf8', 'txt'),
+    'text/plain': (False, 'x2utf8', 'txt'),
 }
 
 
@@ -110,6 +109,12 @@ def convert_folder(project_dir, folder, merge, tmp_dir, tika=False, ocr=False):
     header = etl.header(table)
     append_tsv_row(tsv_target_path, header)
 
+    # Treat csv (detected from extension only) as plain text:
+    table = etl.convert(table, 'mime_type',lambda v, row: 'text/plain' if row.id == 'x-fmt/18' else v,pass_row=True)    
+
+    # Update for missing mime types where id is known:
+    table = etl.convert(table, 'mime_type',lambda v, row: 'application/xml' if row.id == 'fmt/979' else v,pass_row=True)
+
     if os.path.isfile(txt_target_path):
         os.remove(txt_target_path)
 
@@ -119,23 +124,23 @@ def convert_folder(project_dir, folder, merge, tmp_dir, tika=False, ocr=False):
         count += 1
         count_str = ('(' + str(count) + '/' + str(file_count) + '): ')
         source_file_path = row['source_file_path']
-        mime_type = row['mime_type']
-        id = row['id']
-
-        if not mime_type:
-            if id == 'fmt/979':
-                mime_type = 'application/xml'
-            else:
-                mime_type = 'unknown mime type'                
+        mime_type = row['mime_type']  
+        if ';' in mime_type:
+            mime_type = mime_type.split(';')[0]    
 
         version = row['version']
         result = None
         old_result = row['result']
 
+        print(count_str + source_file_path + ' (' + mime_type + ')')
+
         if mime_type not in mime_to_norm.keys():
             errors = True
+            converted_now = True
             result = 'Conversion not supported'
             append_txt_file(txt_target_path, result + ': ' + source_file_path + ' (' + mime_type + ')')
+            row['norm_file_path'] = ''
+            row['original_file_copy'] = ''
         else:
             keep_original = mime_to_norm[mime_type][0]
             function = mime_to_norm[mime_type][1]
@@ -171,9 +176,10 @@ def convert_folder(project_dir, folder, merge, tmp_dir, tika=False, ocr=False):
             elif normalized['result'] == 5:
                 result = 'Not a file'
 
-        row['norm_file_path'] = normalized['norm_file_path']
+            row['norm_file_path'] = normalized['norm_file_path']
+            row['original_file_copy'] = normalized['original_file_copy']
+            
         row['result'] = result
-        row['original_file_copy'] = normalized['original_file_copy']
         append_tsv_row(tsv_target_path, list(row.values()))
 
     shutil.move(tsv_target_path, tsv_source_path)
@@ -189,7 +195,8 @@ def convert_folder(project_dir, folder, merge, tmp_dir, tika=False, ocr=False):
     else:
         msg = 'All files converted previously.'
 
-    return msg
+    print(msg)
+    # return msg # TODO: Fiks så bruker denne heller for oppsummering til slutt når flere mapper konvertert
 
 
 def flatten_dir(destination, tsv_log=None):
@@ -391,9 +398,9 @@ def main():
         result = convert_folder(project_dir, folder, merge, tmp_dir)
         results[folder.text] = result
 
-    print('\n')
-    for k, v in results.items():
-        print(k + ': ', v)
+    # print('\n')
+    # for k, v in results.items():
+    #     print(k + ': ', v)
 
     # return results
 

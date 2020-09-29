@@ -22,6 +22,7 @@ import sys
 import signal
 import zipfile
 import re
+import cchardet as chardet
 import pathlib
 # import img2pdf
 from pdfy import Pdfy
@@ -43,28 +44,33 @@ def add_converter():
     return _add_converter
 
 
-def delete_file():
-    # TODO: Fjern garbage files og oppdater i tsv at det er gjort
-    return
+# def delete_file():
+#     # TODO: Fjern garbage files og oppdater i tsv at det er gjort
+#     return
+
+
+def get_file_encoding(path):
+    with open(path, "rb") as f:
+        text = f.read()
+        encoding = chardet.detect(text)['encoding'].lower()  
+
+    return encoding         
 
 
 @add_converter()
 def x2utf8(args):
     # TODO: Sjekk om beholder extension alltid (ikke endre csv, xml mm)
     ok = False
+    encoding = get_file_encoding(args['source_file_path'])   
 
-    if args['mime_type'] in ('text/plain; charset=windows-1252',
-                     'text/plain; charset=ISO-8859-1'):
-        # WAIT: Juster så mindre repetisjon under
-        if args['mime_type'] == 'text/plain; charset=windows-1252':
-            command = ['iconv', '-f', 'windows-1252']
-        elif args['mime_type'] == 'text/plain; charset=ISO-8859-1':
-            command = ['iconv', '-f', 'ISO-8859-1']
-
+    if encoding != 'utf-8':
+        command = ['iconv', '-f', encoding]
         command.extend(['-t', 'UTF8', args['source_file_path'], '-o', args['tmp_file_path']])
         run_shell_command(command)
     else:
         file_copy(args)
+        ok = True
+
 
     if os.path.exists(args['tmp_file_path']):
         repls = (
@@ -222,6 +228,7 @@ def docbuilder2x(args):
 
 @add_converter()
 def wkhtmltopdf(args):
+    # WAIT: Trengs sjekk om utf-8 og evt. konvertering først her?
     ok = False
     command = ['wkhtmltopdf', '-O', 'Landscape', args['source_file_path'], args['tmp_file_path']]
     run_shell_command(command)
@@ -335,7 +342,7 @@ def file_convert(source_file_path, mime_type, version, function, target_dir, kee
         elif function in converters:
             pathlib.Path(target_dir).mkdir(parents=True, exist_ok=True)
 
-            print(count_str + source_file_path + ' (' + mime_type + ')')
+            # print(count_str + source_file_path + ' (' + mime_type + ')')
 
             function_args = {'source_file_path': source_file_path,
                              'tmp_file_path': tmp_file_path,
@@ -344,7 +351,7 @@ def file_convert(source_file_path, mime_type, version, function, target_dir, kee
                              'tmp_dir': tmp_dir,
                              'mime_type': mime_type,
                              'version': version,
-                             'ocr': ocr
+                             'ocr': ocr,
                              }
 
             ok = converters[function](function_args)
