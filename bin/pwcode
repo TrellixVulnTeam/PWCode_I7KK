@@ -7,6 +7,8 @@ SQLWB_DESKTOP="$(dirname "$SCRIPTPATH")"/SQLWB.desktop
 PIP_DONE=$SCRIPTPATH/vendor/linux/python/pip_done
 JAVA_BIN=$SCRIPTPATH/vendor/linux/jre/bin/java
 OJDBC10=$SCRIPTPATH/vendor/jars/ojdbc10.jar
+JARS=$SCRIPTPATH/vendor/jars/sqlworkbench.jar
+
 
 install_python_runtime() {
     if [ ! -f $PYTHON_BIN ]; then
@@ -51,12 +53,22 @@ install_java() {
     fi
 }
 
+
 install_ojdbc() {
     if [ ! -f $OJDBC10 ]; then
         cd $SCRIPTPATH/vendor/jars
         wget https://repo1.maven.org/maven2/com/oracle/database/jdbc/ojdbc10/19.6.0.0/ojdbc10-19.6.0.0.jar -O ojdbc10.jar
     fi
 }
+
+
+install_jars() {
+    if [ ! -f $JARS ]; then
+        cd /tmp && wget https://github.com/Preservation-Workbench/deps/releases/latest/download/deps.zip
+        cd $SCRIPTPATH/vendor/jars && unzip -j /tmp/deps.zip 
+    fi
+}
+
 
 silent_background() {
     { 2>&3 "$@"& } 3>&2 2>/dev/null
@@ -65,24 +77,29 @@ silent_background() {
 
 
 # WAIT: Add more linear progress
-if [ -e $PYTHON_BIN -a -e $PIP_DONE -a -e $JAVA_BIN -a -e $OJDBC10 ]; then
+if [ -e $PYTHON_BIN -a -e $PIP_DONE -a -e $JAVA_BIN -a -e $OJDBC10 -a -e $JARS ]; then
     silent_background  $SCRIPTPATH/vendor/linux/python/AppRun $SCRIPTPATH/pwcode.py $@
 else
     (
-    echo 20
+    echo 0
     echo "# Installing python runtime..."
     install_python_runtime
     sleep 1
 
-    echo 40
+    echo 20
     echo "# Installing python packages..."
     install_python_packages
     sleep 1
 
-    echo 60
+    echo 40
     echo "# Installing java 11..."
     install_java
     sleep 1
+
+    echo 80
+    echo "# Installing open source drivers..."
+    install_jars
+    sleep 1    
 
     echo 80
     echo "# Installing oracle driver..."
