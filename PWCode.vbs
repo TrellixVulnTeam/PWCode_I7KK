@@ -23,10 +23,11 @@ If Not Installed Then
   If Answer = vbYes Then
     WshShell.run("powershell -executionpolicy bypass -noexit -file vendor\windows\download_deps.ps1")
   End If
-else
-  cmd = PYTHON_BIN & " " & PWCODE_BIN
-  wshShell.Run cmd, 1
 End If
+  
+cmd = PYTHON_BIN & " " & PWCODE_BIN
+wshShell.Run cmd, 1
+
 
 
 
