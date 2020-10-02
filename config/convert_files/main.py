@@ -37,7 +37,7 @@ mime_to_norm = {
     'image/tiff': (False, 'image2norm', 'pdf'),
     'text/html': (False, 'html2pdf', 'pdf'),  # TODO: Legg til undervarianter her (var opprinnelig 'startswith)
     'text/plain': (False, 'x2utf8', 'txt'),
-    'message/rfc822': (False, 'x2utf8', 'txt'),  # TODO: For test
+    'message/rfc822': (False, 'eml2pdf', 'pdf'),
 }
 
 

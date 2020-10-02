@@ -58,38 +58,61 @@ def get_file_encoding(path):
 
 
 @add_converter()
+def eml2pdf(args):
+    ok = False
+
+    repls = (
+        ('‘', 'æ'),
+        ('›', 'ø'),
+        ('†', 'å'),
+        ('=C2=A0', ' '),
+        ('=C3=A6', 'æ'),
+        ('=C3=B8', 'ø'),
+        ('=C3=A5', 'å'),
+        # TODO: Fiks tilfeller når hex variant som skal byttes ut er på hvers av = + line break (er = på slutten av linjer i eml)
+    )
+
+    encoding = get_file_encoding(args['source_file_path'])
+    with open(args['tmp_file_path'], "wb") as file:
+        with open(args['source_file_path'], 'rb') as file_r:
+            content = file_r.read()
+            data = content.decode(encoding)
+            for k, v in repls:
+                data = re.sub(k, v, data, flags=re.MULTILINE)
+        file.write(data.encode('latin1'))  # TODO: Test eml-to-pdf-converter igjen senere for om utf-8 støtte på plass. Melde inn som feil?
+
+    if os.path.exists(args['tmp_file_path']):
+        # TODO konverter til pdf mm som norm_file_path
+        ok = True
+
+    return ok
+
+
+@add_converter()
 def x2utf8(args):
     # TODO: Sjekk om beholder extension alltid (ikke endre csv, xml mm)
     ok = False
-    encoding = get_file_encoding(args['source_file_path'])
 
-    if encoding != 'utf-8':
-        command = ['iconv', '-f', encoding]
-        command.extend(['-t', 'UTF8', args['source_file_path'], '-o', args['tmp_file_path']])
-        run_shell_command(command)
-    else:
-        file_copy(args)
+    repls = (
+        ('‘', 'æ'),
+        ('›', 'ø'),
+        ('†', 'å'),
+        ('=C2=A0', ' '),
+        ('=C3=A6', 'æ'),
+        ('=C3=B8', 'ø'),
+        ('=C3=A5', 'å'),
+    )
+
+    with open(args['norm_file_path'], "wb") as file:
+        with open(args['source_file_path'], 'rb') as file_r:
+            content = file_r.read()
+            data = content.decode(chardet.detect(content)['encoding'])
+            for k, v in repls:
+                data = re.sub(k, v, data, flags=re.MULTILINE)
+        file.write(data.encode('utf8'))
+
+    if os.path.exists(args['norm_file_path']):
         ok = True
-
-    if os.path.exists(args['tmp_file_path']):
-        repls = (
-            ('‘', 'æ'),
-            ('=C3=A6', u'\u00E6'),
-            ('›', 'ø'),
-            ('=C3=B8', u'\u00F8'),  # small unicode ø -> TODO: Ikke sikkert en må ha på denne formen
-            ('†', 'å'),
-            ('=C3=A5', u'\u00E5'),  # small unicode å
-            ('=C2=A0', ' ')
-        )
-
-        # WAIT: Legg inn validering av utf8 -> https://pypi.org/project/validate-utf8/
-        file = open(args['norm_file_path'], "w")
-        with open(args['tmp_file_path'], 'r') as file_r:
-            for line in file_r:
-                file.write(reduce(lambda a, kv: a.replace(*kv), repls, line))
-
-        if os.path.exists(args['norm_file_path']):
-            ok = True
 
     return ok
 
@@ -160,7 +183,7 @@ def run_shell_command(command, cwd=None, timeout=30):
     return proc.returncode, stdout, stderr, mix
 
 
-@add_converter()
+@ add_converter()
 def file_copy(args):
     ok = False
     try:
@@ -174,7 +197,7 @@ def file_copy(args):
 
 # TODO: Hvordan kalle denne med python: tesseract my-image.png nytt filnavn pdf -> må bruke subprocess
 
-@add_converter()
+@ add_converter()
 def image2norm(args):
     ok = False
     args['tmp_file_path'] = args['tmp_file_path'] + '.pdf'
@@ -191,7 +214,7 @@ def image2norm(args):
     return ok
 
 
-@add_converter()
+@ add_converter()
 def docbuilder2x(args):
     ok = False
     docbuilder_file = args['tmp_dir'] + "/x2x.docbuilder"
