@@ -9,7 +9,7 @@ import csv
 import petl as etl
 from common.xml_settings import XMLSettings
 # from petl import extendheader, rename, appendtsv
-from defs import file_convert # .defs.py
+from defs import file_convert  # .defs.py
 import base64
 
 # mime_type: (keep_original, function name, new file extension)
@@ -24,7 +24,7 @@ mime_to_norm = {
     'application/vnd.openxmlformats-officedocument.presentationml.presentation': (True, 'docbuilder2x', 'pdf'),
     'application/vnd.wordperfect': (False, 'docbuilder2x', 'pdf'),  # TODO: Mulig denne må endres til libreoffice
     # 'application/xhtml+xml; charset=UTF-8': (False, 'wkhtmltopdf', 'pdf'),
-    'application/xhtml+xml': (False, 'wkhtmltopdf', 'pdf'),    
+    'application/xhtml+xml': (False, 'wkhtmltopdf', 'pdf'),
     'application/xml': (False, 'file_copy', 'xml'),
     'application/x-elf': (False, 'what?', None),  # executable on lin
     'application/x-msdownload': (False, 'what?', None),  # executable on win
@@ -37,6 +37,7 @@ mime_to_norm = {
     'image/tiff': (False, 'image2norm', 'pdf'),
     'text/html': (False, 'html2pdf', 'pdf'),  # TODO: Legg til undervarianter her (var opprinnelig 'startswith)
     'text/plain': (False, 'x2utf8', 'txt'),
+    'message/rfc822': (False, 'x2utf8', 'txt'),  # TODO: For test
 }
 
 
@@ -110,10 +111,10 @@ def convert_folder(project_dir, folder, merge, tmp_dir, tika=False, ocr=False):
     append_tsv_row(tsv_target_path, header)
 
     # Treat csv (detected from extension only) as plain text:
-    table = etl.convert(table, 'mime_type',lambda v, row: 'text/plain' if row.id == 'x-fmt/18' else v,pass_row=True)    
+    table = etl.convert(table, 'mime_type', lambda v, row: 'text/plain' if row.id == 'x-fmt/18' else v, pass_row=True)
 
     # Update for missing mime types where id is known:
-    table = etl.convert(table, 'mime_type',lambda v, row: 'application/xml' if row.id == 'fmt/979' else v,pass_row=True)
+    table = etl.convert(table, 'mime_type', lambda v, row: 'application/xml' if row.id == 'fmt/979' else v, pass_row=True)
 
     if os.path.isfile(txt_target_path):
         os.remove(txt_target_path)
@@ -124,9 +125,9 @@ def convert_folder(project_dir, folder, merge, tmp_dir, tika=False, ocr=False):
         count += 1
         count_str = ('(' + str(count) + '/' + str(file_count) + '): ')
         source_file_path = row['source_file_path']
-        mime_type = row['mime_type']  
+        mime_type = row['mime_type']
         if ';' in mime_type:
-            mime_type = mime_type.split(';')[0]    
+            mime_type = mime_type.split(';')[0]
 
         version = row['version']
         result = None
@@ -178,7 +179,7 @@ def convert_folder(project_dir, folder, merge, tmp_dir, tika=False, ocr=False):
 
             row['norm_file_path'] = normalized['norm_file_path']
             row['original_file_copy'] = normalized['original_file_copy']
-            
+
         row['result'] = result
         append_tsv_row(tsv_target_path, list(row.values()))
 

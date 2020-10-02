@@ -21,12 +21,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# from console import ConsoleUi, Processing
 from common.xml_settings import XMLSettings
 from collections import Counter
 from pathlib import Path
 import inspect
-import commands
 import os
 import webbrowser
 import pickle
@@ -34,9 +32,7 @@ import shutil
 import tkinter as tk
 from tkinter import ttk
 from gui.dialog import multi_open
-# from tkinter import filedialog
 from settings import COLORS
-from gui.dialog import multi_open
 import pathlib
 
 
@@ -70,6 +66,16 @@ class HomeTab(ttk.Frame):
     def open_home_url(self):
         webbrowser.open('https://github.com/Preservation-Workbench/PWCode', new=2)
 
+    def update(self, app):
+        # from dulwich import porcelain
+        from dulwich.repo import Repo
+        config = Repo(Path(app.data_dir).parent).get_config()
+        print(config.get(('remote', 'origin'), 'url'))
+        # TODO: Gjør ferdig kode for git pull mm
+        # -> må også hente info om deps og versjon av disse og sjekke mot installert (bruke dulwich eller curl for det?)
+
+        # webbrowser.open('https://github.com/Preservation-Workbench/PWCode', new=2)
+
     def show_help(self, app):
         self.subheading = ttk.Label(self, text=app.settings.desc, style="SubHeading.TLabel")
         self.subheading.pack(side=tk.TOP, anchor=tk.W, after=self.heading)
@@ -86,7 +92,8 @@ class HomeTab(ttk.Frame):
             self.right_frame,
             "Help",
             (
-                ("GitHub repository", self.open_home_url),
+                ("GitHub Repository", self.open_home_url),
+                # ("Update PWCode", lambda: self.update(app)), TODO: Gjør synlig når update kode er ferdig
             ),
         ).pack(side=tk.TOP, anchor=tk.W, pady=12)
 
@@ -107,7 +114,7 @@ class HomeTab(ttk.Frame):
         self.recent_links_frame = RecentLinksFrame(self.left_frame, app).pack(side=tk.TOP, anchor=tk.W, pady=12)
         # self.left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
 
-    def system_entry_check(self, app): # TODO: Slå sammen med run_plugin? Med arg om run? Også duplisering av kode i selve plugin main
+    def system_entry_check(self, app):  # TODO: Slå sammen med run_plugin? Med arg om run? Også duplisering av kode i selve plugin main
         system_name = self.project_frame.name_entry.get()
         if not system_name:
             msg = 'Missing system name'
@@ -116,10 +123,10 @@ class HomeTab(ttk.Frame):
         else:
             msg_label.config(text='')
 
-        self.system_dir = app.data_dir + system_name # --> projects/[system]
+        self.system_dir = app.data_dir + system_name  # --> projects/[system]
         system_dir = self.system_dir
 
-        archive = system_dir[:-1] + '/' + system_name + '.tar' 
+        archive = system_dir[:-1] + '/' + system_name + '.tar'
         # TODO: Flere sjekker? Sjekke mot config xml fil og, eller bare?
         # TODO: Gjenbruke mappe hvis finnes og tom eller bare visse typer innhold?
 
@@ -133,7 +140,6 @@ class HomeTab(ttk.Frame):
             return
 
         return 'ok'
-
 
     def create_project_dir(self, path, project_name):
         if not self.project_dir_created:
@@ -150,7 +156,6 @@ class HomeTab(ttk.Frame):
         self.project_frame.name_entry.configure(state=tk.DISABLED)
 
         return 'ok'
-
 
     def reset_rhs(self, header):
         global msg_label
@@ -170,24 +175,22 @@ class HomeTab(ttk.Frame):
         msg_label = ttk.Label(frame, text="", style="Links.TButton")
         msg_label.pack(side=tk.LEFT, anchor=tk.E, pady=4, padx=(0, 12))
 
-
     def config_init(self, def_name):
         config_dir = os.environ["pwcode_config_dir"]  # Get PWCode config path
         config_path = config_dir + '/tmp/' + def_name + '.xml'
 
         if os.path.isfile(config_path):
             os.remove(config_path)
- 
-        return  XMLSettings(config_path), config_dir    
 
+        return XMLSettings(config_path), config_dir
 
     def run_plugin(self, app, project_name, config_dir, def_name):
-        base_path = app.data_dir + project_name + '/.pwcode/' + def_name 
+        base_path = app.data_dir + project_name + '/.pwcode/' + def_name
         Path(base_path).mkdir(parents=True, exist_ok=True)
 
         for filename in os.listdir(config_dir + def_name):
             # TODO: Endre kode så ikke defs.py overskriver hverandre
-            new_path = base_path + '/' + filename           
+            new_path = base_path + '/' + filename
             if filename == 'main.py':
                 new_path = base_path + '/' + project_name + '_' + def_name + '.py'
                 path = new_path
@@ -198,10 +201,9 @@ class HomeTab(ttk.Frame):
         tab_id = app.editor_frame.path2id[path]
         file_obj = app.editor_frame.id2path[tab_id]
         text_editor = app.editor_frame.notebook.nametowidget(tab_id)
-        if def_name != 'normalize_data': # WAIT: Endre når gui for normalize for messages mm
+        if def_name != 'normalize_data':  # WAIT: Endre når gui for normalize for messages mm
             self.show_help(app)
-        text_editor.run_file(file_obj, False)            
-
+        text_editor.run_file(file_obj, False)
 
     def export_data(self, app):
         def_name = inspect.currentframe().f_code.co_name
@@ -215,8 +217,8 @@ class HomeTab(ttk.Frame):
             project_name = self.project_frame.name_entry.get()
             self.run_plugin(app, project_name, config_dir, def_name)
 
-   
     # TODO: Må lese fra xml i tmp først og så kopiere xml til prosjektmappe. Fortsatt riktig?
+
     def convert_files(self, app):
         def_name = inspect.currentframe().f_code.co_name
         config, config_dir = self.config_init(def_name)
@@ -249,8 +251,7 @@ class HomeTab(ttk.Frame):
         # self.project_frame.name_frame.folder_button.configure(state=tk.DISABLED)
 
         config.save()
-        self.run_plugin(app, project_name, config_dir, def_name)            
-
+        self.run_plugin(app, project_name, config_dir, def_name)
 
     def convert_files_project(self, app):
         self.reset_rhs("Convert Files")
@@ -281,7 +282,6 @@ class HomeTab(ttk.Frame):
         # self.project_frame.merge_option = var
         self.project_frame.merge_option_frame = merge_option
 
-
     def normalize_data(self, app):
         project_dir = multi_open(app.data_dir, mode='dir')
         if not project_dir:
@@ -296,8 +296,7 @@ class HomeTab(ttk.Frame):
         def_name = inspect.currentframe().f_code.co_name
         config_dir = os.environ["pwcode_config_dir"]  # Get PWCode config path
 
-        self.run_plugin(app, project_name, config_dir, def_name)        
-
+        self.run_plugin(app, project_name, config_dir, def_name)
 
     def export_data_project(self, app):
         self.reset_rhs("Export Data")
@@ -345,15 +344,14 @@ class HomeTab(ttk.Frame):
         self.project_frame.package_option.set(options[1])
         package_option = ttk.OptionMenu(options_frame, self.project_frame.package_option, *options)
         package_option.pack(side=tk.LEFT, anchor=tk.N, pady=3)
-        package_option.configure(width=3)        
-
+        package_option.configure(width=3)
 
     def subsystem_entry(self, app):
         ok = None
         if len(subsystem_frames) == 0:
             ok = self.system_entry_check(app)
         else:
-            ok = self.export_check(app) # TODO: Riktig med 'ok' her?
+            ok = self.export_check(app)  # TODO: Riktig med 'ok' her?
 
         if ok:
             if len(subsystem_frames) == 0:
@@ -364,16 +362,15 @@ class HomeTab(ttk.Frame):
             subsystem_frame.pack(side=tk.TOP, anchor=tk.W, fill="both", expand=1, pady=12)
             subsystem_frames.append(subsystem_frame)
 
-
     def export_check(self, app):
         # TODO: Sjekk kobling mm her heller enn i subprocess så kan endre i gui enklere hvis noe er feil
 
         config, config_dir = self.config_init('pwcode')
         config.put('system/name', self.project_frame.name_entry.get())
         config.put('system/md5sum', 'null')
-        config.put('options/memory', self.project_frame.memory_option.get()) 
-        config.put('options/ddl', self.project_frame.ddl_option.get())   
-        config.put('options/create_package', self.project_frame.package_option.get())        
+        config.put('options/memory', self.project_frame.memory_option.get())
+        config.put('options/ddl', self.project_frame.ddl_option.get())
+        config.put('options/create_package', self.project_frame.package_option.get())
 
         i = 0
         subsystem_names = []
@@ -398,16 +395,16 @@ class HomeTab(ttk.Frame):
                 if folder_paths:
                     subsystem_name = 'files' + str(i)
                     i += 1
-                else:                    
+                else:
                     msg = 'Missing subsystem name'
             elif subsystem_name in subsystem_names:
                 msg = 'Duplicate subsystem name'
-            else: 
-                subsystem_name = db_name + '_' + db_schema  
+            else:
+                subsystem_name = db_name + '_' + db_schema
                 if len(jdbc_url) == 0:
-                    msg = "Missing jdbc connection url for '"  + subsystem_name + "'"
-                elif (len(db_user) == 0 or len(db_pwd) == 0):  
-                    if not jdbc_url.lower().startswith('jdbc:h2:'): 
+                    msg = "Missing jdbc connection url for '" + subsystem_name + "'"
+                elif (len(db_user) == 0 or len(db_pwd) == 0):
+                    if not jdbc_url.lower().startswith('jdbc:h2:'):
                         # WAIT: Andre enn h2 som skal unntas? Slå sammen med kode i get_db_details?
                         msg = "Missing user or password for '" + subsystem_name + "'"
 
@@ -426,22 +423,21 @@ class HomeTab(ttk.Frame):
             config.put('subsystems/' + subsystem_name + '/db/user', db_user)
             config.put('subsystems/' + subsystem_name + '/db/password', db_pwd)
             config.put('subsystems/' + subsystem_name + '/db/' + tables_option.replace(' ', '_'), tables)
-            config.put('subsystems/' + subsystem_name + '/db/overwrite_tables', overwrite_tables) 
+            config.put('subsystems/' + subsystem_name + '/db/overwrite_tables', overwrite_tables)
 
             if jdbc_url:
-                config.put('subsystems/' + subsystem_name + '/db/status', 'null')             
+                config.put('subsystems/' + subsystem_name + '/db/status', 'null')
 
             j = 0
-            for path in folder_paths: 
+            for path in folder_paths:
                 config.put('subsystems/' + subsystem_name + '/folders/folder' + str(j) + '/path', path)
                 config.put('subsystems/' + subsystem_name + '/folders/folder' + str(j) + '/status', 'null')
-                j += 1   
+                j += 1
 
-
-        duplicate_names = [k for k,v in Counter(subsystem_names).items() if v>1]    
+        duplicate_names = [k for k, v in Counter(subsystem_names).items() if v > 1]
         for name in duplicate_names:
             msg_label.config(text="Duplicate subsystem name '" + name + "'.")
-            return                                    
+            return
 
         config.save()
         return config_dir

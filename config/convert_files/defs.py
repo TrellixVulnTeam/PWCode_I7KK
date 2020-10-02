@@ -52,16 +52,16 @@ def add_converter():
 def get_file_encoding(path):
     with open(path, "rb") as f:
         text = f.read()
-        encoding = chardet.detect(text)['encoding'].lower()  
+        encoding = chardet.detect(text)['encoding'].lower()
 
-    return encoding         
+    return encoding
 
 
 @add_converter()
 def x2utf8(args):
     # TODO: Sjekk om beholder extension alltid (ikke endre csv, xml mm)
     ok = False
-    encoding = get_file_encoding(args['source_file_path'])   
+    encoding = get_file_encoding(args['source_file_path'])
 
     if encoding != 'utf-8':
         command = ['iconv', '-f', encoding]
@@ -71,12 +71,15 @@ def x2utf8(args):
         file_copy(args)
         ok = True
 
-
     if os.path.exists(args['tmp_file_path']):
         repls = (
             ('‘', 'æ'),
+            ('=C3=A6', u'\u00E6'),
             ('›', 'ø'),
+            ('=C3=B8', u'\u00F8'),  # small unicode ø -> TODO: Ikke sikkert en må ha på denne formen
             ('†', 'å'),
+            ('=C3=A5', u'\u00E5'),  # small unicode å
+            ('=C2=A0', ' ')
         )
 
         # WAIT: Legg inn validering av utf8 -> https://pypi.org/project/validate-utf8/
