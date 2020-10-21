@@ -49,14 +49,6 @@ def add_converter():
 #     return
 
 
-def get_file_encoding(path):
-    with open(path, "rb") as f:
-        text = f.read()
-        encoding = chardet.detect(text)['encoding'].lower()
-
-    return encoding
-
-
 @add_converter()
 def eml2pdf(args):
     ok = False
@@ -67,21 +59,21 @@ def eml2pdf(args):
         ('†', 'å'),
         ('=C2=A0', ' '),
         ('=C3=A6', 'æ'),
-        ('=C3=B8', 'ø'),
-        ('=C3=A5', 'å'),
+        ('=C3=B8|==C3=B8|=C=3=A5|=C3==B8|=C3=B=8', 'ø'),
+        ('=C3=A5|==C3=A5|=C=3=A5|=C3==A5|=C3=A=5', 'å'),  # TODO: Virket ikke siden multiline ikke ignorerte line breaks -> skulle den  ikke det?
         # TODO: Fiks tilfeller når hex variant som skal byttes ut er på hvers av = + line break (er = på slutten av linjer i eml)
+        # Multiline skal ignorere line break -> bare alltid ignorere = også og sjekk mot eg C2A0 heller enn =C2=A0 ?
     )
 
-    encoding = get_file_encoding(args['source_file_path'])
-    with open(args['tmp_file_path'], "wb") as file:
+    with open(args['norm_file_path'], "wb") as file:  # TODO: Endre til tmp_file_path
         with open(args['source_file_path'], 'rb') as file_r:
             content = file_r.read()
-            data = content.decode(encoding)
+            data = content.decode(chardet.detect(content)['encoding'])
             for k, v in repls:
-                data = re.sub(k, v, data, flags=re.MULTILINE)
+                data = re.sub(k, v, data, 0, re.MULTILINE)
         file.write(data.encode('latin1'))  # TODO: Test eml-to-pdf-converter igjen senere for om utf-8 støtte på plass. Melde inn som feil?
 
-    if os.path.exists(args['tmp_file_path']):
+    if os.path.exists(args['norm_file_path']):  # TODO: Endre til tmp_file_path
         # TODO konverter til pdf mm som norm_file_path
         ok = True
 

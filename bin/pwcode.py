@@ -115,7 +115,7 @@ if __name__ == "__main__":
     os.environ["pwcode_config_dir"] = config_dir
     os.environ["pwcode_bin_dir"] = bin_dir
 
-    pwcode_icon_file = os.path.join(bin_dir, 'img/arkimint_fin_32px.gif')  # WAIT: Replace icon
+    pwcode_icon_file = os.path.join(bin_dir, 'img/android-chrome-512x512_9.gif')  # WAIT: Replace icon
     sqlwb_icon_file = os.path.join(bin_dir, 'img/sqlwb.png')
     python_icon_file = os.path.join(bin_dir, 'img/python.png')
 
