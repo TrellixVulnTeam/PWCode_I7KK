@@ -1,3 +1,3 @@
 WIP
 
-Some features of PWCode wil not be available when not on a PWLinux install.
+Some features of PWCode are only available on a PWLinux install.
