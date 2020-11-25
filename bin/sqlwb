@@ -1,14 +1,14 @@
 #!/bin/bash
 
+SCRIPTPATH=$(dirname $(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null||echo $0))
+VENDORPATH="$SCRIPTPATH/vendor"
+JDBCPATH="$VENDORPATH/jars"
+JAVACMD="silent_background $VENDORPATH/linux/jre/bin/java -Xmx6g -jar"
+
 silent_background() {
     { 2>&3 "$@"& } 3>&2 2>/dev/null
     disown &>/dev/null
 }
-
-SCRIPTPATH="$(dirname "$(readlink -f "$0")")"
-VENDORPATH="$SCRIPTPATH/vendor"
-JDBCPATH="$VENDORPATH/jdbc"
-JAVACMD="silent_background $VENDORPATH/linux/jre/bin/java -Xmx6g -jar"
 
 echo "[ENV]
 py_path=
@@ -24,6 +24,6 @@ if [ ! -f $JDBCPATH/WbProfiles.xml ]; then
     cp $VENDORPATH/config/WbProfiles.xml $JDBCPATH;
 fi
 
+echo $JDBCPATH
 cd $JDBCPATH
 $JAVACMD sqlworkbench.jar -Dvisualvm.display.name=SQLWorkbench -Dawt.useSystemAAFontSettings=on -configDir=$JDBCPATH -url=jdbc:h2:mem:PWB -password="";
-
