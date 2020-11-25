@@ -12,12 +12,11 @@ JARS=$BINPATH/vendor/jars/sqlworkbench.jar
 
 install_python_runtime() {
     if [ ! -f $PYTHON_BIN ]; then
-        cd $BINPATH/vendor/linux
-        wget https://github.com/niess/python-appimage/releases/download/python3.8/python3.8.{9..0}-cp38-cp38-manylinux2014_x86_64.AppImage -O python.AppImage
-        chmod u+x python.AppImage;
-        ./python.AppImage --appimage-extract > /dev/null
-        rm python.AppImage
-        mv squashfs-root python
+        wget https://github.com/niess/python-appimage/releases/download/python3.8/python3.8.{9..0}-cp38-cp38-manylinux2014_x86_64.AppImage -O $BINPATH/vendor/linux/python.AppImage
+        chmod u+x $BINPATH/vendor/linux/python.AppImage;
+        $BINPATH/vendor/linux/python.AppImage --appimage-extract > /dev/null
+        rm $BINPATH/vendor/linux/python.AppImage
+        mv $BINPATH/vendor/linux/squashfs-root $BINPATH/vendor/linux/python
 
         if [ ! -f $PYTHON_DESKTOP ]; then
             cp $BINPATH/vendor/config/Python.desktop $PYTHON_DESKTOP
@@ -29,8 +28,8 @@ install_python_runtime() {
 install_python_packages() {
     if [ -e $PYTHON_BIN ]; then
         if [ ! -f $PIP_DONE ]; then
-            cd $BINPATH/vendor/linux/python
-            ./AppRun -m pip install --no-warn-script-location --force-reinstall JPype1==0.6.3  psutil jaydebeapi toposort flake8 autopep8 rope beautifulsoup4 lxml pygments petl wand ocrmypdf img2pdf pdfy cchardet dulwich filetype
+            $BINPATH/vendor/linux/python/AppRun -m pip install --no-warn-script-location --force-reinstall JPype1==0.6.3  psutil \
+            jaydebeapi toposort flake8 autopep8 rope beautifulsoup4 lxml pygments petl wand ocrmypdf img2pdf pdfy cchardet dulwich filetype
             # TODO: Fjerne wand og img2pdf?
             touch $PIP_DONE
         fi
