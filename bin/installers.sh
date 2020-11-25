@@ -14,9 +14,9 @@ install_python_runtime() {
     if [ ! -f $PYTHON_BIN ]; then
         wget https://github.com/niess/python-appimage/releases/download/python3.8/python3.8.{9..0}-cp38-cp38-manylinux2014_x86_64.AppImage -O $BINPATH/vendor/linux/python.AppImage
         chmod u+x $BINPATH/vendor/linux/python.AppImage;
-        $BINPATH/vendor/linux/python.AppImage --appimage-extract $BINPATH/vendor/linux/python > /dev/null
+        cd $BINPATH/vendor/linux && ./python.AppImage --appimage-extract > /dev/null && cd -;
         rm $BINPATH/vendor/linux/python.AppImage
-        #mv $BINPATH/vendor/linux/squashfs-root $BINPATH/vendor/linux/python
+        mv $BINPATH/vendor/linux/squashfs-root $BINPATH/vendor/linux/python
 
         if [ ! -f $PYTHON_DESKTOP ]; then
             cp $BINPATH/vendor/config/Python.desktop $PYTHON_DESKTOP
