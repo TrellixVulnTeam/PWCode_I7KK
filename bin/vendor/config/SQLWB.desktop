@@ -7,4 +7,5 @@ Terminal=false
 Type=Application
 Keywords=SQL Query Tool
 Categories=Development;Database;Java;
+StartupWMClass=workbench-WbStarter
 StartupNotify=false
