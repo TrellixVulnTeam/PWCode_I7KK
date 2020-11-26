@@ -10,12 +10,6 @@ silent_background() {
     disown &>/dev/null
 }
 
-echo "[ENV]
-py_path=
-os=posix
-pwb_path=$SCRIPT_PATH/PWB" > $SCRIPTPATH/tmp/pwb.ini
-
-
 if [ ! -f $JDBCPATH/workbench.settings ]; then
     cp $VENDORPATH/config/workbench.settings $JDBCPATH;
 fi
@@ -24,6 +18,4 @@ if [ ! -f $JDBCPATH/WbProfiles.xml ]; then
     cp $VENDORPATH/config/WbProfiles.xml $JDBCPATH;
 fi
 
-echo $JDBCPATH
-cd $JDBCPATH
-$JAVACMD sqlworkbench.jar -Dvisualvm.display.name=SQLWorkbench -Dawt.useSystemAAFontSettings=on -configDir=$JDBCPATH -url=jdbc:h2:mem:PWB -password="";
+$JAVACMD $JDBCPATH/sqlworkbench.jar -Dvisualvm.display.name=SQLWorkbench -Dawt.useSystemAAFontSettings=on -configDir=$JDBCPATH -url=jdbc:h2:mem:PWB -password="";
