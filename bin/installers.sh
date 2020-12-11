@@ -63,8 +63,8 @@ install_ojdbc() {
 
 install_jars() {
     if [ ! -f $JARS ]; then
-        cd /tmp && wget https://github.com/Preservation-Workbench/deps/releases/latest/download/deps.zip
-        cd $BINPATH/vendor/jars && unzip -j /tmp/deps.zip 
+        wget https://github.com/Preservation-Workbench/deps/releases/latest/download/deps.zip -O /tmp/deps.zip;
+        cd $BINPATH/vendor/jars && unzip -j /tmp/deps.zip;
     fi
 }
 
