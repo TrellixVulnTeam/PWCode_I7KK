@@ -55,8 +55,8 @@ install_java() {
 
 install_ojdbc() {
     if [ ! -f $OJDBC10 ]; then
-        cd $BINPATH/vendor/jars
-        wget https://repo1.maven.org/maven2/com/oracle/database/jdbc/ojdbc10/19.6.0.0/ojdbc10-19.6.0.0.jar -O ojdbc10.jar
+        mkdir -p $BINPATH/vendor/jars;
+        wget https://repo1.maven.org/maven2/com/oracle/database/jdbc/ojdbc10/19.6.0.0/ojdbc10-19.6.0.0.jar -O $BINPATH/vendor/jars/ojdbc10.jar;
     fi
 }
 
