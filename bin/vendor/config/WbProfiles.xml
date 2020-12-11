@@ -1,13 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<java version="11.0.4" class="java.beans.XMLDecoder">
+<java version="11.0.9.1" class="java.beans.XMLDecoder">
  <object class="java.util.ArrayList">
+  <void method="add">
+   <object class="workbench.db.ConnectionProfile" id="ConnectionProfile0">
+    <void property="driverName">
+     <string>H2 Database Engine</string>
+    </void>
+    <void property="driverclass">
+     <string>org.h2.Driver</string>
+    </void>
+    <void property="name">
+     <string>H2 Local(memory)</string>
+    </void>
+    <void id="Boolean0" property="includeNullInInsert"/>
+    <void property="storeExplorerSchema">
+     <object idref="Boolean0"/>
+    </void>
+    <void property="url">
+     <string>jdbc:h2:mem:PWB</string>
+    </void>
+    <void property="useSeparateConnectionPerTab">
+     <object idref="Boolean0"/>
+    </void>
+   </object>
+  </void>
   <void method="add">
    <object class="workbench.db.ConnectionProfile">
     <void property="driverName">
      <string>MySQL</string>
     </void>
     <void property="driverclass">
-     <string>com.mysql.jdbc.Driver</string>
+     <string>com.mysql.cj.jdbc.Driver</string>
     </void>
     <void property="name">
      <string>MySQL Local</string>
@@ -16,16 +39,16 @@
      <string>P@ssw0rd</string>
     </void>
     <void property="storeExplorerSchema">
-     <boolean>true</boolean>
+     <object idref="Boolean0"/>
     </void>
     <void property="url">
-     <string>jdbc:mysql://localhost:3306?zeroDateTimeBehavior=CONVERT_TO_NULL&amp;serverTimezone=UTC</string>
+     <string>jdbc:mysql://localhost:3306?zeroDateTimeBehavior=CONVERT_TO_NULL&amp;serverTimezone=UTC&amp;autoReconnect=true&amp;useSSL=false</string>
     </void>
     <void property="useSeparateConnectionPerTab">
-     <boolean>true</boolean>
+     <object idref="Boolean0"/>
     </void>
     <void property="username">
-     <string>root</string>
+     <string>pwb</string>
     </void>
    </object>
   </void>
@@ -41,16 +64,16 @@
      <string>Oracle Local</string>
     </void>
     <void property="password">
-     <string>pwb</string>
+     <string>P@ssw0rd</string>
     </void>
     <void property="storeExplorerSchema">
-     <boolean>true</boolean>
+     <object idref="Boolean0"/>
     </void>
     <void property="url">
      <string>jdbc:oracle:thin:@127.0.1.1:1521/XE</string>
     </void>
     <void property="useSeparateConnectionPerTab">
-     <boolean>true</boolean>
+     <object idref="Boolean0"/>
     </void>
     <void property="username">
      <string>oracle</string>
@@ -72,13 +95,13 @@
      <string>P@ssw0rd</string>
     </void>
     <void property="storeExplorerSchema">
-     <boolean>true</boolean>
+     <object idref="Boolean0"/>
     </void>
     <void property="url">
-     <string>jdbc:postgresql://localhost:5432/</string>
+     <string>jdbc:postgresql://localhost:5432/?sslmode=disable</string>
     </void>
     <void property="useSeparateConnectionPerTab">
-     <boolean>true</boolean>
+     <object idref="Boolean0"/>
     </void>
     <void property="username">
      <string>postgres</string>
@@ -100,13 +123,13 @@
      <string>P@ssw0rd</string>
     </void>
     <void property="storeExplorerSchema">
-     <boolean>true</boolean>
+     <object idref="Boolean0"/>
     </void>
     <void property="url">
      <string>jdbc:sqlserver://localhost\\SQLEXPRESS:1433;selectMethod=cursor</string>
     </void>
     <void property="useSeparateConnectionPerTab">
-     <boolean>true</boolean>
+     <object idref="Boolean0"/>
     </void>
     <void property="username">
      <string>sa</string>
@@ -114,7 +137,7 @@
    </object>
   </void>
   <void method="add">
-   <object class="workbench.db.ConnectionProfile" id="ConnectionProfile0">
+   <object class="workbench.db.ConnectionProfile">
     <void property="driverName">
      <string>SQLite</string>
     </void>
@@ -124,34 +147,11 @@
     <void property="name">
      <string>SQLite Local(memory)</string>
     </void>
-    <void id="Boolean0" property="includeNullInInsert"/>
     <void property="storeExplorerSchema">
      <object idref="Boolean0"/>
     </void>
     <void property="url">
      <string>jdbc:sqlite::memory:</string>
-    </void>
-    <void property="useSeparateConnectionPerTab">
-     <object idref="Boolean0"/>
-    </void>
-   </object>
-  </void>
-  <void method="add">
-   <object class="workbench.db.ConnectionProfile">
-    <void property="driverName">
-     <string>H2 Database Engine</string>
-    </void>
-    <void property="driverclass">
-     <string>org.h2.Driver</string>
-    </void>
-    <void property="name">
-     <string>H2 Local(memory)</string>
-    </void>
-    <void property="storeExplorerSchema">
-     <object idref="Boolean0"/>
-    </void>
-    <void property="url">
-     <string>jdbc:h2:mem:PWB</string>
     </void>
     <void property="useSeparateConnectionPerTab">
      <object idref="Boolean0"/>
