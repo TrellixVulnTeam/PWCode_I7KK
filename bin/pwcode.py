@@ -128,5 +128,6 @@ if __name__ == "__main__":
         fix_desktop_file(bin_dir, python_icon_file, 'Python.desktop')
     else:
         os.environ['JAVA_HOME'] = bin_dir + '/vendor/windows/jre'
+        python_path = os.path.join(bin_dir, 'vendor/windows/python/python.exe')        
 
     start_client(tmp_dir, port_file, pwcode_icon_file, python_path, data_dir)

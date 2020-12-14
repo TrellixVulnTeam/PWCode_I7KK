@@ -77,8 +77,8 @@ class App:
         # root.tk.call('wm','iconphoto',root._w,img)
         # root.iconphoto(False, img)
 
-        w = 1400  # width for the Tk root
-        h = 900  # height for the Tk root
+        w = 1200  # width for the Tk root
+        h = 800  # height for the Tk root
         ws = root.winfo_screenwidth()
         hs = root.winfo_screenheight()
 

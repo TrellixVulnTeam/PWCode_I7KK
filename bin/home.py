@@ -197,6 +197,7 @@ class HomeTab(ttk.Frame):
 
             shutil.copy(config_dir + def_name + '/' + filename, new_path)
 
+        path = str(Path(path))
         app.model.open_file(path)
         tab_id = app.editor_frame.path2id[path]
         file_obj = app.editor_frame.id2path[tab_id]

@@ -37,6 +37,7 @@ class FSEntryFactory:
     def get_entry(self, path, class_obj):
         """ build a FSEntry instance or use cache"""
         path = os.path.abspath(path)
+        # path = str(Path(path))
         if path in self.__cache:
             file_obj = self.__cache[path]
         else:
@@ -50,10 +51,12 @@ class FSEntryFactory:
 
     def get_folder(self, path):
         """build a Folder instance using cache """
+        # path = str(Path(path))
         return self.get_entry(path, Folder)
 
     def get_file(self, path):
         """build a FileEntry instance using cache """
+        # path = str(Path(path))
         return self.get_entry(path, FileEntry)
 
     # def clear_cache(self): # TODO: For mye bugs med denne. Trengs den?
@@ -70,6 +73,7 @@ class FSEntry:
     def __init__(self, path):
         assert isinstance(path, str)
         self.path = os.path.abspath(path)
+        # self.path = str(Path(os.path.abspath(path)))
         self.modified = False
         self.__basename = None
         self.parent = None
@@ -166,6 +170,7 @@ class PWCodeModel:
 
     def open_folder(self, path, originator=None):
         """open a folder """
+        path = str(Path(path))
         folder = self.factory.get_folder(path)
 
         if folder in self.recent_folders:
@@ -181,6 +186,7 @@ class PWCodeModel:
 
     def open_file(self, path, originator=None):
         """open a single file"""
+        path = str(Path(path))
         file_obj = self.factory.get_file(path)
 
         if file_obj in self.recent_files:
@@ -222,6 +228,7 @@ class PWCodeModel:
 
     def save_file(self, file_obj, new_path, originator=None):
         """ save file """
+        new_path = str(Path(new_path))
         self.update_observers("on_file_save", file_obj, new_path, originator=originator)
 
     def get_file_obj(self, path_or_obj):
@@ -241,6 +248,7 @@ class PWCodeModel:
         while True:
             file_name = 'Untitled-' + str(i)
             file_path = tmp_dir + '/' + file_name
+            file_path = str(Path(file_path))
 
             if self.factory.get_file(file_path) not in self.openfiles and not os.path.isfile(file_path):
                 file_obj = self.factory.get_file(file_path)
