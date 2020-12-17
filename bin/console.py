@@ -129,6 +129,60 @@ class Processing():
         threading.Thread(target=log_message, args=(message,), daemon=True).start()
 
     def run_file(self, file_obj, stop=False):
+        def read_output(pipe, funcs, type):
+            type = '__' + type + '__'
+            for line in iter(pipe.readline, ''):
+                for func in funcs:
+                    func(type + line.strip('\n'))
+                    # time.sleep(1)
+            pipe.close()     
+
+        def write_output(get):
+            for line in iter(get, None):
+                if line.startswith('__out__'):
+                    self.logger.log(logging.INFO, line[7:])
+                elif line.startswith('__err__'):
+                    self.logger.log(logging.ERROR, line[7:])
+                # sys.stdout.write(line)
+
+        def log_run(file_obj):
+            self.process = subprocess.Popen(
+                                        [self.app.python_path, '-u', file_obj.path], 
+                                        stdout=subprocess.PIPE, 
+                                        stderr=subprocess.PIPE, 
+                                        # close_fds=True,
+                                        bufsize=1,
+                                        universal_newlines=True
+                                        )
+
+            q = queue.Queue()
+            out, err = [], []
+            tout = threading.Thread(target=read_output, args=(self.process.stdout, [q.put, out.append], 'out'))
+            terr = threading.Thread(target=read_output, args=(self.process.stderr, [q.put, err.append], 'err'))
+            twrite = threading.Thread(target=write_output, args=(q.get,))
+            for t in (tout, terr, twrite):
+                t.daemon = True
+                t.start()
+            self.process.wait()
+            for t in (tout, terr):
+                t.join()
+            q.put(None) 
+
+        delay = False  # WAIT: Find better method when time
+        for thread in threading.enumerate():
+            if thread.name == file_obj.path:
+                delay = True
+                self.process.terminate()
+                # self.process.kill()  # WAIT: Legg inn test med delay og så kjøre process.kill hvis terminate ikke virket?
+
+        if not stop:
+            if delay:
+                time.sleep(2)  # Give terminated process time to cleanup
+            t = threading.Thread(name=file_obj.path, target=log_run, args=(file_obj,), daemon=True)
+            t.start()                
+
+
+    def run_file_old(self, file_obj, stop=False): # TODO: Only works on Linux. Remove?
         def log_run(file_obj):
             os.environ['PYTHONUNBUFFERED'] = "1"
             # from functools import partial

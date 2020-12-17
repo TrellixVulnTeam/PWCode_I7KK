@@ -25,11 +25,12 @@ install_python_runtime() {
 }
 
 # TODO: Endre senere så både windows og linux bruker samme versjon av jpype (når bugs fikset der og i jaydebeapi)
+# TODO: Endre så mindre blir installert når ikke installert på PWLinux?
 install_python_packages() {
     if [ -e $PYTHON_BIN ]; then
         if [ ! -f $PIP_DONE ]; then
             $BINPATH/vendor/linux/python/AppRun -m pip install --no-warn-script-location --force-reinstall JPype1==0.6.3  psutil \
-            jaydebeapi toposort flake8 autopep8 rope beautifulsoup4 lxml pygments petl wand ocrmypdf img2pdf pdfy cchardet dulwich filetype
+            jaydebeapi toposort flake8 autopep8 rope beautifulsoup4 lxml pygments petl wand ocrmypdf img2pdf pdfy cchardet dulwich filetype 
             # TODO: Fjerne wand og img2pdf?
             touch $PIP_DONE
         fi

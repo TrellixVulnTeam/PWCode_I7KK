@@ -77,7 +77,7 @@ class App:
         # root.tk.call('wm','iconphoto',root._w,img)
         # root.iconphoto(False, img)
 
-        w = 1200  # width for the Tk root
+        w = 1300  # width for the Tk root
         h = 800  # height for the Tk root
         ws = root.winfo_screenwidth()
         hs = root.winfo_screenheight()
@@ -96,6 +96,8 @@ class App:
         self.font.config(size=10)  # WAIT: Gjør denne konfigurerbar. Også brukes av editor, eller fortsatt separat?
 
         style = theme.build_style(self.settings.colors)
+        root.configure(bg=self.settings.colors.bg) # Avoid flashes of gray
+        # TODO: Må endre tilsvarende på et par andre default farger (eks bakgrunn scrollbar når bytter tab)
         style.theme_use("pwcode")
 
         self.commander = Commander(self)

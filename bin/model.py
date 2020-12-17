@@ -36,7 +36,7 @@ class FSEntryFactory:
 
     def get_entry(self, path, class_obj):
         """ build a FSEntry instance or use cache"""
-        path = os.path.abspath(path)
+        path = os.path.abspath(path) # TODO: Gå gjennom der denne fiksen er gjort -> noen er nok unødvendig. Fikse path for win på hvilket sted best?
         # path = str(Path(path))
         if path in self.__cache:
             file_obj = self.__cache[path]
