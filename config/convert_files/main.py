@@ -1,3 +1,8 @@
+
+
+#import os
+#print(os.environ.get('PYTHONPATH'))
+import sys
 import shutil
 import os
 import xml.etree.ElementTree as ET
@@ -7,10 +12,14 @@ import json
 import subprocess
 import csv
 import petl as etl
+import base64
 from common.xml_settings import XMLSettings
 # from petl import extendheader, rename, appendtsv
+
+#curr_dir = os.path.dirname(os.path.abspath(__file__))
+#sys.path.append(curr_dir)
 from defs import file_convert  # .defs.py
-import base64
+
 
 # mime_type: (keep_original, function name, new file extension)
 mime_to_norm = {
@@ -61,7 +70,7 @@ def append_txt_file(file_path, msg):
 def convert_folder(project_dir, folder, merge, tmp_dir, tika=False, ocr=False):
     # TODO: Legg inn i gui at kan velge om skal ocr-behandles
     base_source_dir = folder.text
-    base_target_dir = project_dir + '/' + folder.tag
+    base_target_dir = os.path.join(project_dir, folder.tag)
     tsv_source_path = base_target_dir + '.tsv'
     txt_target_path = base_target_dir + '_result.txt'
     tsv_target_path = base_target_dir + '_processed.tsv'
@@ -298,7 +307,7 @@ def flattenjson(b, prefix='', delim='/', val=None):
 
 def merge_json_files(tmp_dir, json_path):
     glob_data = []
-    for file in glob.glob(tmp_dir + '/*.json'):
+    for file in glob.glob(os.path.join(tmp_dir, '*.json')):
         with open(file) as json_file:
             data = json.load(json_file)
             i = 0
@@ -313,7 +322,8 @@ def merge_json_files(tmp_dir, json_path):
 def run_tika(tsv_path, base_source_dir, tmp_dir):
     Path(tmp_dir).mkdir(parents=True, exist_ok=True)
 
-    json_path = tmp_dir + '/merged.json'
+    json_path = os.path.join(tmp_dir, 'merged.json')
+    # TODO: Endre linje under så cross platform mm
     tika_path = '~/bin/tika/tika-app.jar'  # WAIT: Som configvalg hvor heller?
     # if not os.path.isfile(tsv_path):
     # TODO: Endre så bruker bundlet java
@@ -343,7 +353,7 @@ def run_tika(tsv_path, base_source_dir, tmp_dir):
 def run_siegfried(base_source_dir, project_dir, tsv_path):
     print('\nIdentifying file types...')
 
-    csv_path = project_dir + '/tmp.csv'
+    csv_path = os.path.join(project_dir, 'tmp.csv')
     subprocess.run(
         'sf -z -csv "' + base_source_dir + '" > ' + csv_path,
         stderr=subprocess.DEVNULL,
@@ -365,7 +375,7 @@ def main():
     config_dir = os.environ['pwcode_config_dir']
     tmp_dir = config_dir + 'tmp'
     data_dir = os.environ['pwcode_data_dir']
-    tmp_config_path = config_dir + '/tmp/convert_files.xml'
+    tmp_config_path = os.path.join(config_dir, 'tmp', 'convert_files.xml')
     tmp_config = XMLSettings(tmp_config_path)
 
     if not os.path.isfile(tmp_config_path):
@@ -373,13 +383,13 @@ def main():
         return
 
     project_name = tmp_config.get('name')
-    project_dir = data_dir + project_name
+    project_dir = os.path.join(data_dir, project_name)
 
     if not os.path.isdir(project_dir):
         print('No project folder found. Exiting.')
         return
 
-    config_path = project_dir + '/convert_files.xml'
+    config_path = os.path.join(project_dir, 'convert_files.xml')
     if not os.path.isfile(config_path):
         shutil.copyfile(tmp_config_path, config_path)
 

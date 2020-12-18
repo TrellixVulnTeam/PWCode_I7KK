@@ -1,16 +1,21 @@
 import shutil
 import os
+import sys
 from pathlib import Path
 from common.xml_settings import XMLSettings
 from common.config import add_config_section
 import xml.etree.ElementTree as ET
 from common.file import md5sum
+
+curr_dir = os.path.dirname(os.path.abspath(__file__)) # TODO: Bedre fix for path på windows
+sys.path.append(curr_dir)
 from defs import ( # .defs.py
     export_db_schema,
     capture_files,
     test_db_connect
 )
 
+# TODO: Endre div paths til å bruke os.path.join(
 
 def main():
     bin_dir = os.environ["pwcode_bin_dir"]  # Get PWCode executable path

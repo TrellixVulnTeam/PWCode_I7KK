@@ -90,11 +90,11 @@ def fix_desktop_file(bin_dir, icon_file, desktop_file):
 # -> se også denne: https://anweshadas.in/looking/
 if __name__ == "__main__":
     self_path = Path(__file__).resolve()
-    bin_dir = str(self_path.parents[1]) + '/bin'
-    data_dir = str(self_path.parents[1]) + '/projects/'
-    config_dir = str(self_path.parents[1]) + '/config/'
+    bin_dir = os.path.join(self_path.parents[1], 'bin')
+    data_dir = os.path.join(self_path.parents[1], 'projects')
+    config_dir = os.path.join(self_path.parents[1], 'config')
     tmp_dir = os.path.join(bin_dir, 'tmp')
-    port_file = tmp_dir + '/port'
+    port_file = os.path.join(tmp_dir, 'port')
 
     # Ensure directories exist:
     Path(data_dir).mkdir(parents=True, exist_ok=True)
@@ -107,7 +107,7 @@ if __name__ == "__main__":
     os.environ['PYTHONPATH'] = os.pathsep.join(p)
 
     # Add to classpath for plugins:
-    class_path = bin_dir + '/vendor/jars/sqlworkbench.jar'
+    class_path = os.path.join(bin_dir, 'vendor', 'jars', 'sqlworkbench.jar')
     os.environ['CLASSPATH'] = class_path
 
     # Make paths available to plugins without hard coding:
@@ -115,19 +115,20 @@ if __name__ == "__main__":
     os.environ["pwcode_config_dir"] = config_dir
     os.environ["pwcode_bin_dir"] = bin_dir
 
-    pwcode_icon_file = os.path.join(bin_dir, 'img/pwcode.gif')
-    sqlwb_icon_file = os.path.join(bin_dir, 'img/sqlwb.png')
-    python_icon_file = os.path.join(bin_dir, 'img/python.png')
+    pwcode_icon_file = os.path.join(bin_dir, 'img','pwcode.gif')
+    sqlwb_icon_file = os.path.join(bin_dir, 'img', 'sqlwb.png')
+    python_icon_file = os.path.join(bin_dir, 'img', 'python.png')
 
     python_path = 'python3'
     if os.name == "posix":
-        os.environ['JAVA_HOME'] = bin_dir + '/vendor/linux/jre'
-        python_path = os.path.join(bin_dir, 'vendor/linux/python/usr/bin/python')
+        os.environ['JAVA_HOME'] = os.path.join(bin_dir, 'vendor', 'linux', 'jre')
+        python_path = os.path.join(bin_dir, 'vendor', 'linux', 'python', 'usr', 'bin', 'python')
         fix_desktop_file(bin_dir, pwcode_icon_file, 'PWCode.desktop')
         fix_desktop_file(bin_dir, sqlwb_icon_file, 'SQLWB.desktop')
         fix_desktop_file(bin_dir, python_icon_file, 'Python.desktop')
     else:
-        os.environ['JAVA_HOME'] = bin_dir + '/vendor/windows/jre'
-        python_path = os.path.join(bin_dir, 'vendor/windows/python/python.exe')        
+        os.environ['JAVA_HOME'] = os.path.join(bin_dir, 'vendor', 'windows', 'jre')
+        python_path = os.path.join(bin_dir, 'vendor', 'windows', 'python', 'pythonw.exe')    
+        os.environ['PYTHONPATH'] = python_path   
 
     start_client(tmp_dir, port_file, pwcode_icon_file, python_path, data_dir)

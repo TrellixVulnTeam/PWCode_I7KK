@@ -146,13 +146,23 @@ class Processing():
                 # sys.stdout.write(line)
 
         def log_run(file_obj):
+            #set PYTHONPATH=%PYTHONPATH%;C:\My_python_lib
+            #print(file_obj.path)
+            project_code_dir = os.path.dirname(os.path.realpath(file_obj.path))
+            #os.environ['PYTHONPATH'] = python_path   
+            #pwcode_env = os.environ.copy()
+            #pwcode_env['PYTHONPATH'] = project_code_dir
+            #print(pwcode_env['PYTHONPATH'])
+
             self.process = subprocess.Popen(
                                         [self.app.python_path, '-u', file_obj.path], 
-                                        stdout=subprocess.PIPE, 
-                                        stderr=subprocess.PIPE, 
-                                        # close_fds=True,
-                                        bufsize=1,
-                                        universal_newlines=True
+                                        stdout = subprocess.PIPE, 
+                                        stderr = subprocess.PIPE, 
+                                        #cwd = project_code_dir,
+                                        #env=pwcode_env,
+                                        bufsize = 1,
+                                        #shell=True,
+                                        universal_newlines = True
                                         )
 
             q = queue.Queue()
@@ -180,52 +190,6 @@ class Processing():
                 time.sleep(2)  # Give terminated process time to cleanup
             t = threading.Thread(name=file_obj.path, target=log_run, args=(file_obj,), daemon=True)
             t.start()                
-
-
-    def run_file_old(self, file_obj, stop=False): # TODO: Only works on Linux. Remove?
-        def log_run(file_obj):
-            os.environ['PYTHONUNBUFFERED'] = "1"
-            # from functools import partial
-            # printerr = partial(print, flush=True, file=sys.stderr)
-
-            # WAIT: Gjør generelt så ikke bare python kan brukes
-            # WAIT: Bruke -u eller '-m pdb'? Eller konfigurerbart? Pr plugin?
-            self.process = subprocess.Popen([self.app.python_path, '-u', file_obj.path],
-                                            bufsize=1,
-                                            stdout=subprocess.PIPE,
-                                            stderr=subprocess.PIPE,
-                                            universal_newlines=True  # required for line buffering
-                                            )
-
-            selector = selectors.DefaultSelector()
-            selector.register(self.process.stdout, selectors.EVENT_READ)
-            selector.register(self.process.stderr, selectors.EVENT_READ)
-
-            while self.process.poll() is None:  # poll() returns None while the program is still running
-                for key, mask in selector.select():
-                    data = key.fileobj.readline().strip()
-                    if key.fileobj is self.process.stdout:
-                        self.logger.log(logging.INFO, data)
-                    else:
-                        self.logger.log(logging.ERROR, data)
-
-            return_code = self.process.wait()
-            selector.close()
-            success = (return_code == 0)
-            return (success)  # TODO: Gjøre hva når registrert at script ferdig samt om success eller ikke?
-
-        delay = False  # WAIT: Find better method when time
-        for thread in threading.enumerate():
-            if thread.name == file_obj.path:
-                delay = True
-                self.process.terminate()
-                # self.process.kill()  # WAIT: Legg inn test med delay og så kjøre process.kill hvis terminate ikke virket?
-
-        if not stop:
-            if delay:
-                time.sleep(2)  # Give terminated process time to cleanup
-            t = threading.Thread(name=file_obj.path, target=log_run, args=(file_obj,), daemon=True)
-            t.start()
 
 
 class QueueHandler(logging.Handler):

@@ -123,10 +123,10 @@ class HomeTab(ttk.Frame):
         else:
             msg_label.config(text='')
 
-        self.system_dir = app.data_dir + system_name  # --> projects/[system]
+        self.system_dir = os.path.join(app.data_dir, system_name)  # --> projects/[system]
         system_dir = self.system_dir
 
-        archive = system_dir[:-1] + '/' + system_name + '.tar'
+        archive = os.path.join(system_dir[:-1], system_name + '.tar')
         # TODO: Flere sjekker? Sjekke mot config xml fil og, eller bare?
         # TODO: Gjenbruke mappe hvis finnes og tom eller bare visse typer innhold?
 
@@ -151,7 +151,7 @@ class HomeTab(ttk.Frame):
                 msg_label.config(text=msg)
                 return
 
-        pathlib.Path(path + '/.pwcode').mkdir(parents=True, exist_ok=True)
+        pathlib.Path(os.path.join(path, '.pwcode')).mkdir(parents=True, exist_ok=True)
         self.project_frame.configure(text=' ' + project_name + ' ')
         self.project_frame.name_entry.configure(state=tk.DISABLED)
 
@@ -177,7 +177,7 @@ class HomeTab(ttk.Frame):
 
     def config_init(self, def_name):
         config_dir = os.environ["pwcode_config_dir"]  # Get PWCode config path
-        config_path = config_dir + '/tmp/' + def_name + '.xml'
+        config_path = os.path.join(config_dir, 'tmp', def_name + '.xml')
 
         if os.path.isfile(config_path):
             os.remove(config_path)
@@ -185,17 +185,17 @@ class HomeTab(ttk.Frame):
         return XMLSettings(config_path), config_dir
 
     def run_plugin(self, app, project_name, config_dir, def_name):
-        base_path = app.data_dir + project_name + '/.pwcode/' + def_name
+        base_path = os.path.join(app.data_dir, project_name, '.pwcode', def_name)
         Path(base_path).mkdir(parents=True, exist_ok=True)
 
-        for filename in os.listdir(config_dir + def_name):
+        for filename in os.listdir(os.path.join(config_dir, def_name)):
             # TODO: Endre kode så ikke defs.py overskriver hverandre
-            new_path = base_path + '/' + filename
+            new_path = os.path.join(base_path, filename)
             if filename == 'main.py':
-                new_path = base_path + '/' + project_name + '_' + def_name + '.py'
+                new_path = os.path.join(base_path, project_name + '_' + def_name + '.py')
                 path = new_path
 
-            shutil.copy(config_dir + def_name + '/' + filename, new_path)
+            shutil.copy(os.path.join(config_dir, def_name, filename), new_path)
 
         path = str(Path(path))
         app.model.open_file(path)
@@ -288,7 +288,7 @@ class HomeTab(ttk.Frame):
         if not project_dir:
             return 'No folder chosen.'
 
-        config_path = project_dir + '/pwcode.xml'
+        config_path = os.path.join(project_dir, 'pwcode.xml')
         if not os.path.isfile(config_path):
             return 'Not a PWCode SIP project'
 
@@ -620,8 +620,8 @@ class RecentLinksFrame(LinksFrame):
 
         app.model.add_observer(self)
 
-        if os.path.exists(self.app.tmp_dir + "/recent_files.p"):
-            self.app.recent_links = pickle.load(open(self.app.tmp_dir + "/recent_files.p", "rb"))
+        if os.path.exists(os.path.join(self.app.tmp_dir, "recent_files.p")):
+            self.app.recent_links = pickle.load(open(os.path.join(self.app.tmp_dir, "recent_files.p"), "rb"))
             self.update_recent_links(None)
 
     def update_recent_links(self, new_file_obj):
@@ -636,7 +636,7 @@ class RecentLinksFrame(LinksFrame):
 
         for path, file_obj in reversed(self.app.recent_links.items()):
             if os.path.isfile(file_obj.path):
-                if 'PWCode/bin/tmp/Untitled-' in file_obj.path:
+                if os.path.join('PWCode', 'bin', 'tmp', 'Untitled-') in file_obj.path:
                     if os.path.getsize(file_obj.path) == 0:
                         os.remove(file_obj.path)
                     continue
