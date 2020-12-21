@@ -1,7 +1,4 @@
 
-
-#import os
-#print(os.environ.get('PYTHONPATH'))
 import sys
 import shutil
 import os
@@ -16,8 +13,7 @@ import base64
 from common.xml_settings import XMLSettings
 # from petl import extendheader, rename, appendtsv
 
-#curr_dir = os.path.dirname(os.path.abspath(__file__))
-#sys.path.append(curr_dir)
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from defs import file_convert  # .defs.py
 
 

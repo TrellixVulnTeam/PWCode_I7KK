@@ -146,20 +146,13 @@ class Processing():
                 # sys.stdout.write(line)
 
         def log_run(file_obj):
-            #set PYTHONPATH=%PYTHONPATH%;C:\My_python_lib
-            #print(file_obj.path)
-            project_code_dir = os.path.dirname(os.path.realpath(file_obj.path))
-            #os.environ['PYTHONPATH'] = python_path   
-            #pwcode_env = os.environ.copy()
-            #pwcode_env['PYTHONPATH'] = project_code_dir
-            #print(pwcode_env['PYTHONPATH'])
 
             self.process = subprocess.Popen(
                                         [self.app.python_path, '-u', file_obj.path], 
                                         stdout = subprocess.PIPE, 
                                         stderr = subprocess.PIPE, 
                                         #cwd = project_code_dir,
-                                        #env=pwcode_env,
+                                        #env=myenv,
                                         bufsize = 1,
                                         #shell=True,
                                         universal_newlines = True
