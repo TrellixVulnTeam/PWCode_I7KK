@@ -8,6 +8,7 @@ OJDBC10=SCRIPTPATH & "vendor\jars\ojdbc10.jar"
 PWCODE_BIN=SCRIPTPATH & "pwcode.py"
 WIM_BIN=SCRIPTPATH & "vendor\windows\wimlib\wimlib-imagex.exe"
 JARS=SCRIPTPATH & "vendor\jars\sqlworkbench.jar"
+cmd = PYTHON_BIN & " " & PWCODE_BIN
 
 paths = Array(PYTHON_BIN, JAVA_BIN, OJDBC10, WIM_BIN, JARS)
 
@@ -25,12 +26,15 @@ If Not Installed Then
   If Answer = vbYes Then
     WshShell.run("powershell -executionpolicy bypass -noexit -file vendor\windows\download_deps.ps1")
   End If
+Else
+  ' WScript.Echo cmd
+  ' WAIT: Find method for waiting for completion of powershell script so that pwcode can be launched immediately after install
+  wshShell.Run cmd, 1
 End If
 
-cmd = PYTHON_BIN & " " & PWCODE_BIN
 
-' WScript.Echo cmd
-wshShell.Run cmd, 1
+
+
 
 
 
