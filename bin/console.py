@@ -152,7 +152,7 @@ class Processing():
                 [self.app.python_path, '-u', file_obj.path],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                #cwd = project_code_dir,
+                # cwd = project_code_dir,
                 # env=myenv,
                 bufsize=1,
                 # shell=True,

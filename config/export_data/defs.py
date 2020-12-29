@@ -33,10 +33,12 @@ from common.xml import indent
 
 def get_db_details(jdbc_url, bin_dir):
     # TODO: Legg inn støtte for flere dbtyper
+    print(jdbc_url)
+    print(bin_dir)
     if 'jdbc:h2:' in jdbc_url:  # H2 database
         if 'LAZY_QUERY_EXECUTION' not in jdbc_url:
             jdbc_url = jdbc_url + ';LAZY_QUERY_EXECUTION=1;'  # Modify url for less memory use
-        driver_jar = bin_dir + '/vendor/jars/h2.jar' 
+        driver_jar = os.path.join(bin_dir, 'vendor', 'jars', 'h2.jar')
         # print(driver_jar)
         driver_class = 'org.h2.Driver'
 
@@ -49,9 +51,9 @@ def capture_files(bin_dir, source_path, target_path, exclude=None):
 
     def exclude_items(item):
         if exclude is None:
-            return item  
+            return item
         elif source_path + '/' + item.name not in exclude:
-            return item    
+            return item
 
     try:
         if archive_format == 'wim':
@@ -59,11 +61,11 @@ def capture_files(bin_dir, source_path, target_path, exclude=None):
             check_output(cmd, stderr=STDOUT, shell=True).decode()
         else:
             with tarfile.open(target_path, mode='w') as archive:
-                archive.add(source_path, recursive=True, arcname='', filter=exclude_items)  
+                archive.add(source_path, recursive=True, arcname='', filter=exclude_items)
     except Exception as e:
-        return e 
-       
-    return 'ok'   
+        return e
+
+    return 'ok'
 
 
 def get_tables(conn, schema):
@@ -95,13 +97,18 @@ def export_schema(class_path, max_java_heap, subsystem_dir, jdbc, db_tables):
     batch.runScript(gen_report_str)
     add_row_count_to_schema_file(subsystem_dir, db_tables)
 
+
 # TODO: Fjern duplisering av kode mellom denn og export_db_schema
 def test_db_connect(JDBC_URL, bin_dir, class_path, MAX_JAVA_HEAP, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES):
+    print('doh')
     url, driver_jar, driver_class = get_db_details(JDBC_URL, bin_dir)
+    print(url)
+    print(driver_jar)
+    print(driver_class)
     if driver_jar and driver_class:
         # Start Java virtual machine if not started already:
         class_paths = class_path + ':' + driver_jar
-        init_jvm(class_paths, MAX_JAVA_HEAP)
+        init_jvm(class_paths, MAX_JAVA_HEAP)  # TODO: Feil i denne?
 
         try:
             jdbc = Jdbc(url, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, driver_jar, driver_class, True, True)

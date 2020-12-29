@@ -45,7 +45,7 @@ def open_files_from_tmp(app):
     for r, d, f in os.walk(app.tmp_dir):
         for file in f:
             if 'Untitled-' in file:
-                app.run_command('open_file', app.tmp_dir + '/' + file)
+                app.run_command('open_file', os.path.join(app.tmp_dir, file))
 
 
 def start_client(tmp_dir, port_file, icon_file, python_path, data_dir):
@@ -128,7 +128,7 @@ if __name__ == "__main__":
         fix_desktop_file(bin_dir, python_icon_file, 'Python.desktop')
     else:
         os.environ['JAVA_HOME'] = os.path.join(bin_dir, 'vendor', 'windows', 'jre')
-        python_path = os.path.join(bin_dir, 'vendor', 'windows', 'python', 'pythonw.exe')    
-        #os.environ['PYTHONPATH'] = python_path   
+        python_path = os.path.join(bin_dir, 'vendor', 'windows', 'python', 'pythonw.exe')
+        #os.environ['PYTHONPATH'] = python_path
 
     start_client(tmp_dir, port_file, pwcode_icon_file, python_path, data_dir)

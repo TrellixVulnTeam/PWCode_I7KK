@@ -5,17 +5,18 @@ SCRIPTPATH = Left(WScript.ScriptFullName, Len(WScript.ScriptFullName) - Len(WScr
 PYTHON_BIN=SCRIPTPATH & "vendor\windows\python\pythonw.exe"
 JAVA_BIN=SCRIPTPATH & "vendor\windows\jre\bin\javaw.exe"
 OJDBC10=SCRIPTPATH & "vendor\jars\ojdbc10.jar"
-PWCODE_BIN=SCRIPTPATH & "pwcode.py" 
+PWCODE_BIN=SCRIPTPATH & "pwcode.py"
 WIM_BIN=SCRIPTPATH & "vendor\windows\wimlib\wimlib-imagex.exe"
+JARS=SCRIPTPATH & "vendor\jars\sqlworkbench.jar"
 
-paths = Array(PYTHON_BIN, JAVA_BIN, OJDBC10, WIM_BIN)
+paths = Array(PYTHON_BIN, JAVA_BIN, OJDBC10, WIM_BIN, JARS)
 
 Installed = vbTrue
 For Each path In paths
     If Not FSO.FileExists(path) Then
 		  Installed = vbFalse
     End If
-Next    
+Next
 
 
 WshShell.CurrentDirectory = SCRIPTPATH
@@ -25,7 +26,7 @@ If Not Installed Then
     WshShell.run("powershell -executionpolicy bypass -noexit -file vendor\windows\download_deps.ps1")
   End If
 End If
-  
+
 cmd = PYTHON_BIN & " " & PWCODE_BIN
 
 ' WScript.Echo cmd

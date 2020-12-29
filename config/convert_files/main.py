@@ -13,6 +13,7 @@ import base64
 from common.xml_settings import XMLSettings
 # from petl import extendheader, rename, appendtsv
 
+# WAIT: Lage egen plugin.py som setter paths mm så slipper å repetere i plugin kode
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from defs import file_convert  # .defs.py
 

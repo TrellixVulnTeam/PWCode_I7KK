@@ -4,5 +4,7 @@
 			"path": ".."
 		}
 	],
-	"settings": {}
+	"settings": {
+		"python.pythonPath": "D:\\python3.8.5\\python.exe"
+	}
 }
