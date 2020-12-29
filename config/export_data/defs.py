@@ -14,7 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-import subprocess
+# import subprocess
 from subprocess import check_output, STDOUT
 import tarfile
 import jpype as jp
@@ -22,7 +22,7 @@ import jpype.imports
 from pathlib import Path
 import xml.etree.ElementTree as ET
 from database.jdbc import Jdbc
-from common.file import get_unique_dir
+# from common.file import get_unique_dir
 from common.jvm import init_jvm, wb_batch
 from common.print import print_and_exit
 from common.xml import indent
@@ -33,8 +33,6 @@ from common.xml import indent
 
 def get_db_details(jdbc_url, bin_dir):
     # TODO: Legg inn støtte for flere dbtyper
-    print(jdbc_url)
-    print(bin_dir)
     if 'jdbc:h2:' in jdbc_url:  # H2 database
         if 'LAZY_QUERY_EXECUTION' not in jdbc_url:
             jdbc_url = jdbc_url + ';LAZY_QUERY_EXECUTION=1;'  # Modify url for less memory use
@@ -100,14 +98,12 @@ def export_schema(class_path, max_java_heap, subsystem_dir, jdbc, db_tables):
 
 # TODO: Fjern duplisering av kode mellom denn og export_db_schema
 def test_db_connect(JDBC_URL, bin_dir, class_path, MAX_JAVA_HEAP, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES):
-    print('doh')
+
     url, driver_jar, driver_class = get_db_details(JDBC_URL, bin_dir)
-    print(url)
-    print(driver_jar)
-    print(driver_class)
     if driver_jar and driver_class:
         # Start Java virtual machine if not started already:
         class_paths = class_path + ':' + driver_jar
+        print(class_paths)
         init_jvm(class_paths, MAX_JAVA_HEAP)  # TODO: Feil i denne?
 
         try:

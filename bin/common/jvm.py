@@ -17,11 +17,12 @@ import jpype as jp
 import jpype.imports
 
 
-def init_jvm(class_path, max_heap_size):
+def init_jvm(class_paths, max_heap_size):
     if jp.isJVMStarted():
         return
+
     jp.startJVM(jpype.getDefaultJVMPath(),
-                '-Djava.class.path=%s' % class_path,
+                '-Djava.class.path=%s' % class_paths,
                 '-Dfile.encoding=UTF8',
                 '-ea', max_heap_size,
                 )

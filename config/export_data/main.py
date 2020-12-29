@@ -25,6 +25,10 @@ def main():
     tmp_config_path = os.path.join(config_dir, 'tmp', 'pwcode.xml')
     tmp_config = XMLSettings(tmp_config_path)
 
+    #print(class_path)
+        # TODO: class_path = D:\PWCode\bin\vendor\jars\sqlworkbench.jar
+    # --> Det må jo være feil?
+
     if not os.path.isfile(tmp_config_path):
         return 'No config file found. Exiting.'
 
@@ -54,7 +58,6 @@ def main():
     if os.name == "posix":
         archive_format = 'tar'
 
-
      # TODO: Splitte ut som egen def for å fjerne duplisering av kode -> Skrive alle variabler til dict heller? Egen config-klasse?
     all_exported = True
     for subsystem in subsystems:
@@ -75,9 +78,8 @@ def main():
         if not jdbc_url or db_status == 'exported':
             continue
 
-        print('test main1')
         db_check = test_db_connect(jdbc_url, bin_dir, class_path, memory, db_user, db_password, db_name, schema_name, include_tables, exclude_tables, overwrite_tables)
-        print('test main2')
+
         if not db_check == 'ok':
             return db_check
 
@@ -140,6 +142,7 @@ def main():
                 config.put('subsystems/' + subsystem_name + '/folders/' + folder.tag + '/status', 'exported')
                 config.save()
 
+        #jdbc_url = config.get('subsystems/' + subsystem_name + '/jdbc_url')
         jdbc_url = config.get('subsystems/' + subsystem_name + '/db/jdbc_url')
         db_user = config.get('subsystems/' + subsystem_name + '/db/user')
         db_password = config.get('subsystems/' + subsystem_name + '/db/password')
@@ -158,7 +161,7 @@ def main():
             print("Database in subsystem '" + subsystem_name + "' already exported.")
             continue
 
-        db_result = export_db_schema(
+        db_result = export_db_schema( # TODO: Feil i denne
             jdbc_url,
             bin_dir,
             class_path,
