@@ -135,7 +135,7 @@ class Processing():
                 for func in funcs:
                     func(type + line.strip('\n'))
                     # time.sleep(1)
-            pipe.close()     
+            pipe.close()
 
         def write_output(get):
             for line in iter(get, None):
@@ -147,16 +147,17 @@ class Processing():
 
         def log_run(file_obj):
 
+            # TODO: Bruke denne heller? https://github.com/untwisted/untwisted/wiki/Process-Talk
             self.process = subprocess.Popen(
-                                        [self.app.python_path, '-u', file_obj.path], 
-                                        stdout = subprocess.PIPE, 
-                                        stderr = subprocess.PIPE, 
-                                        #cwd = project_code_dir,
-                                        #env=myenv,
-                                        bufsize = 1,
-                                        #shell=True,
-                                        universal_newlines = True
-                                        )
+                [self.app.python_path, '-u', file_obj.path],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                #cwd = project_code_dir,
+                # env=myenv,
+                bufsize=1,
+                # shell=True,
+                universal_newlines=True
+            )
 
             q = queue.Queue()
             out, err = [], []
@@ -169,7 +170,7 @@ class Processing():
             self.process.wait()
             for t in (tout, terr):
                 t.join()
-            q.put(None) 
+            q.put(None)
 
         delay = False  # WAIT: Find better method when time
         for thread in threading.enumerate():
@@ -182,7 +183,7 @@ class Processing():
             if delay:
                 time.sleep(2)  # Give terminated process time to cleanup
             t = threading.Thread(name=file_obj.path, target=log_run, args=(file_obj,), daemon=True)
-            t.start()                
+            t.start()
 
 
 class QueueHandler(logging.Handler):
