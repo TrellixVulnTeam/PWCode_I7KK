@@ -25,7 +25,7 @@ def main():
     tmp_config_path = os.path.join(config_dir, 'tmp', 'pwcode.xml')
     tmp_config = XMLSettings(tmp_config_path)
 
-    #print(class_path)
+    print(class_path)
         # TODO: class_path = D:\PWCode\bin\vendor\jars\sqlworkbench.jar
     # --> Det må jo være feil?
 
@@ -42,7 +42,7 @@ def main():
     if os.path.isfile(archive):
         return "'" + archive + "' already exists. Exiting."
 
-    config_path = os.path.join(project_dir, '/pwcode.xml')
+    config_path = os.path.join(project_dir, 'pwcode.xml')
     if not os.path.isfile(config_path):
         shutil.copyfile(tmp_config_path, config_path)
 
@@ -142,7 +142,6 @@ def main():
                 config.put('subsystems/' + subsystem_name + '/folders/' + folder.tag + '/status', 'exported')
                 config.save()
 
-        #jdbc_url = config.get('subsystems/' + subsystem_name + '/jdbc_url')
         jdbc_url = config.get('subsystems/' + subsystem_name + '/db/jdbc_url')
         db_user = config.get('subsystems/' + subsystem_name + '/db/user')
         db_password = config.get('subsystems/' + subsystem_name + '/db/password')

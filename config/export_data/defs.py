@@ -131,21 +131,36 @@ def test_db_connect(JDBC_URL, bin_dir, class_path, MAX_JAVA_HEAP, DB_USER, DB_PA
 def export_db_schema(JDBC_URL, bin_dir, class_path, MAX_JAVA_HEAP, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, subsystem_dir, INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, DDL_GEN):
     url, driver_jar, driver_class = get_db_details(JDBC_URL, bin_dir)
     if driver_jar and driver_class:
+        print('test1')
         # Start Java virtual machine if not started already:
         class_paths = class_path + ':' + driver_jar
+        print('test2')
         init_jvm(class_paths, MAX_JAVA_HEAP)
-
+        print('test3')
         try:
+            print('test4')
+            print(url)
+            print(DB_NAME)
+            print(DB_SCHEMA)
+            print(driver_jar)
+            print(driver_class)
             jdbc = Jdbc(url, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, driver_jar, driver_class, True, True)
+            print('test5')
             if jdbc:
+                print('test6')
                 # Get database metadata:
                 db_tables, table_columns = get_db_meta(jdbc)
+                print('test7')
                 export_schema(class_path, MAX_JAVA_HEAP, subsystem_dir, jdbc, db_tables)
+                print('test8')
                 export_tables, overwrite_tables = table_check(INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, db_tables)
+                print('test9')
 
             if export_tables:
                 # Copy schema data:
+                print('test10')
                 copy_db_schema(subsystem_dir, jdbc, class_path, MAX_JAVA_HEAP, export_tables, bin_dir, table_columns, overwrite_tables, DDL_GEN)
+                print('test11')
                 return 'ok'
             else:
                 print('No table data to export. Exiting.')
