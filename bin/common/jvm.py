@@ -16,21 +16,28 @@
 import jpype as jp
 import jpype.imports
 
-
-def init_jvm(class_paths, max_heap_size):
+# TODO: Fjern java path som arg når testet nok først. Eller enklere med den på win?
+def init_jvm(class_paths, max_heap_size, java_path):
     if jp.isJVMStarted():
         return
 
-    jp.startJVM(jpype.getDefaultJVMPath(),
+    # jp.startJVM(java_path,
+    #             '-Djava.class.path=%s' % class_paths,
+    #             # '-Djava.class.path=/home/bba/bin/PWCode/bin/vendor/jars/h2.jar',
+    #             '-Dfile.encoding=UTF8',
+    #             '-ea', max_heap_size,
+    #             )
+
+    jp.startJVM(jp.getDefaultJVMPath(),
                 '-Djava.class.path=%s' % class_paths,
+                # '-Djava.class.path=/home/bba/bin/PWCode/bin/vendor/jars/h2.jar',
                 '-Dfile.encoding=UTF8',
                 '-ea', max_heap_size,
                 )
 
-
-def wb_batch(class_path, max_java_heap):
+def wb_batch(class_path, max_java_heap, java_path):
     # Start Java virtual machine if not started already:
-    init_jvm(class_path, max_java_heap)
+    init_jvm(class_path, max_java_heap, java_path)
 
     # Create instance of sqlwb Batchrunner:
     WbManager = jp.JPackage('workbench').WbManager

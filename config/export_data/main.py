@@ -17,7 +17,8 @@ from defs import ( # .defs.py
 
 def main():
     bin_dir = os.environ["pwcode_bin_dir"]  # Get PWCode executable path
-    class_path = os.environ['CLASSPATH']  # Get Java jar path
+    java_path = os.environ['pwcode_java_path']  # Get Java home path
+    class_path = os.environ['CLASSPATH']  # Get jar path
     config_dir = os.environ['pwcode_config_dir']  # Get PWCode config path
     tmp_dir = os.path.join(config_dir, 'tmp')
     os.chdir(tmp_dir)  # Avoid littering from subprocesses
@@ -25,9 +26,27 @@ def main():
     tmp_config_path = os.path.join(config_dir, 'tmp', 'pwcode.xml')
     tmp_config = XMLSettings(tmp_config_path)
 
-    print(class_path)
-        # TODO: class_path = D:\PWCode\bin\vendor\jars\sqlworkbench.jar
-    # --> Det må jo være feil?
+    # import jpype
+    # from jpype import dbapi2
+    # print(jpype.getDefaultJVMPath())
+    # java_home = os.environ['JAVA_HOME']
+    # print(os.path.realpath(java_home))
+    # if os.path.exists(java_home):
+    #     print('blæh')
+
+    # jpype.startJVM(java_path,
+    #             #'-Djava.class.path=%s' % class_paths,
+    #              '-Djava.class.path=/home/bba/bin/PWCode/bin/vendor/jars/h2.jar',
+    #             '-Dfile.encoding=UTF8',
+    #             '-ea',
+    #             )
+
+
+    # driver_args={"user":"","password":""}
+    # conn_url = 'jdbc:h2:/home/bba/Desktop/DOCULIVEHIST_DBO_PUBLIC;LAZY_QUERY_EXECUTION=1'
+    # conn = dbapi2.connect(conn_url,driver='org.h2.Driver',driver_args=driver_args)
+
+    # return
 
     if not os.path.isfile(tmp_config_path):
         return 'No config file found. Exiting.'
@@ -64,8 +83,8 @@ def main():
         subsystem_name = subsystem.tag
         db_status = config.get('subsystems/' + subsystem_name + '/db/status')
         db_name = config.get('subsystems/' + subsystem_name + '/db/name')
-        schema_name = config.get('subsystems/' + subsystem_name + '/schema_name')
-        jdbc_url = config.get('subsystems/' + subsystem_name + '/jdbc_url')
+        schema_name = config.get('subsystems/' + subsystem_name + '/db/schema_name')
+        jdbc_url = config.get('subsystems/' + subsystem_name + '/db/jdbc_url')
         db_user = config.get('subsystems/' + subsystem_name + '/db/user')
         db_password = config.get('subsystems/' + subsystem_name + '/db/password')
         exclude_tables = config.get('subsystems/' + subsystem_name + '/db/exclude_tables')
@@ -78,7 +97,7 @@ def main():
         if not jdbc_url or db_status == 'exported':
             continue
 
-        db_check = test_db_connect(jdbc_url, bin_dir, class_path, memory, db_user, db_password, db_name, schema_name, include_tables, exclude_tables, overwrite_tables)
+        db_check = test_db_connect(jdbc_url, bin_dir, class_path, java_path, memory, db_user, db_password, db_name, schema_name, include_tables, exclude_tables, overwrite_tables)
 
         if not db_check == 'ok':
             return db_check
@@ -164,6 +183,7 @@ def main():
             jdbc_url,
             bin_dir,
             class_path,
+            java_path,
             memory,
             db_user,
             db_password,

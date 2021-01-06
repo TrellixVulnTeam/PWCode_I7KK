@@ -121,13 +121,15 @@ if __name__ == "__main__":
 
     python_path = 'python3'
     if os.name == "posix":
-        os.environ['JAVA_HOME'] = os.path.join(bin_dir, 'vendor', 'linux', 'jre')
+        os.environ['pwcode_java_path'] = os.path.join(bin_dir, 'vendor', 'linux', 'jre', 'lib', 'server', 'libjvm.so')
+        os.environ['JAVA_HOME'] = os.path.join(bin_dir, 'vendor', 'linux')
         python_path = os.path.join(bin_dir, 'vendor', 'linux', 'python', 'usr', 'bin', 'python')
         fix_desktop_file(bin_dir, pwcode_icon_file, 'PWCode.desktop')
         fix_desktop_file(bin_dir, sqlwb_icon_file, 'SQLWB.desktop')
         fix_desktop_file(bin_dir, python_icon_file, 'Python.desktop')
     else:
-        os.environ['JAVA_HOME'] = os.path.join(bin_dir, 'vendor', 'windows', 'jre')
+        os.environ['pwcode_java_path'] = os.path.join(bin_dir, 'vendor', 'windows', 'jre')
+        # TODO: Må endrest tilsvarende som for linux -> på denne formen: 'C:\\Program Files\\Java\\jdk-10.0.2\\bin\\server\\jvm.dll'
         python_path = os.path.join(bin_dir, 'vendor', 'windows', 'python', 'pythonw.exe')
         #os.environ['PYTHONPATH'] = python_path
 

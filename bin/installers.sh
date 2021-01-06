@@ -29,8 +29,8 @@ install_python_runtime() {
 install_python_packages() {
     if [ -e $PYTHON_BIN ]; then
         if [ ! -f $PIP_DONE ]; then
-            $BINPATH/vendor/linux/python/AppRun -m pip install --no-warn-script-location --force-reinstall JPype1==0.6.3  psutil \
-            jaydebeapi toposort flake8 autopep8 rope beautifulsoup4 lxml pygments petl wand ocrmypdf img2pdf pdfy cchardet dulwich filetype 
+            $BINPATH/vendor/linux/python/AppRun -m pip install --no-warn-script-location --force-reinstall JayDeBeApi JPype1 \
+            psutil toposort flake8 autopep8 rope beautifulsoup4 lxml pygments petl wand ocrmypdf img2pdf pdfy cchardet dulwich filetype
             # TODO: Fjerne wand og img2pdf?
             touch $PIP_DONE
         fi
@@ -43,7 +43,7 @@ install_java() {
         wget https://corretto.aws/downloads/latest/amazon-corretto-11-x64-linux-jdk.tar.gz
         tar -xf amazon-corretto-11-x64-linux-jdk.tar.gz
         cd amazon-corretto-*-linux-x64/bin/
-        ./jlink --output $BINPATH/vendor/linux/jre --compress=2 --no-header-files --no-man-pages --module-path ../jmods --add-modules java.base,java.datatransfer,java.desktop,java.management,java.net.http,java.security.jgss,java.sql,java.sql.rowset,java.xml,jdk.net,jdk.unsupported,jdk.unsupported.desktop,jdk.xml.dom
+        ./jlink --output $BINPATH/vendor/linux/jre --compress=2 --no-header-files --no-man-pages --module-path ../jmods --add-modules java.base,java.datatransfer,java.desktop,java.management,java.net.http,java.security.jgss,java.sql,java.sql.rowset,java.xml,jdk.net,jdk.unsupported,jdk.unsupported.desktop,jdk.xml.dom,jdk.zipfs
         rm $BINPATH/vendor/linux/amazon-corretto-11-x64-linux-jdk.tar.gz
         rm -rdf $BINPATH/vendor/linux/amazon-corretto-*-linux-x64
 

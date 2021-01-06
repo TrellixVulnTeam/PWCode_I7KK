@@ -346,13 +346,15 @@ class Jdbc:
 
         connection_error = None
         try:
-               
+
             # print(JDBC_DRIVERS['class'])
             # print(JAR_FILES)
             # print(JDBC_DRIVERS)
             # print(self.url)
             # test = JDBC_DRIVERS[self.type]['class']
             # print(test)
+
+            print(self.driver_jar)
             self.connection = connect(self.driver_class,self.url, [self.usr,self.pwd], self.driver_jar,)
             self.connection.jconn.setAutoCommit(auto_commit)
         except Exception as error:
