@@ -16,7 +16,7 @@
 import os
 import subprocess
 from pathlib import Path
-import glob
+# import glob
 import tarfile
 import jaydebeapi
 from common.jvm import init_jvm, wb_batch
@@ -35,11 +35,11 @@ def get_files(extensions, path):
     all_files = []
     for ext in extensions:
         all_files.extend(Path(path).glob(ext))
-    return all_files     
+    return all_files
 
 
-def get_tables(driver_class,jdbc_url,driver_jar):
-    conn = jaydebeapi.connect(driver_class,jdbc_url,['', ''], driver_jar)
+def get_tables(driver_class, jdbc_url, driver_jar):
+    conn = jaydebeapi.connect(driver_class, jdbc_url, ['', ''], driver_jar)
     try:
         curs = conn.cursor()
         curs.execute("SHOW TABLES;")
@@ -56,52 +56,49 @@ def get_tables(driver_class,jdbc_url,driver_jar):
         if conn is not None:
             conn.close()
 
-    return tables            
+    return tables
 
 
 # def export_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tables, bin_dir, table_columns, overwrite_tables, DDL_GEN):
-def export_db_schema(data_dir, sub_system, class_path, bin_dir, memory):
+def export_db_schema(data_dir, sub_system, class_path, java_path, bin_dir, memory):
     jdbc_url = 'jdbc:h2:' + data_dir + sub_system + ';LAZY_QUERY_EXECUTION=1'
-    driver_class = 'org.h2.Driver'    
-    driver_jar = bin_dir + '/vendor/jars/h2.jar'
-    batch = wb_batch(class_path, memory)
-    # batch.runScript("WbConnect -url='" + jdbc_url + "';")
+    driver_class = 'org.h2.Driver'
+    driver_jar = os.path.join(bin_dir, 'vendor', 'jars', 'h2.jar')
+    class_paths = class_path + ':' + driver_jar
+    batch = wb_batch(class_paths, memory, java_path)  # TODO: Heller init_jvm direkte bare her?
 
-    tables = get_tables(driver_class,jdbc_url,driver_jar)
+    tables = get_tables(driver_class, jdbc_url, driver_jar)
     if tables == 'error':
         return 'not workee'
 
+    # /home/bba/bin/PWCode/projects/bbf/content/sub_systems/fsad_PUBLIC/content/data/
+    # fsad_PUBLIC
+    # jdbc:h2:/home/bba/bin/PWCode/projects/bbf/content/sub_systems/fsad_PUBLIC/content/data/fsad_PUBLIC;LAZY_QUERY_EXECUTION=1
+    return
+
     for table in tables:
         batch.runScript("WbConnect -url='" + jdbc_url + "';")
-        copy_data_str = "WbCopy -targetConnection=" + target_conn + " -targetSchema=PUBLIC -targetTable=" + target_table + " -sourceQuery=" + source_query + ";"
-        result = batch.runScript(copy_data_str)
-        # target_table = '"' + table + '"'
-        result = batch.runScript(copy_data_str)
-        batch.runScript("WbDisconnect;")
-        jp.java.lang.System.gc()
-        if str(result) == 'Error':
-            print_and_exit("Error on copying table '" + table + "'\nScroll up for details.")
+        tsv_file = data_dir + table + '.tsv'
+        # TODO: Hvorfor ha med navn på kolonner i select under? Beholde det? -> ja -> sikrer at får eksportert kolonner med ellers ulovlige navn pga quotes
+        # --> TODO: har det som trengs for å hente kolonnenavn mm i koden under -> blir forenklet versjon av det
 
+        # WbExport -type=text -file="tsv_fil_full_path.tsv" -continueOnError=false -encoding=UTF8 -header=true -decimal='.' -maxDigits=0 -lineEnding=lf -clobAsFile=false -blobType=base64 -delimiter=\t -replaceExpression='(\n|\r\n|\r|\t|^$)' -replaceWith=' ' -nullString=' ' -showProgress=10000; SELECT "RI_ID", "ABSENCE_YEAR", "ABSENCE_QUARTER", "ABSENCE_DAYS", "ABSENCE_PERIOD" FROM "ABSENCE";
+        # TODO: Endre så eksport til tsv heller enn copy
 
+        # copy_data_str = "WbCopy -targetConnection=" + target_conn + " -targetSchema=PUBLIC -targetTable=" + target_table + " -sourceQuery=" + source_query + ";"
+        # result = batch.runScript(copy_data_str)
+        # # target_table = '"' + table + '"'
+        # result = batch.runScript(copy_data_str)
+        # batch.runScript("WbDisconnect;")
+        # jp.java.lang.System.gc()
+        # if str(result) == 'Error':
+        #     print_and_exit("Error on copying table '" + table + "'\nScroll up for details.")
 
-
-    return 
-
-
+    return
 
     jdbc = Jdbc(url, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, driver_jar, driver_class, True, True)
 
-
-
-
-
-
-
-
     return 'så langt'
-
-
-
 
     target_url = 'jdbc:h2:' + subsystem_dir + '/content/data/' + s_jdbc.db_name + '_' + s_jdbc.db_schema + ';autocommit=off'
     target_url, driver_jar, driver_class = get_db_details(target_url, bin_dir)
@@ -110,7 +107,6 @@ def export_db_schema(data_dir, sub_system, class_path, bin_dir, memory):
     # pk_dict = get_primary_keys(subsystem_dir, export_tables)
     # unique_dict = get_unique_indexes(subsystem_dir, export_tables)
     blob_columns = get_blob_columns(subsystem_dir, export_tables)
-
 
     mode = '-mode=INSERT'
     std_params = ' -ignoreIdentityColumns=false -removeDefaults=true -commitEvery=1000 '
@@ -176,25 +172,22 @@ def export_db_schema(data_dir, sub_system, class_path, bin_dir, memory):
         print('Database export complete. ' + str(len(previous_export)) + ' of ' + str(len(export_tables.keys())) + ' tables were already exported.')
 
 
-def process(project_dir, bin_dir, class_path, memory):
-    sub_systems_dir = project_dir + '/content/sub_systems/' 
+def process(project_dir, bin_dir, class_path, java_path, memory):
+    sub_systems_dir = project_dir + '/content/sub_systems/'
 
-
-    for sub_system in os.listdir(sub_systems_dir): 
-        #process db's:
+    for sub_system in os.listdir(sub_systems_dir):
+        # process db's:
         data_dir = sub_systems_dir + sub_system + "/content/data/"
-        h2_file = data_dir + sub_system + ".mv.db" 
+        h2_file = data_dir + sub_system + ".mv.db"
         if os.path.isfile(h2_file):
             data_docs_dir = sub_systems_dir + sub_system + "/content/data_documents/"
-            Path(data_docs_dir).mkdir(parents=True, exist_ok=True) 
-            export_db_schema(data_dir, sub_system, class_path, bin_dir, memory)       
-        
+            Path(data_docs_dir).mkdir(parents=True, exist_ok=True)
+            export_db_schema(data_dir, sub_system, class_path, java_path, bin_dir, memory)
 
-
-        #process files:
-        docs_dir = sub_systems_dir + sub_system + "/content/documents" 
+        # process files:
+        docs_dir = sub_systems_dir + sub_system + "/content/documents"
         files = get_files(('*.wim', '*.tar'), docs_dir)
-        for file in files: 
+        for file in files:
             export_dir = os.path.splitext(file)[0]
             Path(export_dir).mkdir(parents=True, exist_ok=True)
 
@@ -207,12 +200,9 @@ def process(project_dir, bin_dir, class_path, memory):
                 with tarfile.open(file) as tar:
                     tar.extractall(path=export_dir)
 
-            os.remove(file)   
+            os.remove(file)
 
-    return 'endre denne'    
-
-
-
+    return 'endre denne'
 
     # sub_systems_dir = project_dir + '/content/sub_systems'
     # extracted = False
@@ -220,10 +210,9 @@ def process(project_dir, bin_dir, class_path, memory):
     #     if len(os.listdir(sub_systems_dir)) != 0:
     #         extracted = True
 
-    # if not extracted:            
+    # if not extracted:
     #     with tarfile.open(archive) as tar:
-    #         tar.extractall(path=project_dir)   
-
+    #         tar.extractall(path=project_dir)
 
     # for dir in os.listdir(sub_systems_dir):
     #     # system_name = os.path.basename(SYSTEM_DIR)
@@ -231,7 +220,7 @@ def process(project_dir, bin_dir, class_path, memory):
     #     data_docs_dir = sub_systems_dir + "/" + dir + "/content/data_documents"
     #     docs_dir = sub_systems_dir + "/" + dir + "/content/documents"
     #     data_dir = sub_systems_dir + "/" + dir + "/content/data"
-    #     h2_file = data_dir + dir + ".mv.db" 
+    #     h2_file = data_dir + dir + ".mv.db"
     #     # schema_file = sub_systems_dir + "/" + dir + "/documentation/metadata_mod.xml"
     #     # header_schema_file = sub_systems_dir + "/" + dir + "/header/metadata.xml"
 
@@ -255,19 +244,13 @@ def process(project_dir, bin_dir, class_path, memory):
 
     #         os.remove(file)
 
-        # h2_export(h2_file)   # TODO: Test om denne koden ferdig -> nei
+    # h2_export(h2_file)   # TODO: Test om denne koden ferdig -> nei
 
     # subdir_and_files = [
     #     tarinfo for tarinfo in tar.getmembers()
     #     if tarinfo.name.startswith("subfolder/")
     # ]
     # tar.extractall(members=subdir_and_files)
-
-
-
-
-
-
 
     # mount_wim(archive, project_extracted_dir)  # TODO: Legg inn støtte for tar også
     # sql_file = tmp_dir + "/file_process.sql"
@@ -278,11 +261,6 @@ def process(project_dir, bin_dir, class_path, memory):
 
     # open(tmp_dir + "/PWB.log", 'w').close()  # Clear log file
     # open(sql_file, 'w').close()  # Blank out between runs
-
-
-
-
-
 
 
 def h2_export(h2_file):

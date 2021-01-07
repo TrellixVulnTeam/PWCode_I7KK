@@ -5,24 +5,25 @@ from common.file import md5sum, copy_file_progress
 from common.xml_settings import XMLSettings
 import tarfile
 import xml.etree.ElementTree as ET
-from defs import ( # .defs.py
+from defs import (  # .defs.py
     process
 )
 
 
 def main():
     bin_dir = os.environ["pwcode_bin_dir"]  # Get PWCode executable path
-    class_path = os.environ['CLASSPATH']  # Get Java jar path
+    java_path = os.environ['pwcode_java_path']  # Get Java home path
+    class_path = os.environ['CLASSPATH']  # Get jar path
     config_dir = os.environ["pwcode_config_dir"]  # Get PWCode config path
-    tmp_dir = config_dir + 'tmp'
+    tmp_dir = os.path.join(config_dir, 'tmp')
     os.chdir(tmp_dir)  # Avoid littering from subprocesses
     project_dir = str(Path(__file__).parents[2])
-    config_path = project_dir + '/pwcode.xml'
+    config_path = os.path.join(project_dir, 'pwcode.xml')
     config = XMLSettings(config_path)
     project_name = config.get('system/name')
     package = config.get('options/create_package')
     memory = '-Xmx' + config.get('options/memory').split(' ')[0] + 'g'
-    archive = project_dir + '/' + project_name + '.tar'
+    archive = os.path.join(project_dir, project_name + '.tar')
 
     if package == 'Yes':
         if not os.path.isfile(archive):
@@ -52,7 +53,8 @@ def main():
         with tarfile.open(archive) as tar:
             tar.extractall(path=project_dir)
 
-    process(project_dir, bin_dir, class_path, memory)
+    # TODO: Hent java path
+    process(project_dir, bin_dir, class_path, java_path, memory)
     # process_files(project_dir)
 
     return 'hva her?'
@@ -83,7 +85,6 @@ def main():
 # -- Clean up
 # WbSysExec -ifNotEmpty=wim_path -program='python3' -argument='"$[pwb_path]/cleanup.py"' -env="PATH=$[py_path]";
 
-
     # for dir in os.listdir(sub_systems_dir):
     #     docs_dir = sub_systems_dir + "/" + dir + "/content/documents"
 
@@ -102,17 +103,9 @@ def main():
     #         for dir in [data_docs_dir, data_dir]:
     #             Path(dir).mkdir(parents=True, exist_ok=True)
 
-
-
-
-
     # TODO: Legg inn sjekk på om finnes upakket mappestruktur hvis ikke tar. Ha i config om pakket eller ikke? Ja -> sjekksum henger jo sammen med den
-
-
-
 
 
 if __name__ == '__main__':
     msg = main()
     print(msg)
-
