@@ -16,6 +16,7 @@
 import jpype as jp
 import jpype.imports
 
+
 # TODO: Fjern java path som arg når testet nok først. Eller enklere med den på win?
 def init_jvm(class_paths, max_heap_size, java_path):
     if jp.isJVMStarted():
@@ -34,6 +35,7 @@ def init_jvm(class_paths, max_heap_size, java_path):
                 '-Dfile.encoding=UTF8',
                 '-ea', max_heap_size,
                 )
+
 
 def wb_batch(class_path, max_java_heap, java_path):
     # Start Java virtual machine if not started already:

@@ -14,7 +14,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-# import subprocess
 from subprocess import check_output, STDOUT
 import tarfile
 import jpype as jp
@@ -22,7 +21,6 @@ import jpype.imports
 from pathlib import Path
 import xml.etree.ElementTree as ET
 from database.jdbc import Jdbc
-# from common.file import get_unique_dir
 from common.jvm import init_jvm, wb_batch
 from common.print import print_and_exit
 from common.xml import indent
@@ -35,10 +33,11 @@ def get_db_details(jdbc_url, bin_dir):
     # TODO: Legg inn støtte for flere dbtyper
     driver_jar = None
     driver_class = None
+    jars_path = os.path.join(bin_dir, 'vendor', 'jars')
     if 'jdbc:h2:' in jdbc_url:  # H2 database
         if 'LAZY_QUERY_EXECUTION' not in jdbc_url:
             jdbc_url = jdbc_url + ';LAZY_QUERY_EXECUTION=1;'  # Modify url for less memory use
-        driver_jar = os.path.join(bin_dir, 'vendor', 'jars', 'h2.jar')
+        driver_jar = os.path.join(jars_path, 'h2.jar')
         driver_class = 'org.h2.Driver'
 
     return jdbc_url, driver_jar, driver_class
@@ -105,17 +104,14 @@ def test_db_connect(JDBC_URL, bin_dir, class_path,  java_path, MAX_JAVA_HEAP, DB
         # Start Java virtual machine if not started already:
         class_paths = class_path + ':' + driver_jar
 
-        init_jvm(class_paths, MAX_JAVA_HEAP, java_path) # TODO: Virker ikke å starte jvm med jpype før bruk av jaydebeapi
+        init_jvm(class_paths, MAX_JAVA_HEAP, java_path)  # TODO: Virker ikke å starte jvm med jpype før bruk av jaydebeapi
 
         try:
             jdbc = Jdbc(url, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, driver_jar, driver_class, True, True)
-            print('jalla2')
             # TODO: Legg inn sjekk på at jdbc url er riktig, ikke bare på om db_name og skjema returnerer tabeller
             if jdbc:
-                print('jalla3')
                 # Get database metadata:
                 db_tables, table_columns = get_db_meta(jdbc)
-                print('jalla4')
                 if not db_tables:
                     return "Database '" + DB_NAME + "', schema '" + DB_SCHEMA + "' returns no tables."
 
@@ -135,36 +131,20 @@ def test_db_connect(JDBC_URL, bin_dir, class_path,  java_path, MAX_JAVA_HEAP, DB
 def export_db_schema(JDBC_URL, bin_dir, class_path, java_path, MAX_JAVA_HEAP, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, subsystem_dir, INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, DDL_GEN):
     url, driver_jar, driver_class = get_db_details(JDBC_URL, bin_dir)
     if driver_jar and driver_class:
-        print('test1')
         # Start Java virtual machine if not started already:
         class_paths = class_path + ':' + driver_jar
-        print('test2')
-        init_jvm(class_paths, MAX_JAVA_HEAP, java_path) # TODO: Virker ikke å starte jvm med jpype før bruk av jaydebeapi
-        print('test3')
+        init_jvm(class_paths, MAX_JAVA_HEAP, java_path)  # TODO: Virker ikke å starte jvm med jpype før bruk av jaydebeapi
         try:
-            print('test4')
-            print(url)
-            print(DB_NAME)
-            print(DB_SCHEMA)
-            print(driver_jar)
-            print(driver_class)
             jdbc = Jdbc(url, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, driver_jar, driver_class, True, True)
-            print('test5')
             if jdbc:
-                print('test6')
                 # Get database metadata:
                 db_tables, table_columns = get_db_meta(jdbc)
-                print('test7')
                 export_schema(class_path, MAX_JAVA_HEAP, java_path, subsystem_dir, jdbc, db_tables)
-                print('test8')
                 export_tables, overwrite_tables = table_check(INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, db_tables)
-                print('test9')
 
             if export_tables:
                 # Copy schema data:
-                print('test10')
                 copy_db_schema(subsystem_dir, jdbc, class_path, java_path, MAX_JAVA_HEAP, export_tables, bin_dir, table_columns, overwrite_tables, DDL_GEN)
-                print('test11')
                 return 'ok'
             else:
                 print('No table data to export. Exiting.')
@@ -422,13 +402,11 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, java_path, max_java_heap, 
 
     if DDL_GEN == 'Native':
         ddl_columns = get_ddl_columns(subsystem_dir)
-        print('1')
 
     mode = '-mode=INSERT'
     std_params = ' -ignoreIdentityColumns=false -removeDefaults=true -commitEvery=1000 '
     previous_export = []
     for table, row_count in export_tables.items():
-        print('2')
         insert = True
         params = mode + std_params
 
@@ -437,10 +415,8 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, java_path, max_java_heap, 
             for column in blob_columns[table]:
                 col_query = ',LENGTH("' + column + '") AS ' + column.upper() + '_BLOB_LENGTH_PWCODE'
 
-        print('3')
         source_query = 'SELECT "' + '","'.join(table_columns[table]) + '"' + col_query + ' FROM "' + s_jdbc.db_schema + '"."' + table + '"'
 
-        print('4')
         if table in target_tables and table not in overwrite_tables:
             t_row_count = target_tables[table]
             if t_row_count == row_count:
@@ -455,7 +431,6 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, java_path, max_java_heap, 
                 source_query = gen_sync_table(table, unique_dict[table], target_url, driver_jar, driver_class, source_query)
                 insert = False
 
-        print('5')
         if insert:
             print("Copying table '" + table + "':")
             if DDL_GEN == 'SQL Workbench':
@@ -493,7 +468,7 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, java_path, max_java_heap, 
 
 
 # WAIT: Mangler disse for å ha alle i JDBC 4.0: ROWID=-8 og SQLXML=2009
-#jdbc-id  iso-name               jdbc-name
+# jdbc-id  iso-name               jdbc-name
 jdbc_to_iso_data_type = {
     '-16': 'clob',               # LONGNVARCHAR
     '-15': 'varchar',            # NCHAR

@@ -1,18 +1,17 @@
+from defs import (  # .defs.py
+    export_db_schema,
+    capture_files,
+    test_db_connect
+)
 import shutil
 import os
 import sys
 from pathlib import Path
 from common.xml_settings import XMLSettings
-# from common.config import add_config_section
 import xml.etree.ElementTree as ET
 from common.file import md5sum
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from defs import ( # .defs.py
-    export_db_schema,
-    capture_files,
-    test_db_connect
-)
 
 
 def main():
@@ -25,28 +24,6 @@ def main():
     data_dir = os.environ['pwcode_data_dir']
     tmp_config_path = os.path.join(config_dir, 'tmp', 'pwcode.xml')
     tmp_config = XMLSettings(tmp_config_path)
-
-    # import jpype
-    # from jpype import dbapi2
-    # print(jpype.getDefaultJVMPath())
-    # java_home = os.environ['JAVA_HOME']
-    # print(os.path.realpath(java_home))
-    # if os.path.exists(java_home):
-    #     print('blæh')
-
-    # jpype.startJVM(java_path,
-    #             #'-Djava.class.path=%s' % class_paths,
-    #              '-Djava.class.path=/home/bba/bin/PWCode/bin/vendor/jars/h2.jar',
-    #             '-Dfile.encoding=UTF8',
-    #             '-ea',
-    #             )
-
-
-    # driver_args={"user":"","password":""}
-    # conn_url = 'jdbc:h2:/home/bba/Desktop/DOCULIVEHIST_DBO_PUBLIC;LAZY_QUERY_EXECUTION=1'
-    # conn = dbapi2.connect(conn_url,driver='org.h2.Driver',driver_args=driver_args)
-
-    # return
 
     if not os.path.isfile(tmp_config_path):
         return 'No config file found. Exiting.'
@@ -77,7 +54,7 @@ def main():
     if os.name == "posix":
         archive_format = 'tar'
 
-     # TODO: Splitte ut som egen def for å fjerne duplisering av kode -> Skrive alle variabler til dict heller? Egen config-klasse?
+    # TODO: Splitte ut som egen def for å fjerne duplisering av kode -> Skrive alle variabler til dict heller? Egen config-klasse?
     all_exported = True
     for subsystem in subsystems:
         subsystem_name = subsystem.tag
@@ -179,7 +156,7 @@ def main():
             print("Database in subsystem '" + subsystem_name + "' already exported.")
             continue
 
-        db_result = export_db_schema( # TODO: Feil i denne
+        db_result = export_db_schema(  # TODO: Feil i denne
             jdbc_url,
             bin_dir,
             class_path,
@@ -194,7 +171,7 @@ def main():
             exclude_tables,
             overwrite_tables,
             ddl
-            )
+        )
 
         if db_result != 'ok':
             config.put('subsystems/' + subsystem_name + '/db/status', 'failed')
@@ -233,4 +210,3 @@ if __name__ == '__main__':
     msg = main()
     print(msg)
     print('\n')  # WAIT: For flushing last print in def. Better fix later
-

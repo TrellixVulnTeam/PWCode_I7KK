@@ -2,7 +2,7 @@
     "python.linting.pylintEnabled": false,
     "python.linting.flake8Enabled": true,
     "python.linting.enabled": true,
-    "python.pythonPath": "D:\\python3.8.5\\python.exe",
+    "python.pythonPath": "/home/bba/bin/PWCode/bin/vendor/linux/python/opt/python3.8/bin/python3.8",
     "python.linting.pycodestyleEnabled": false,
     "python.formatting.provider": "autopep8",
     "python.formatting.autopep8Args": [
