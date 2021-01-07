@@ -129,8 +129,12 @@ if __name__ == "__main__":
         fix_desktop_file(bin_dir, python_icon_file, 'Python.desktop')
     else:
         os.environ['pwcode_java_path'] = os.path.join(bin_dir, 'vendor', 'windows', 'jre')
+
+        jre_dir = os.path.join(bin_dir, 'vendor', 'windows', 'jre')
+        os.environ['PATH'] += os.pathsep + jre_dir  # Needed by Windows 2016 Server
+
         # TODO: Må endrest tilsvarende som for linux -> på denne formen: 'C:\\Program Files\\Java\\jdk-10.0.2\\bin\\server\\jvm.dll'
         python_path = os.path.join(bin_dir, 'vendor', 'windows', 'python', 'pythonw.exe')
-        #os.environ['PYTHONPATH'] = python_path
+        # os.environ['PYTHONPATH'] = python_path
 
     start_client(tmp_dir, port_file, pwcode_icon_file, python_path, data_dir)
