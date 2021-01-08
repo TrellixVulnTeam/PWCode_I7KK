@@ -76,13 +76,13 @@ def get_tables(conn, schema):
     return tables
 
 
-def export_schema(class_path, max_java_heap, java_path, subsystem_dir, jdbc, db_tables):
-    base_dir = subsystem_dir + '/header/'
+def export_schema(class_paths, max_java_heap, java_path, subsystem_dir, jdbc, db_tables):
+    base_dir = os.path.join(subsystem_dir, 'header')
 
-    if os.path.isfile(base_dir + 'metadata.xml'):
+    if os.path.isfile(os.path.join(base_dir,'metadata.xml')):
         return
 
-    init_jvm(class_path, max_java_heap, java_path)  # Start Java virtual machine # TODO: Virker ikke å starte jvm med jpype før bruk av jaydebeapi
+    init_jvm(class_paths, max_java_heap, java_path)  # Start Java virtual machine # TODO: Virker ikke å starte jvm med jpype før bruk av jaydebeapi
     WbManager = jp.JPackage('workbench').WbManager
     WbManager.prepareForEmbedded()
     batch = jp.JPackage('workbench.sql').BatchRunner()
@@ -96,13 +96,21 @@ def export_schema(class_path, max_java_heap, java_path, subsystem_dir, jdbc, db_
     add_row_count_to_schema_file(subsystem_dir, db_tables)
 
 
+def get_java_path_sep():
+    path_sep = ';'
+    if os.name == "posix":
+        path_sep = ':'
+
+    return path_sep
+
+
 # TODO: Fjern duplisering av kode mellom denn og export_db_schema
 def test_db_connect(JDBC_URL, bin_dir, class_path,  java_path, MAX_JAVA_HEAP, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES):
 
     url, driver_jar, driver_class = get_db_details(JDBC_URL, bin_dir)
     if driver_jar and driver_class:
         # Start Java virtual machine if not started already:
-        class_paths = class_path + ':' + driver_jar
+        class_paths = class_path + get_java_path_sep() + driver_jar
 
         init_jvm(class_paths, MAX_JAVA_HEAP, java_path)  # TODO: Virker ikke å starte jvm med jpype før bruk av jaydebeapi
 
@@ -132,14 +140,14 @@ def export_db_schema(JDBC_URL, bin_dir, class_path, java_path, MAX_JAVA_HEAP, DB
     url, driver_jar, driver_class = get_db_details(JDBC_URL, bin_dir)
     if driver_jar and driver_class:
         # Start Java virtual machine if not started already:
-        class_paths = class_path + ':' + driver_jar
+        class_paths = class_path + get_java_path_sep() + driver_jar
         init_jvm(class_paths, MAX_JAVA_HEAP, java_path)  # TODO: Virker ikke å starte jvm med jpype før bruk av jaydebeapi
         try:
             jdbc = Jdbc(url, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, driver_jar, driver_class, True, True)
             if jdbc:
                 # Get database metadata:
                 db_tables, table_columns = get_db_meta(jdbc)
-                export_schema(class_path, MAX_JAVA_HEAP, java_path, subsystem_dir, jdbc, db_tables)
+                export_schema(class_paths, MAX_JAVA_HEAP, java_path, subsystem_dir, jdbc, db_tables) # TODO: Feiler her
                 export_tables, overwrite_tables = table_check(INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, db_tables)
 
             if export_tables:

@@ -128,8 +128,8 @@ if __name__ == "__main__":
         fix_desktop_file(bin_dir, sqlwb_icon_file, 'SQLWB.desktop')
         fix_desktop_file(bin_dir, python_icon_file, 'Python.desktop')
     else:
-        os.environ['pwcode_java_path'] = os.path.join(bin_dir, 'vendor', 'windows', 'jre')
-
+        os.environ['pwcode_java_path'] = os.path.join(bin_dir, 'vendor', 'windows', 'jre', 'bin', 'server', 'jvm.dll')
+        os.environ['JAVA_HOME'] = os.path.join(bin_dir, 'vendor', 'windows')
         jre_dir = os.path.join(bin_dir, 'vendor', 'windows', 'jre')
         os.environ['PATH'] += os.pathsep + jre_dir  # Needed by Windows 2016 Server
 

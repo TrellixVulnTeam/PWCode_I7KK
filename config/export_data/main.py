@@ -1,8 +1,3 @@
-from defs import (  # .defs.py
-    export_db_schema,
-    capture_files,
-    test_db_connect
-)
 import shutil
 import os
 import sys
@@ -12,12 +7,19 @@ import xml.etree.ElementTree as ET
 from common.file import md5sum
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
+from defs import (  # .defs.py
+    export_db_schema,
+    capture_files,
+    test_db_connect
+)
 
 def main():
     bin_dir = os.environ["pwcode_bin_dir"]  # Get PWCode executable path
     java_path = os.environ['pwcode_java_path']  # Get Java home path
+    print(java_path)
     class_path = os.environ['CLASSPATH']  # Get jar path
+    print(class_path)
+    print(os.environ['JAVA_HOME'])
     config_dir = os.environ['pwcode_config_dir']  # Get PWCode config path
     tmp_dir = os.path.join(config_dir, 'tmp')
     os.chdir(tmp_dir)  # Avoid littering from subprocesses
