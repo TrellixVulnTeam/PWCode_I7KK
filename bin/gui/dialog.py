@@ -17,7 +17,7 @@
 
 
 import subprocess, os, shutil
-from tkinter import filedialog   
+from tkinter import filedialog
 
 
 # WAIT: Remember last used directory?
@@ -32,26 +32,26 @@ def multi_open(data_dir, mode = None):
         x_arg = " --directory "
     elif mode == 'save':
         title = "Save As"
-        x_arg = " --save  "               
+        x_arg = " --save  "
 
     if os.name == "posix":
         if shutil.which('zenity') is not None:
             use_tk = False
             try:
                 path = subprocess.check_output(
-                    "zenity --file-selection  --title='" + title + "' --filename=" + data_dir + x_arg + "/ 2> >(grep -v 'GtkDialog' >&2)", 
+                    "zenity --file-selection  --title='" + title + "' --filename=" + data_dir + x_arg + "/ 2> >(grep -v 'GtkDialog' >&2)",
                     shell=True, executable='/bin/bash').decode("utf-8").strip()
             except subprocess.CalledProcessError:
                 pass
-                       
+
     if use_tk: # WAIT: Separat farge theme for dialog hvordan?
         if mode == 'dir':
-            path = filedialog.askdirectory(title = title, initialdir=data_dir)  
+            path = filedialog.askdirectory(title = title, initialdir=data_dir)
         elif mode == 'save':
             path = filedialog.asksaveasfilename(title = title, initialdir=data_dir)
         else:
             path = filedialog.askopenfilename(title = title, initialdir=data_dir)
 
-    return path  
+    return os.path.normpath(path)
 
 

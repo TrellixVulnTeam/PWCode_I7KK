@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 from common.file import md5sum
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# TODO: Legg disse enkeltvis i defs under heller?
 from defs import (  # .defs.py
     export_db_schema,
     capture_files,
@@ -16,10 +17,7 @@ from defs import (  # .defs.py
 def main():
     bin_dir = os.environ["pwcode_bin_dir"]  # Get PWCode executable path
     java_path = os.environ['pwcode_java_path']  # Get Java home path
-    print(java_path)
     class_path = os.environ['CLASSPATH']  # Get jar path
-    print(class_path)
-    print(os.environ['JAVA_HOME'])
     config_dir = os.environ['pwcode_config_dir']  # Get PWCode config path
     tmp_dir = os.path.join(config_dir, 'tmp')
     os.chdir(tmp_dir)  # Avoid littering from subprocesses
@@ -129,8 +127,9 @@ def main():
                     continue
 
                 source_path = config.get('subsystems/' + subsystem_name + '/folders/' + folder.tag + '/path')
-                target_path = subsystem_dir + '/content/documents/' + folder.tag + "." + archive_format
-                Path(subsystem_dir + '/content/documents/').mkdir(parents=True, exist_ok=True)
+                print(source_path)
+                target_path = os.path.join(subsystem_dir, 'content', 'documents', folder.tag + "." + archive_format)
+                Path(os.path.join(subsystem_dir, 'content', 'documents')).mkdir(parents=True, exist_ok=True)
                 file_result = capture_files(bin_dir, source_path, target_path)
                 if file_result != 'ok':
                     config.put('subsystems/' + subsystem_name + '/folders/' + folder.tag + '/status', 'failed')

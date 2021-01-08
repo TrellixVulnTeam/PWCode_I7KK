@@ -50,12 +50,12 @@ def capture_files(bin_dir, source_path, target_path, exclude=None):
     def exclude_items(item):
         if exclude is None:
             return item
-        elif source_path + '/' + item.name not in exclude:
+        elif source_path + '/' + item.name not in exclude: # TODO: Endre til os separator auto
             return item
 
     try:
         if archive_format == 'wim':
-            cmd = bin_dir + "/vendor/wimlib-imagex capture " + source_path + " " + target_path + " --no-acls --compress=none"
+            cmd = os.path.join(bin_dir, "vendor", "wimlib-imagex") + " capture "  + source_path + " " + target_path + " --no-acls --compress=none"
             check_output(cmd, stderr=STDOUT, shell=True).decode()
         else:
             with tarfile.open(target_path, mode='w') as archive:

@@ -19,26 +19,16 @@ import jpype.imports
 
 # TODO: Fjern java path som arg når testet nok først. Eller enklere med den på win?
 def init_jvm(class_paths, max_heap_size, java_path):
-    print(class_paths)
 
     if jp.isJVMStarted():
         return
 
-    jp.startJVM(java_path,
+    jp.startJVM(jp.getDefaultJVMPath(), # java_path,
                 '-Djava.class.path=%s' % class_paths,
                 # '-Djava.class.path=/home/bba/bin/PWCode/bin/vendor/jars/h2.jar',
                 '-Dfile.encoding=UTF8',
                 '-ea', max_heap_size,
                 )
-
-    # jp.addClassPath("D:\\PWCode\\bin\\vendor\\jars\\sqlworkbench.jar")
-    # jp.startJVM(jp.getDefaultJVMPath(),
-    #             '-Djava.class.path=r"%s"' % class_paths, # TODO: Virker raw string variant på linux også?
-    #             # '-Djava.class.path=D:\\PWCode\\bin\\vendor\\jars\\h2.jar',
-    #             '-Dfile.encoding=UTF8',
-    #             '-ea', max_heap_size,
-    #             )
-
 
 def wb_batch(class_paths, max_java_heap, java_path):
     # Start Java virtual machine if not started already:
