@@ -105,6 +105,7 @@ class HomeTab(ttk.Frame):
                 ("Export Data as SIP", lambda: self.export_data_project(app)),
                 ("Create AIP from SIP", lambda: self.normalize_data(app)),
                 ("Convert Files", lambda: self.convert_files_project(app)),  # TODO: Legg inn sjekk på at på PWLinux for at denne skal vises
+                ("Copy Database", lambda: self.copy_db_project(app)),
                 ("New File", app.command_callable("new_file")),
                 ("Open File ...", app.command_callable("open_file")),
                 ("Open Folder ...", app.command_callable("open_folder")),
@@ -114,10 +115,12 @@ class HomeTab(ttk.Frame):
         self.recent_links_frame = RecentLinksFrame(self.left_frame, app).pack(side=tk.TOP, anchor=tk.W, pady=12)
         # self.left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
 
-    def system_entry_check(self, app):  # TODO: Slå sammen med run_plugin? Med arg om run? Også duplisering av kode i selve plugin main
+    def system_entry_check(self, app, type):  # TODO: Slå sammen med run_plugin? Med arg om run? Også duplisering av kode i selve plugin main
         system_name = self.project_frame.name_entry.get()
         if not system_name:
             msg = 'Missing system name'
+            if type == 'copy':
+                msg = 'Missing project name'
             msg_label.config(text=msg)
             return
         else:
@@ -220,6 +223,55 @@ class HomeTab(ttk.Frame):
 
     # TODO: Må lese fra xml i tmp først og så kopiere xml til prosjektmappe. Fortsatt riktig?
 
+    def copy_db_project(self, app):
+        self.reset_rhs("Copy Database")
+
+        self.project_frame = Project(self.right_frame, app, self, "Project Name:", text=" New Data Project ", relief=tk.GROOVE)
+        self.project_frame.pack(side=tk.TOP, anchor=tk.W, fill="both", expand=1, pady=12)
+        name_frame = self.project_frame.name_frame
+
+        # TODO: Endre tekst på denne til "Add Target" når en har valgt source allerede
+        name_frame.folder_button = ttk.Button(name_frame, text='Add Source', style="Entry.TButton", command=lambda: self.subsystem_entry(app, 'copy'))
+        # subsystem_button = ttk.Button(name_frame, text='Add Source', style="Entry.TButton", command=lambda: self.subsystem_entry(app))
+        name_frame.folder_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
+
+        run_button = ttk.Button(name_frame, text='Run', style="Run.TButton", command=lambda: self.copy_db(app))
+        run_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
+
+        options_frame = ttk.Frame(self.project_frame, style="SubHeading.TLabel")
+        options_frame.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
+
+    def copy_db(self, app):
+        def_name = inspect.currentframe().f_code.co_name
+        config, config_dir = self.config_init(def_name)
+
+        # if not hasattr(self.project_frame, 'folders_frame'):
+        #     msg_label.config(text='No folders added')
+        #     return
+
+        # project_name = self.project_frame.name_entry.get()
+        # if not project_name:
+        #     msg_label.config(text='Missing project name')
+        #     return
+
+        # ok = self.create_project_dir(app.data_dir + project_name, project_name)
+        # if ok:
+        #     msg_label.config(text='')
+        # else:
+        #     return
+
+        # config.put('name', self.project_frame.name_entry.get())
+        # config.put('options/merge', self.project_frame.merge_option.get())
+
+        # i = 1
+        # for frame, path in self.project_frame.folders_frame.folders.items():
+        #     # frame.remove_button.configure(state=tk.DISABLED)
+        #     config.put('folders/folder' + str(i), path)
+        #     i += 1
+
+        # config.save()
+        # self.run_plugin(app, project_name, config_dir, def_name)
+
     def convert_files(self, app):
         def_name = inspect.currentframe().f_code.co_name
         config, config_dir = self.config_init(def_name)
@@ -306,7 +358,7 @@ class HomeTab(ttk.Frame):
         self.project_frame.pack(side=tk.TOP, anchor=tk.W, fill="both", expand=1, pady=12)
         name_frame = self.project_frame.name_frame
 
-        subsystem_button = ttk.Button(name_frame, text='Add Subsystem', style="Entry.TButton", command=lambda: self.subsystem_entry(app))
+        subsystem_button = ttk.Button(name_frame, text='Add Subsystem', style="Entry.TButton", command=lambda: self.subsystem_entry(app, 'export'))
         subsystem_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
 
         # TODO: Lag def export_data(self, app):
@@ -347,24 +399,31 @@ class HomeTab(ttk.Frame):
         package_option.pack(side=tk.LEFT, anchor=tk.N, pady=3)
         package_option.configure(width=3)
 
-    def subsystem_entry(self, app):
+    def subsystem_entry(self, app, type):
         ok = None
         if len(subsystem_frames) == 0:
-            ok = self.system_entry_check(app)
+            ok = self.system_entry_check(app, type)
         else:
-            ok = self.export_check(app)  # TODO: Riktig med 'ok' her?
+            ok = self.export_check(app, type)  # TODO: Riktig med 'ok' her?
 
         if ok:
             if len(subsystem_frames) == 0:
                 self.project_frame.pack_forget()
                 self.project_frame.pack(side=tk.TOP, anchor=tk.W, fill="both", expand=0, pady=(0, 12))
 
-            subsystem_frame = SubSystem(self.right_frame, app, self, text=" New Subsystem ", relief=tk.GROOVE)
+            title = " New Subsystem "
+            if type == 'copy':
+                title = " Source "
+
+            subsystem_frame = SubSystem(self.right_frame, app, self, type, text=title, relief=tk.GROOVE)
             subsystem_frame.pack(side=tk.TOP, anchor=tk.W, fill="both", expand=1, pady=12)
             subsystem_frames.append(subsystem_frame)
 
-    def export_check(self, app):
+    def export_check(self, app, type):
         # TODO: Sjekk kobling mm her heller enn i subprocess så kan endre i gui enklere hvis noe er feil
+
+        if type == 'copy':
+            return
 
         config, config_dir = self.config_init('pwcode')
         config.put('system/name', self.project_frame.name_entry.get())
@@ -477,9 +536,10 @@ class Project(ttk.LabelFrame):
 
 
 class SubSystem(ttk.LabelFrame):
-    def __init__(self, parent, app, grandparent, *args, **kwargs):
+    def __init__(self, parent, app, grandparent, type, *args, **kwargs):
         super().__init__(parent, *args, **kwargs, style="Links.TFrame")
         self.grandparent = grandparent
+        self.type = type
 
         self.frame1 = ttk.Frame(self, style="SubHeading.TLabel")
         self.frame1.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
@@ -495,8 +555,10 @@ class SubSystem(ttk.LabelFrame):
         self.db_schema_entry.pack(side=tk.LEFT, anchor=tk.N, pady=(4, 3))
         self.cancel_button = ttk.Button(self.frame1, text='Discard', style="Links.TButton", command=lambda: self.subsystem_remove())
         self.cancel_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
-        self.folder_button = ttk.Button(self.frame1, text='Add Folder', style="Entry.TButton", command=lambda: self.choose_folder(app))
-        self.folder_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
+
+        if type == 'export':
+            self.folder_button = ttk.Button(self.frame1, text='Add Folder', style="Entry.TButton", command=lambda: self.choose_folder(app))
+            self.folder_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
 
         self.frame2 = ttk.Frame(self, style="SubHeading.TLabel")
         self.frame2.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
@@ -516,29 +578,30 @@ class SubSystem(ttk.LabelFrame):
         self.db_pwd_entry = make_entry(self.frame3, app, 25)
         self.db_pwd_entry.pack(side=tk.LEFT, anchor=tk.N, pady=3)
 
-        self.frame5 = ttk.Frame(self, style="SubHeading.TLabel")
-        self.frame5.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
+        if type == 'export':
+            self.frame5 = ttk.Frame(self, style="SubHeading.TLabel")
+            self.frame5.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
 
-        options = ['', 'Exclude Tables (comma separated)', 'Include Tables (comma separated)']
-        self.tbl_var = tk.StringVar()
-        self.tbl_var.set(' '.join(options[1].split(' ')[:2]) + ':')
-        self.tbl_var.trace("w", self.get_option)
-        self.tables_option = ttk.OptionMenu(self.frame5, self.tbl_var, *options)
-        self.tables_option.pack(side=tk.LEFT, anchor=tk.N, pady=3, padx=(8, 0))
-        self.tables_option.configure(width=12)
-        self.tables_entry = make_entry(self.frame5, app, 57)
-        self.tables_entry.pack(side=tk.LEFT, anchor=tk.N, pady=3)
+            options = ['', 'Exclude Tables (comma separated)', 'Include Tables (comma separated)']
+            self.tbl_var = tk.StringVar()
+            self.tbl_var.set(' '.join(options[1].split(' ')[:2]) + ':')
+            self.tbl_var.trace("w", self.get_option)
+            self.tables_option = ttk.OptionMenu(self.frame5, self.tbl_var, *options)
+            self.tables_option.pack(side=tk.LEFT, anchor=tk.N, pady=3, padx=(8, 0))
+            self.tables_option.configure(width=12)
+            self.tables_entry = make_entry(self.frame5, app, 57)
+            self.tables_entry.pack(side=tk.LEFT, anchor=tk.N, pady=3)
 
-        self.frame6 = ttk.Frame(self, style="SubHeading.TLabel")
-        self.frame6.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
+            self.frame6 = ttk.Frame(self, style="SubHeading.TLabel")
+            self.frame6.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
 
-        self.overwrite_label = ttk.Label(self.frame6, text="Overwrite Tables:", width=15)
-        self.overwrite_label.pack(side=tk.LEFT, anchor=tk.N, padx=(8, 0), pady=3)
-        self.overwrite_entry = make_entry(self.frame6, app, 57)
-        self.overwrite_entry.pack(side=tk.LEFT, anchor=tk.N, pady=(3, 6))
+            self.overwrite_label = ttk.Label(self.frame6, text="Overwrite Tables:", width=15)
+            self.overwrite_label.pack(side=tk.LEFT, anchor=tk.N, padx=(8, 0), pady=3)
+            self.overwrite_entry = make_entry(self.frame6, app, 57)
+            self.overwrite_entry.pack(side=tk.LEFT, anchor=tk.N, pady=(3, 6))
 
-        self.folders_frame = LinksFrame(self)
-        self.folders_frame.pack(side=tk.TOP, anchor=tk.N, padx=(8, 0), pady=3, fill=tk.X)
+            self.folders_frame = LinksFrame(self)
+            self.folders_frame.pack(side=tk.TOP, anchor=tk.N, padx=(8, 0), pady=3, fill=tk.X)
 
     def choose_folder(self, app):
         path = multi_open(app.data_dir, mode='dir')

@@ -16,12 +16,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import subprocess, os, shutil
+import subprocess
+import os
+import shutil
 from tkinter import filedialog
 
 
 # WAIT: Remember last used directory?
-def multi_open(data_dir, mode = None):
+def multi_open(data_dir, mode=None):
     path = None
     title = "Open File"
     x_arg = ''
@@ -44,14 +46,15 @@ def multi_open(data_dir, mode = None):
             except subprocess.CalledProcessError:
                 pass
 
-    if use_tk: # WAIT: Separat farge theme for dialog hvordan?
+    if use_tk:  # WAIT: Separat farge theme for dialog hvordan?
         if mode == 'dir':
-            path = filedialog.askdirectory(title = title, initialdir=data_dir)
+            path = filedialog.askdirectory(title=title, initialdir=data_dir)
         elif mode == 'save':
-            path = filedialog.asksaveasfilename(title = title, initialdir=data_dir)
+            path = filedialog.asksaveasfilename(title=title, initialdir=data_dir)
         else:
-            path = filedialog.askopenfilename(title = title, initialdir=data_dir)
+            path = filedialog.askopenfilename(title=title, initialdir=data_dir)
 
-    return os.path.normpath(path)
+        if path:
+            path = os.path.normpath(path)
 
-
+    return path
