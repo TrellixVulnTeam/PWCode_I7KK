@@ -209,9 +209,9 @@ class HomeTab(ttk.Frame):
             self.show_help(app)
         text_editor.run_file(file_obj, False)
 
-    def export_data(self, app):
+    def export_data(self, app, type):
         def_name = inspect.currentframe().f_code.co_name
-        config_dir = self.export_check(app)
+        config_dir = self.export_check(app, type)
 
         if len(subsystem_frames) == 0:
             msg_label.config(text='No subsystems added')
@@ -362,7 +362,7 @@ class HomeTab(ttk.Frame):
         subsystem_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
 
         # TODO: Lag def export_data(self, app):
-        run_button = ttk.Button(name_frame, text='Run', style="Run.TButton", command=lambda: self.export_data(app))
+        run_button = ttk.Button(name_frame, text='Run', style="Run.TButton", command=lambda: self.export_data(app, 'export'))
         run_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
 
         options_frame = ttk.Frame(self.project_frame, style="SubHeading.TLabel")
