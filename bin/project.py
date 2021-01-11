@@ -80,7 +80,7 @@ class SubProject(ttk.LabelFrame):
         self.db_schema_label.pack(side=tk.LEFT, anchor=tk.N, padx=(12, 0), pady=(4, 3))
         self.db_schema_entry = make_entry(self.frame1, app, 25)
         self.db_schema_entry.pack(side=tk.LEFT, anchor=tk.N, pady=(4, 3))
-        self.cancel_button = ttk.Button(self.frame1, text='Discard', style="Links.TButton", command=lambda: self.subsystem_remove())
+        self.cancel_button = ttk.Button(self.frame1, text='Discard', style="Links.TButton", command=lambda: self.subproject_remove())
         self.cancel_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
 
         if type == 'export':
@@ -139,11 +139,11 @@ class SubProject(ttk.LabelFrame):
         self.tbl_var.set(value)
         self.tables_option.configure(state=tk.NORMAL)  # Just for refreshing widget
 
-    def subsystem_remove(self):
-        self.grandparent.subsystem_frames.remove(self)
+    def subproject_remove(self):
+        self.grandparent.subproject_frames.remove(self)
         self.destroy()
 
-        if len(self.grandparent.subsystem_frames) == 0:
+        if len(self.grandparent.subproject_frames) == 0:
             self.grandparent.project_frame.pack_forget()
             self.grandparent.project_frame.pack(side=tk.TOP, anchor=tk.W, fill="both", expand=1)
 

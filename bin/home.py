@@ -42,7 +42,7 @@ class HomeTab(ttk.Frame):
         self.heading = ttk.Label(self, text=app.settings.name, style="Heading.TLabel")
         self.heading.pack(side=tk.TOP, anchor=tk.W)
 
-        self.subsystem_frames = []
+        self.subproject_frames = []
         self.msg_label = None
         self.system_dir = None
         self.project_dir_created = False
@@ -59,9 +59,6 @@ class HomeTab(ttk.Frame):
 
         self.show_start(app)
         self.show_help(app)
-
-        # self.folder_list = LinksFrame(self)
-        # self.folder_list.pack(side=tk.TOP, anchor=tk.N, padx=(8, 0), pady=3, fill=tk.X)
 
     def open_home_url(self):
         webbrowser.open('https://github.com/Preservation-Workbench/PWCode', new=2)
@@ -85,7 +82,7 @@ class HomeTab(ttk.Frame):
         for widget in self.right_frame.winfo_children():
             widget.destroy()
 
-        self.subsystem_frames.clear()
+        self.subproject_frames.clear()
         self.project_dir_created = False
 
         LinksFrame(
@@ -115,7 +112,6 @@ class HomeTab(ttk.Frame):
         ).pack(side=tk.TOP, anchor=tk.W, pady=12)
 
         self.recent_links_frame = RecentLinksFrame(self.left_frame, app).pack(side=tk.TOP, anchor=tk.W, pady=12)
-        # self.left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
 
     def system_entry_check(self, app, type):  # TODO: Slå sammen med run_plugin? Med arg om run? Også duplisering av kode i selve plugin main
         system_name = self.project_frame.name_entry.get()
@@ -189,33 +185,33 @@ class HomeTab(ttk.Frame):
 
         return XMLSettings(config_path), config_dir
 
-    def run_plugin(self, app, project_name, config_dir, def_name):
-        base_path = os.path.join(app.data_dir, project_name, '.pwcode', def_name)
-        Path(base_path).mkdir(parents=True, exist_ok=True)
+    # def run_plugin(self, app, project_name, config_dir, def_name):
+    #     base_path = os.path.join(app.data_dir, project_name, '.pwcode', def_name)
+    #     Path(base_path).mkdir(parents=True, exist_ok=True)
 
-        for filename in os.listdir(os.path.join(config_dir, def_name)):
-            # TODO: Endre kode så ikke defs.py overskriver hverandre
-            new_path = os.path.join(base_path, filename)
-            if filename == 'main.py':
-                new_path = os.path.join(base_path, project_name + '_' + def_name + '.py')
-                path = new_path
+    #     for filename in os.listdir(os.path.join(config_dir, def_name)):
+    #         # TODO: Endre kode så ikke defs.py overskriver hverandre
+    #         new_path = os.path.join(base_path, filename)
+    #         if filename == 'main.py':
+    #             new_path = os.path.join(base_path, project_name + '_' + def_name + '.py')
+    #             path = new_path
 
-            shutil.copy(os.path.join(config_dir, def_name, filename), new_path)
+    #         shutil.copy(os.path.join(config_dir, def_name, filename), new_path)
 
-        path = str(Path(path))
-        app.model.open_file(path)
-        tab_id = app.editor_frame.path2id[path]
-        file_obj = app.editor_frame.id2path[tab_id]
-        text_editor = app.editor_frame.notebook.nametowidget(tab_id)
-        if def_name != 'normalize_data':  # WAIT: Endre når gui for normalize for messages mm
-            self.show_help(app)
-        text_editor.run_file(file_obj, False)
+    #     path = str(Path(path))
+    #     app.model.open_file(path)
+    #     tab_id = app.editor_frame.path2id[path]
+    #     file_obj = app.editor_frame.id2path[tab_id]
+    #     text_editor = app.editor_frame.notebook.nametowidget(tab_id)
+    #     if def_name != 'normalize_data':  # WAIT: Endre når gui for normalize for messages mm
+    #         self.show_help(app)
+    #     text_editor.run_file(file_obj, False)
 
     def export_data(self, app, type):
         def_name = inspect.currentframe().f_code.co_name
         config_dir = self.export_check(app, type)
 
-        if len(self.subsystem_frames) == 0:
+        if len(self.subproject_frames) == 0:
             self.msg_label.config(text='No subsystems added')
             return
 
@@ -234,7 +230,6 @@ class HomeTab(ttk.Frame):
 
         # TODO: Endre tekst på denne til "Add Target" når en har valgt source allerede
         name_frame.folder_button = ttk.Button(name_frame, text='Add Source', style="Entry.TButton", command=lambda: self.subproject_entry(app, 'copy'))
-        # subsystem_button = ttk.Button(name_frame, text='Add Source', style="Entry.TButton", command=lambda: self.subproject_entry(app))
         name_frame.folder_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
 
         run_button = ttk.Button(name_frame, text='Run', style="Run.TButton", command=lambda: self.copy_db(app))
@@ -403,13 +398,13 @@ class HomeTab(ttk.Frame):
 
     def subproject_entry(self, app, type):
         ok = None
-        if len(self.subsystem_frames) == 0:
+        if len(self.subproject_frames) == 0:
             ok = self.system_entry_check(app, type)
         else:
             ok = self.export_check(app, type)  # TODO: Riktig med 'ok' her?
 
         if ok:
-            if len(self.subsystem_frames) == 0:
+            if len(self.subproject_frames) == 0:
                 self.project_frame.pack_forget()
                 self.project_frame.pack(side=tk.TOP, anchor=tk.W, fill="both", expand=0, pady=(0, 12))
 
@@ -417,9 +412,9 @@ class HomeTab(ttk.Frame):
             if type == 'copy':
                 title = " Source "
 
-            subsystem_frame = SubProject(self.right_frame, app, self, type, text=title, relief=tk.GROOVE)
-            subsystem_frame.pack(side=tk.TOP, anchor=tk.W, fill="both", expand=1, pady=12)
-            self.subsystem_frames.append(subsystem_frame)
+            subproject_frame = SubProject(self.right_frame, app, self, type, text=title, relief=tk.GROOVE)
+            subproject_frame.pack(side=tk.TOP, anchor=tk.W, fill="both", expand=1, pady=12)
+            self.subproject_frames.append(subproject_frame)
 
     def export_check(self, app, type):
         # TODO: Sjekk kobling mm her heller enn i subprocess så kan endre i gui enklere hvis noe er feil
@@ -436,7 +431,7 @@ class HomeTab(ttk.Frame):
 
         i = 0
         subsystem_names = []
-        for subsystem in self.subsystem_frames:
+        for subsystem in self.subproject_frames:
             subsystem_name = None
 
             folder_paths = []
@@ -503,3 +498,25 @@ class HomeTab(ttk.Frame):
 
         config.save()
         return config_dir
+
+    def run_plugin(self, app, project_name, config_dir, def_name):
+        base_path = os.path.join(app.data_dir, project_name, '.pwcode', def_name)
+        Path(base_path).mkdir(parents=True, exist_ok=True)
+
+        for filename in os.listdir(os.path.join(config_dir, def_name)):
+            # TODO: Endre kode så ikke defs.py overskriver hverandre
+            new_path = os.path.join(base_path, filename)
+            if filename == 'main.py':
+                new_path = os.path.join(base_path, project_name + '_' + def_name + '.py')
+                path = new_path
+
+            shutil.copy(os.path.join(config_dir, def_name, filename), new_path)
+
+        path = str(Path(path))
+        app.model.open_file(path)
+        tab_id = app.editor_frame.path2id[path]
+        file_obj = app.editor_frame.id2path[tab_id]
+        text_editor = app.editor_frame.notebook.nametowidget(tab_id)
+        if def_name != 'normalize_data':  # WAIT: Endre når gui for normalize for messages mm
+            self.show_help(app)
+        text_editor.run_file(file_obj, False)
