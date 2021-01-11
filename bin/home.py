@@ -98,9 +98,9 @@ class HomeTab(ttk.Frame):
             ),
         ).pack(side=tk.TOP, anchor=tk.W, pady=12)
 
-        self.recent_links_frame = RecentLinksFrame(self.left_frame, self, app).pack(side=tk.TOP, anchor=tk.W, pady=12)
+        RecentLinksFrame(self.left_frame, self, app).pack(side=tk.TOP, anchor=tk.W, pady=12)
 
-    def system_entry_check(self, app, type):  # TODO: Slå sammen med run_plugin? Med arg om run? Også duplisering av kode i selve plugin main
+    def project_entry_check(self, app, type):  # TODO: Slå sammen med run_plugin? Med arg om run? Også duplisering av kode i selve plugin main
         system_name = self.project_frame.name_entry.get()
         if not system_name:
             msg = 'Missing system name'
@@ -163,37 +163,6 @@ class HomeTab(ttk.Frame):
         self.msg_label = ttk.Label(frame, text="", style="Links.TButton")
         self.msg_label.pack(side=tk.LEFT, anchor=tk.E, pady=4, padx=(0, 12))
 
-    def config_init(self, def_name):
-        config_dir = os.environ["pwcode_config_dir"]  # Get PWCode config path
-        config_path = os.path.join(config_dir, 'tmp', def_name + '.xml')
-
-        if os.path.isfile(config_path):
-            os.remove(config_path)
-
-        return XMLSettings(config_path), config_dir
-
-    # def run_plugin(self, app, project_name, config_dir, def_name):
-    #     base_path = os.path.join(app.data_dir, project_name, '.pwcode', def_name)
-    #     Path(base_path).mkdir(parents=True, exist_ok=True)
-
-    #     for filename in os.listdir(os.path.join(config_dir, def_name)):
-    #         # TODO: Endre kode så ikke defs.py overskriver hverandre
-    #         new_path = os.path.join(base_path, filename)
-    #         if filename == 'main.py':
-    #             new_path = os.path.join(base_path, project_name + '_' + def_name + '.py')
-    #             path = new_path
-
-    #         shutil.copy(os.path.join(config_dir, def_name, filename), new_path)
-
-    #     path = str(Path(path))
-    #     app.model.open_file(path)
-    #     tab_id = app.editor_frame.path2id[path]
-    #     file_obj = app.editor_frame.id2path[tab_id]
-    #     text_editor = app.editor_frame.notebook.nametowidget(tab_id)
-    #     if def_name != 'normalize_data':  # WAIT: Endre når gui for normalize for messages mm
-    #         self.show_help(app)
-    #     text_editor.run_file(file_obj, False)
-
     def export_data(self, app, type):
         def_name = inspect.currentframe().f_code.co_name
         config_dir = self.export_check(app, type)
@@ -216,8 +185,8 @@ class HomeTab(ttk.Frame):
         name_frame = self.project_frame.name_frame
 
         # TODO: Endre tekst på denne til "Add Target" når en har valgt source allerede
-        name_frame.folder_button = ttk.Button(name_frame, text='Add Source', style="Entry.TButton", command=lambda: self.subproject_entry(app, 'copy'))
-        name_frame.folder_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
+        name_frame.add_button = ttk.Button(name_frame, text='Add Source', style="Entry.TButton", command=lambda: self.subproject_entry(app, 'copy'))
+        name_frame.add_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
 
         run_button = ttk.Button(name_frame, text='Run', style="Run.TButton", command=lambda: self.copy_db(app))
         run_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
@@ -227,7 +196,7 @@ class HomeTab(ttk.Frame):
 
     def copy_db(self, app):
         def_name = inspect.currentframe().f_code.co_name
-        config, config_dir = self.config_init(def_name)
+        config, config_dir = config_init(def_name)
 
         # if not hasattr(self.project_frame, 'folders_frame'):
         #     msg_label.config(text='No folders added')
@@ -258,7 +227,7 @@ class HomeTab(ttk.Frame):
 
     def convert_files(self, app):
         def_name = inspect.currentframe().f_code.co_name
-        config, config_dir = self.config_init(def_name)
+        config, config_dir = config_init(def_name)
 
         if not hasattr(self.project_frame, 'folders_frame'):
             self.msg_label.config(text='No folders added')
@@ -285,7 +254,7 @@ class HomeTab(ttk.Frame):
             i += 1
 
         # self.project_frame.merge_option_frame.configure(state=tk.DISABLED)
-        # self.project_frame.name_frame.folder_button.configure(state=tk.DISABLED)
+        # self.project_frame.name_frame.add_button.configure(state=tk.DISABLED)
 
         config.save()
         self.run_plugin(app, project_name, config_dir, def_name)
@@ -297,8 +266,8 @@ class HomeTab(ttk.Frame):
         self.project_frame.pack(side=tk.TOP, anchor=tk.W, fill="both", expand=1, pady=12)
         name_frame = self.project_frame.name_frame
 
-        name_frame.folder_button = ttk.Button(name_frame, text='Add Folder', style="Entry.TButton", command=lambda: self.project_frame.choose_folder(app))
-        name_frame.folder_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
+        name_frame.add_button = ttk.Button(name_frame, text='Add Folder', style="Entry.TButton", command=lambda: self.project_frame.choose_folder(app))
+        name_frame.add_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
 
         run_button = ttk.Button(name_frame, text='Run', style="Run.TButton", command=lambda: self.convert_files(app))
         run_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
@@ -384,32 +353,47 @@ class HomeTab(ttk.Frame):
         package_option.configure(width=3)
 
     def subproject_entry(self, app, type):
+        count = len(self.subproject_frames)
         ok = None
-        if len(self.subproject_frames) == 0:
-            ok = self.system_entry_check(app, type)
+
+        if self.project_frame.name_frame.add_button:
+            self.project_frame.name_frame.add_button.configure(text='Add target')
+
+        if count == 0:
+            ok = self.project_entry_check(app, type)
         else:
-            ok = self.export_check(app, type)  # TODO: Riktig med 'ok' her?
+            if type == 'export':
+                ok = self.export_check(app)
+            elif type == 'copy':
+                if count < 2:
+                    ok = self.copy_check(app)
+                else:
+                    print('jala')
+                    # TODO: Fjern self.project_frame.name_frame.add_button her
 
         if ok:
-            if len(self.subproject_frames) == 0:
+            if count == 0:
                 self.project_frame.pack_forget()
-                self.project_frame.pack(side=tk.TOP, anchor=tk.W, fill="both", expand=0, pady=(0, 12))
+                self.project_frame.pack(side=tk.TOP, anchor=tk.W, fill='both', expand=0, pady=(0, 12))
 
             title = " New Subsystem "
             if type == 'copy':
-                title = " Source "
+                if count == 0:
+                    title = " Source "
+                elif count == 1:
+                    title = " Target "
 
             subproject_frame = SubProject(self.right_frame, app, self, type, text=title, relief=tk.GROOVE)
-            subproject_frame.pack(side=tk.TOP, anchor=tk.W, fill="both", expand=1, pady=12)
+            subproject_frame.pack(side=tk.TOP, anchor=tk.W, fill='both', expand=1, pady=12)
             self.subproject_frames.append(subproject_frame)
 
-    def export_check(self, app, type):
+    def copy_check(self, app):
+        return 'blæh'
+
+    def export_check(self, app):
         # TODO: Sjekk kobling mm her heller enn i subprocess så kan endre i gui enklere hvis noe er feil
 
-        if type == 'copy':
-            return
-
-        config, config_dir = self.config_init('pwcode')
+        config, config_dir = config_init('pwcode')
         config.put('system/name', self.project_frame.name_entry.get())
         config.put('system/md5sum', 'null')
         config.put('options/memory', self.project_frame.memory_option.get())
@@ -522,3 +506,13 @@ def update(app):
 
 def open_home_url():
     webbrowser.open('https://github.com/Preservation-Workbench/PWCode', new=2)
+
+
+def config_init(def_name):
+    config_dir = os.environ["pwcode_config_dir"]  # Get PWCode config path
+    config_path = os.path.join(config_dir, 'tmp', def_name + '.xml')
+
+    if os.path.isfile(config_path):
+        os.remove(config_path)
+
+    return XMLSettings(config_path), config_dir

@@ -42,6 +42,8 @@ class Project(ttk.LabelFrame):
         self.name_frame = ttk.Frame(self, style="SubHeading.TLabel")
         self.name_frame.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
 
+        self.name_frame.add_button = None
+
         self.name_label = ttk.Label(self.name_frame, text=entry_text, width=16)
         self.name_label.pack(side=tk.LEFT, anchor=tk.N, padx=(8, 0), pady=(4, 3))
 
@@ -80,10 +82,11 @@ class SubProject(ttk.LabelFrame):
         self.db_schema_label.pack(side=tk.LEFT, anchor=tk.N, padx=(12, 0), pady=(4, 3))
         self.db_schema_entry = make_entry(self.frame1, app, 25)
         self.db_schema_entry.pack(side=tk.LEFT, anchor=tk.N, pady=(4, 3))
-        self.cancel_button = ttk.Button(self.frame1, text='Discard', style="Links.TButton", command=lambda: self.subproject_remove())
-        self.cancel_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
 
         if type == 'export':
+            self.cancel_button = ttk.Button(self.frame1, text='Discard', style="Links.TButton", command=lambda: self.subproject_remove())
+            self.cancel_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
+
             self.folder_button = ttk.Button(self.frame1, text='Add Folder', style="Entry.TButton", command=lambda: self.choose_folder(app))
             self.folder_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
 
