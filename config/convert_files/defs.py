@@ -209,7 +209,7 @@ def image2norm(args):
 @ add_converter()
 def docbuilder2x(args):
     ok = False
-    docbuilder_file = args['tmp_dir'] + "/x2x.docbuilder"
+    docbuilder_file = os.path.join(args['tmp_dir'], '/x2x.docbuilder')
     docbuilder = None
 
     if args['mime_type'] in (
