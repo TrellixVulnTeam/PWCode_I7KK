@@ -60,19 +60,6 @@ class HomeTab(ttk.Frame):
         self.show_start(app)
         self.show_help(app)
 
-    def open_home_url(self):
-        webbrowser.open('https://github.com/Preservation-Workbench/PWCode', new=2)
-
-    def update(self, app):
-        # from dulwich import porcelain
-        from dulwich.repo import Repo
-        config = Repo(Path(app.data_dir).parent).get_config()
-        print(config.get(('remote', 'origin'), 'url'))
-        # TODO: Gjør ferdig kode for git pull mm
-        # -> må også hente info om deps og versjon av disse og sjekke mot installert (bruke dulwich eller curl for det?)
-
-        # webbrowser.open('https://github.com/Preservation-Workbench/PWCode', new=2)
-
     def show_help(self, app):
         self.subheading = ttk.Label(self, text=app.settings.desc, style="SubHeading.TLabel")
         self.subheading.pack(side=tk.TOP, anchor=tk.W, after=self.heading)
@@ -90,8 +77,8 @@ class HomeTab(ttk.Frame):
             self,
             "Help",
             (
-                ("GitHub Repository", self.open_home_url),
-                # ("Update PWCode", lambda: self.update(app)), TODO: Gjør synlig når update kode er ferdig
+                ("GitHub Repository", open_home_url),
+                # ("Update PWCode", lambda: update(app)), TODO: Gjør synlig når update kode er ferdig
             ),
         ).pack(side=tk.TOP, anchor=tk.W, pady=12)
 
@@ -111,7 +98,7 @@ class HomeTab(ttk.Frame):
             ),
         ).pack(side=tk.TOP, anchor=tk.W, pady=12)
 
-        self.recent_links_frame = RecentLinksFrame(self.left_frame, app).pack(side=tk.TOP, anchor=tk.W, pady=12)
+        self.recent_links_frame = RecentLinksFrame(self.left_frame, self, app).pack(side=tk.TOP, anchor=tk.W, pady=12)
 
     def system_entry_check(self, app, type):  # TODO: Slå sammen med run_plugin? Med arg om run? Også duplisering av kode i selve plugin main
         system_name = self.project_frame.name_entry.get()
@@ -520,3 +507,18 @@ class HomeTab(ttk.Frame):
         if def_name != 'normalize_data':  # WAIT: Endre når gui for normalize for messages mm
             self.show_help(app)
         text_editor.run_file(file_obj, False)
+
+
+def update(app):
+    # from dulwich import porcelain
+    from dulwich.repo import Repo
+    config = Repo(Path(app.data_dir).parent).get_config()
+    print(config.get(('remote', 'origin'), 'url'))
+    # TODO: Gjør ferdig kode for git pull mm
+    # -> må også hente info om deps og versjon av disse og sjekke mot installert (bruke dulwich eller curl for det?)
+
+    # webbrowser.open('https://github.com/Preservation-Workbench/PWCode', new=2)
+
+
+def open_home_url():
+    webbrowser.open('https://github.com/Preservation-Workbench/PWCode', new=2)

@@ -84,8 +84,8 @@ class LinksFrame(ttk.Frame):
 class RecentLinksFrame(LinksFrame):
     """A frame display a list of last opened  in the model"""
 
-    def __init__(self, parent, app):
-        super().__init__(parent, "Open Recent")
+    def __init__(self, parent, grandparent, app):
+        super().__init__(parent, grandparent, "Open Recent")
         self.app = app
 
         app.model.add_observer(self)
