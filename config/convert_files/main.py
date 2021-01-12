@@ -1,4 +1,5 @@
 
+from defs import file_convert  # .defs.py
 import sys
 import shutil
 import os
@@ -15,7 +16,6 @@ from common.xml_settings import XMLSettings
 
 # WAIT: Lage egen plugin.py som setter paths mm så slipper å repetere i plugin kode
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from defs import file_convert  # .defs.py
 
 
 # mime_type: (keep_original, function name, new file extension)

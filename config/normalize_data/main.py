@@ -20,7 +20,7 @@ def main():
     project_dir = str(Path(__file__).parents[2])
     config_path = os.path.join(project_dir, 'pwcode.xml')
     config = XMLSettings(config_path)
-    project_name = config.get('system/name')
+    project_name = config.get('name')
     package = config.get('options/create_package')
     memory = '-Xmx' + config.get('options/memory').split(' ')[0] + 'g'
     archive = os.path.join(project_dir, project_name + '.tar')
@@ -29,8 +29,8 @@ def main():
         if not os.path.isfile(archive):
             return "'" + archive + "' does not exist. Exiting."
 
-        checksum = config.get('system/md5sum')
-        checksum_verified = config.get('system/md5sum_verified')
+        checksum = config.get('md5sum')
+        checksum_verified = config.get('md5sum_verified')
 
         if not checksum:
             return "No checksum in config file. Exiting."
@@ -38,7 +38,7 @@ def main():
         if not checksum_verified == 'Yes':
             if checksum == md5sum(archive):
                 print("Data verified by checksum.")
-                config.put('system/md5sum_verified', 'Yes')
+                config.put('md5sum_verified', 'Yes')
                 config.save()
             else:
                 return "Checksum mismatch. Check data integrity. Exiting."

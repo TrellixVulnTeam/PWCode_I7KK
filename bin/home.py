@@ -165,7 +165,7 @@ class HomeTab(ttk.Frame):
 
     def export_data(self, app, type):
         def_name = inspect.currentframe().f_code.co_name
-        config_dir = self.export_check(app, type)
+        config_dir = self.export_check(app)
 
         if len(self.subproject_frames) == 0:
             self.msg_label.config(text='No subsystems added')
@@ -192,38 +192,85 @@ class HomeTab(ttk.Frame):
         run_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
 
         options_frame = ttk.Frame(self.project_frame, style="SubHeading.TLabel")
-        options_frame.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
+        options_frame.pack(side=tk.TOP, anchor=tk.W, fill=tk.X, pady=(0, 20))
+
+        memory_label = ttk.Label(options_frame, text="Allocated Memory:")
+        memory_label.pack(side=tk.LEFT, anchor=tk.N, padx=(8, 0), pady=3)
+        options = ['', '3 Gb', '4 Gb', '5 Gb', '6 Gb', '7 Gb', '8 Gb']
+        self.project_frame.memory_option = tk.StringVar()
+        self.project_frame.memory_option.set(options[2])
+        memory_option = ttk.OptionMenu(options_frame, self.project_frame.memory_option, *options)
+        memory_option.pack(side=tk.LEFT, anchor=tk.N, pady=3, padx=(0, 6))
+        memory_option.configure(width=4)
+
+        ddl_label = ttk.Label(options_frame, text="DDL Generation:")
+        ddl_label.pack(side=tk.LEFT, anchor=tk.N, padx=(20, 0), pady=3)
+        options = ['', 'Native', 'SQL Workbench']
+        self.project_frame.ddl_option = tk.StringVar()
+        self.project_frame.ddl_option.set(options[1])
+        ddl_option = ttk.OptionMenu(options_frame, self.project_frame.ddl_option, *options)
+        ddl_option.pack(side=tk.LEFT, anchor=tk.N, pady=3, padx=(0, 6))
+        ddl_option.configure(width=12)
+
+    def copy_check(self, app):
+        config, config_dir = config_init('pwcode')
+        config.put('name', self.project_frame.name_entry.get())
+        config.put('options/memory', self.project_frame.memory_option.get())
+        config.put('options/ddl', self.project_frame.ddl_option.get())
+
+        i = 0
+        for conn in self.subproject_frames:
+            i += 1
+            conn_name = "'Source'"
+            if i > 1:
+                conn_name = "'Target'"
+
+            db_name = conn.db_name_entry.get()
+            db_schema = conn.db_schema_entry.get()
+            jdbc_url = conn.jdbc_url_entry.get()
+            db_user = conn.db_user_entry.get()
+            db_pwd = conn.db_pwd_entry.get()
+
+            msg = None
+
+            if len(db_name) == 0:
+                msg = 'Missing Database Name in ' + conn_name
+            elif len(db_schema) == 0:
+                msg = 'Missing Schema Name in ' + conn_name
+            elif len(jdbc_url) == 0:
+                msg = 'Missing JDBC Url in ' + conn_name
+            elif len(db_user) == 0:
+                msg = 'Missing User Name in ' + conn_name
+            elif len(db_pwd) == 0:
+                msg = 'Missing User Password in ' + conn_name
+
+            if msg:
+                self.msg_label.config(text=msg)
+                return
+
+            self.msg_label.config(text='')
+
+            conn_name = conn_name.replace("'", "").lower()
+            config.put(conn_name + '/name', db_name)
+            config.put(conn_name + '/schema_name', db_schema)
+            config.put(conn_name + '/jdbc_url', jdbc_url)
+            config.put(conn_name + '/user', db_user)
+            config.put(conn_name + '/password', db_pwd)
+
+        config.save()
+        return config_dir
 
     def copy_db(self, app):
         def_name = inspect.currentframe().f_code.co_name
-        config, config_dir = config_init(def_name)
+        config_dir = self.copy_check(app)
 
-        # if not hasattr(self.project_frame, 'folders_frame'):
-        #     msg_label.config(text='No folders added')
-        #     return
+        if len(self.subproject_frames) < 2:
+            self.msg_label.config(text='Missing Source or Target')
+            return
 
-        # project_name = self.project_frame.name_entry.get()
-        # if not project_name:
-        #     msg_label.config(text='Missing project name')
-        #     return
-
-        # ok = self.create_project_dir(app.data_dir + project_name, project_name)
-        # if ok:
-        #     msg_label.config(text='')
-        # else:
-        #     return
-
-        # config.put('name', self.project_frame.name_entry.get())
-        # config.put('options/merge', self.project_frame.merge_option.get())
-
-        # i = 1
-        # for frame, path in self.project_frame.folders_frame.folders.items():
-        #     # frame.remove_button.configure(state=tk.DISABLED)
-        #     config.put('folders/folder' + str(i), path)
-        #     i += 1
-
-        # config.save()
-        # self.run_plugin(app, project_name, config_dir, def_name)
+        if config_dir:
+            project_name = self.project_frame.name_entry.get()
+            self.run_plugin(app, project_name, config_dir, def_name)
 
     def convert_files(self, app):
         def_name = inspect.currentframe().f_code.co_name
@@ -298,7 +345,7 @@ class HomeTab(ttk.Frame):
             return 'Not a PWCode SIP project'
 
         config = XMLSettings(config_path)
-        project_name = config.get('system/name')
+        project_name = config.get('name')
         def_name = inspect.currentframe().f_code.co_name
         config_dir = os.environ["pwcode_config_dir"]  # Get PWCode config path
 
@@ -314,7 +361,6 @@ class HomeTab(ttk.Frame):
         subsystem_button = ttk.Button(name_frame, text='Add Subsystem', style="Entry.TButton", command=lambda: self.subproject_entry(app, 'export'))
         subsystem_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
 
-        # TODO: Lag def export_data(self, app):
         run_button = ttk.Button(name_frame, text='Run', style="Run.TButton", command=lambda: self.export_data(app, 'export'))
         run_button.pack(side=tk.RIGHT, anchor=tk.N, pady=3, padx=(0, 12))
 
@@ -356,20 +402,18 @@ class HomeTab(ttk.Frame):
         count = len(self.subproject_frames)
         ok = None
 
-        if self.project_frame.name_frame.add_button:
-            self.project_frame.name_frame.add_button.configure(text='Add target')
-
         if count == 0:
             ok = self.project_entry_check(app, type)
+            if ok:
+                if self.project_frame.name_frame.add_button:
+                    self.project_frame.name_frame.add_button.configure(text='Add target')
         else:
             if type == 'export':
                 ok = self.export_check(app)
             elif type == 'copy':
-                if count < 2:
-                    ok = self.copy_check(app)
-                else:
-                    print('jala')
-                    # TODO: Fjern self.project_frame.name_frame.add_button her
+                ok = self.copy_check(app)
+                if ok:
+                    self.project_frame.name_frame.add_button.destroy()
 
         if ok:
             if count == 0:
@@ -378,24 +422,20 @@ class HomeTab(ttk.Frame):
 
             title = " New Subsystem "
             if type == 'copy':
-                if count == 0:
-                    title = " Source "
-                elif count == 1:
+                title = " Source "
+                if count > 0:
                     title = " Target "
 
             subproject_frame = SubProject(self.right_frame, app, self, type, text=title, relief=tk.GROOVE)
             subproject_frame.pack(side=tk.TOP, anchor=tk.W, fill='both', expand=1, pady=12)
             self.subproject_frames.append(subproject_frame)
 
-    def copy_check(self, app):
-        return 'blæh'
-
     def export_check(self, app):
         # TODO: Sjekk kobling mm her heller enn i subprocess så kan endre i gui enklere hvis noe er feil
 
         config, config_dir = config_init('pwcode')
-        config.put('system/name', self.project_frame.name_entry.get())
-        config.put('system/md5sum', 'null')
+        config.put('name', self.project_frame.name_entry.get())
+        config.put('md5sum', 'null')
         config.put('options/memory', self.project_frame.memory_option.get())
         config.put('options/ddl', self.project_frame.ddl_option.get())
         config.put('options/create_package', self.project_frame.package_option.get())
