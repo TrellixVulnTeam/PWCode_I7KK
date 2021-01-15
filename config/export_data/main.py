@@ -1,9 +1,3 @@
-
-from defs import (  # .defs.py
-    export_db_schema,
-    capture_files,
-    test_db_connect
-)
 import shutil
 import os
 import sys
@@ -15,6 +9,11 @@ from common.file import md5sum
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 # TODO: Legg disse enkeltvis i defs under heller?
 
+from defs import (  # .defs.py
+    export_db_schema,
+    capture_files,
+    test_db_connect
+)
 
 def main():
     bin_dir = os.environ["pwcode_bin_dir"]  # Get PWCode executable path
@@ -65,7 +64,9 @@ def main():
         schema_name = config.get('subsystems/' + subsystem_name + '/db/schema_name')
         jdbc_url = config.get('subsystems/' + subsystem_name + '/db/jdbc_url')
         db_user = config.get('subsystems/' + subsystem_name + '/db/user')
+        print(db_user)
         db_password = config.get('subsystems/' + subsystem_name + '/db/password')
+        print(db_password)
         exclude_tables = config.get('subsystems/' + subsystem_name + '/db/exclude_tables')
         include_tables = config.get('subsystems/' + subsystem_name + '/db/include_tables')
         overwrite_tables = config.get('subsystems/' + subsystem_name + '/db/overwrite_tables')
@@ -192,7 +193,10 @@ def main():
         os.path.join(project_dir, '.pwcode')
     ]
 
+    # TODO: Fortsatt wim for eksporterte mapper på win -> fiks installer slik at win programvare installeres
+    # TODO: Sjekk om ext på 'archive' under blir feilaktig win når på windows -> ser ut til å skulle være tar for win også
     if package:
+        print(archive) # TODO: For test
         capture_files(bin_dir, project_dir, archive, exclude)
         for sub_dir_path in [f.path for f in os.scandir(project_dir) if f.is_dir()]:
             if sub_dir_path != os.path.join(project_dir, '.pwcode'):

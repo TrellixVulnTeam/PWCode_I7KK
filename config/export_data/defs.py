@@ -35,10 +35,16 @@ def get_db_details(jdbc_url, bin_dir):
     driver_class = None
     jars_path = os.path.join(bin_dir, 'vendor', 'jars')
     if 'jdbc:h2:' in jdbc_url:  # H2 database
-        if 'LAZY_QUERY_EXECUTION' not in jdbc_url:
-            jdbc_url = jdbc_url + ';LAZY_QUERY_EXECUTION=1;'  # Modify url for less memory use
+        if ';LAZY_QUERY_EXECUTION' not in jdbc_url.upper():
+            jdbc_url = jdbc_url + ';LAZY_QUERY_EXECUTION=1'  # Modify url for less memory use
         driver_jar = os.path.join(jars_path, 'h2.jar')
         driver_class = 'org.h2.Driver'
+    elif 'jdbc:sqlserver:' in jdbc_url:  # mssql database
+        if ';SELECTMETHOD=CURSOR' not in jdbc_url.upper():
+            jdbc_url = jdbc_url + ';SELECTMETHOD=CURSOR'  # Modify url for less memory use
+        driver_jar = os.path.join(jars_path, 'mssql-jdbc.jre11.jar')
+        driver_class = 'com.microsoft.sqlserver.jdbc.SQLServerDriver'
+
 
     return jdbc_url, driver_jar, driver_class
 
@@ -55,7 +61,8 @@ def capture_files(bin_dir, source_path, target_path, exclude=None):
 
     try:
         if archive_format == 'wim':
-            cmd = os.path.join(bin_dir, "vendor", "wimlib-imagex") + " capture "  + source_path + " " + target_path + " --no-acls --compress=none"
+            # TODO: Hvorfor vises ikke output? Sammenlign med tidligere kode
+            cmd = os.path.join(bin_dir, "vendor", "windows","wimlib","wimlib-imagex.exe") + " capture "  + source_path + " " + target_path + " --no-acls --compress=none"
             check_output(cmd, stderr=STDOUT, shell=True).decode()
         else:
             with tarfile.open(target_path, mode='w') as archive:
@@ -89,7 +96,7 @@ def export_schema(class_paths, max_java_heap, java_path, subsystem_dir, jdbc, db
     batch.setAbortOnError(True)
 
     batch.setBaseDir(base_dir)
-    batch.runScript("WbConnect -url='" + jdbc.url + "' -password=" + jdbc.pwd + ";")
+    batch.runScript("WbConnect -url='" + jdbc.url + "' -username='" + jdbc.usr + "' -password=" + jdbc.pwd + ";")
     gen_report_str = "WbSchemaReport -file=metadata.xml -schemas=" + jdbc.db_schema + " -types=SYNONYM,TABLE,VIEW -includeProcedures=true \
                             -includeTriggers=true -writeFullSource=true;"
     batch.runScript(gen_report_str)
@@ -190,7 +197,7 @@ def get_db_meta(jdbc):
 
 
 def add_row_count_to_schema_file(subsystem_dir, db_tables):
-    schema_file = subsystem_dir + '/header/metadata.xml'
+    schema_file = os.path.join(subsystem_dir, 'header', 'metadata.xml')
     tree = ET.parse(schema_file)
 
     table_defs = tree.findall("table-def")
@@ -457,7 +464,7 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, java_path, max_java_heap, 
                     sql = 'ALTER TABLE "' + table + '" ADD COLUMN ' + column.upper() + '_BLOB_LENGTH_PWCODE VARCHAR(255);'
                     run_ddl(t_jdbc, sql)
 
-        batch.runScript("WbConnect -url='" + s_jdbc.url + "' -password=" + s_jdbc.pwd + ";")
+        batch.runScript("WbConnect -url='" + s_jdbc.url + "' -username='" + s_jdbc.usr + "' -password=" + s_jdbc.pwd + ";")
         target_conn = '"username=,password=,url=' + target_url + '" ' + params
         target_table = '"' + table + '"'
         copy_data_str = "WbCopy -targetConnection=" + target_conn + " -targetSchema=PUBLIC -targetTable=" + target_table + " -sourceQuery=" + source_query + ";"
