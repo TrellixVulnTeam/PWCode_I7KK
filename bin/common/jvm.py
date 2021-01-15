@@ -32,7 +32,6 @@ def init_jvm(class_paths, max_heap_size, java_path):
 
 def wb_batch(class_paths, max_java_heap, java_path):
     # Start Java virtual machine if not started already:
-    print('test1')
     init_jvm(class_paths, max_java_heap, java_path)
 
     # Create instance of sqlwb Batchrunner:

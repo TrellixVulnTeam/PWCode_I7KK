@@ -12,19 +12,21 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from defs import (  # .defs.py
     export_db_schema,
     capture_files,
-    test_db_connect
+    test_db_connect,
+    get_java_path_sep
 )
 
 def main():
     bin_dir = os.environ["pwcode_bin_dir"]  # Get PWCode executable path
     java_path = os.environ['pwcode_java_path']  # Get Java home path
-    class_path = os.environ['CLASSPATH']  # Get jar path
     config_dir = os.environ['pwcode_config_dir']  # Get PWCode config path
     tmp_dir = os.path.join(config_dir, 'tmp')
     os.chdir(tmp_dir)  # Avoid littering from subprocesses
     data_dir = os.environ['pwcode_data_dir']
     tmp_config_path = os.path.join(config_dir, 'tmp', 'pwcode.xml')
     tmp_config = XMLSettings(tmp_config_path)
+    class_path = os.environ['CLASSPATH']  # Get jar path
+    class_paths = class_path + get_java_path_sep() + #TODO: Path til h2 jar her
 
     if not os.path.isfile(tmp_config_path):
         return 'No config file found. Exiting.'
@@ -64,9 +66,7 @@ def main():
         schema_name = config.get('subsystems/' + subsystem_name + '/db/schema_name')
         jdbc_url = config.get('subsystems/' + subsystem_name + '/db/jdbc_url')
         db_user = config.get('subsystems/' + subsystem_name + '/db/user')
-        print(db_user)
         db_password = config.get('subsystems/' + subsystem_name + '/db/password')
-        print(db_password)
         exclude_tables = config.get('subsystems/' + subsystem_name + '/db/exclude_tables')
         include_tables = config.get('subsystems/' + subsystem_name + '/db/include_tables')
         overwrite_tables = config.get('subsystems/' + subsystem_name + '/db/overwrite_tables')

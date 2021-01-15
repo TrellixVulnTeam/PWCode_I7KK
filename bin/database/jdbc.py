@@ -333,7 +333,7 @@ class Jdbc:
         @param auto_commit: bool - auto-commit each sql statement. Defaults to False
                                    (changes are only committed with the jdbc.commit() command)
         @param upper_case: bool
-        @raises (ConnectionError,DriverNotFoundException) if het connection could not be established
+        @raises (ConnectionError,DriverNotFoundException) if the connection could not be established
         """
         self.url = url
         self.usr = usr
