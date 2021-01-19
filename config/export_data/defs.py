@@ -475,6 +475,8 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, java_path, max_java_heap, 
                 params = mode + std_params + ' -createTarget=true -dropTarget=true'
             elif DDL_GEN == 'Native':
                 t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)
+                # table_name = ddl_columns[table][:-1]
+                # print(table_name)
                 ddl = '\nCREATE TABLE "' + table + '"\n(\n' + ddl_columns[table][:-1] + '\n);'
                 ddl = create_index(table, pk_dict, unique_dict, ddl)
                 print(ddl)
@@ -489,8 +491,9 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, java_path, max_java_heap, 
 
         batch.runScript("WbConnect -url='" + s_jdbc.url + "' -username='" + s_jdbc.usr + "' -password=" + s_jdbc.pwd + ";")
         target_conn = '"username=,password=,url=' + target_url + '" ' + params
-        target_table = '"' + table + '"'
-        copy_data_str = "WbCopy -targetConnection=" + target_conn + " -targetSchema=PUBLIC -targetTable=" + target_table + " -sourceQuery=" + source_query + ";"
+        target_table = 'PUBLIC."' + table + '"'
+        copy_data_str = "WbCopy -targetConnection=" + target_conn + " -targetTable=" + target_table + " -sourceQuery=" + source_query + ";"
+        # print(copy_data_str)
         result = batch.runScript(copy_data_str)
         batch.runScript("WbDisconnect;")
         jp.java.lang.System.gc()
