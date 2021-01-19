@@ -44,7 +44,13 @@ def get_db_details(jdbc_url, bin_dir):
             jdbc_url = jdbc_url + ';SELECTMETHOD=CURSOR'  # Modify url for less memory use
         driver_jar = os.path.join(jars_path, 'mssql-jdbc.jre11.jar')
         driver_class = 'com.microsoft.sqlserver.jdbc.SQLServerDriver'
-
+    elif 'jdbc:mysql:' in jdbc_url:  # mssql database
+        # TODO: Må legge inn sjekk for flere av disse:
+        # jdbc:mysql://localhost:3306/pwb?zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=UTC&autoReconnect=true&useSSL=false&sessionVariables=sql_mode=ANSI_QUOTES
+        # if ';SELECTMETHOD=CURSOR' not in jdbc_url.upper():
+        #     jdbc_url = jdbc_url + ';SELECTMETHOD=CURSOR'  # Modify url for less memory use
+        driver_jar = os.path.join(jars_path, 'mysql-connector-java.jar')
+        driver_class = 'com.mysql.cj.jdbc.Driver'
 
     return jdbc_url, driver_jar, driver_class
 
@@ -56,13 +62,13 @@ def capture_files(bin_dir, source_path, target_path, exclude=None):
     def exclude_items(item):
         if exclude is None:
             return item
-        elif source_path + '/' + item.name not in exclude: # TODO: Endre til os separator auto
+        elif source_path + '/' + item.name not in exclude:  # TODO: Endre til os separator auto
             return item
 
     try:
         if archive_format == 'wim':
             # TODO: Hvorfor vises ikke output? Sammenlign med tidligere kode
-            cmd = os.path.join(bin_dir, "vendor", "windows","wimlib","wimlib-imagex.exe") + " capture "  + source_path + " " + target_path + " --no-acls --compress=none"
+            cmd = os.path.join(bin_dir, "vendor", "windows", "wimlib", "wimlib-imagex.exe") + " capture " + source_path + " " + target_path + " --no-acls --compress=none"
             check_output(cmd, stderr=STDOUT, shell=True).decode()
         else:
             with tarfile.open(target_path, mode='w') as archive:
@@ -73,20 +79,21 @@ def capture_files(bin_dir, source_path, target_path, exclude=None):
     return 'ok'
 
 
-def get_tables(conn, schema):
-    results = conn.jconn.getMetaData().getTables(None, schema, "%", None)
+def get_tables(conn, db_name, db_schema):
+    results = conn.jconn.getMetaData().getTables(db_name, db_schema, "%", None)
     table_reader_cursor = conn.cursor()
     table_reader_cursor._rs = results
     table_reader_cursor._meta = results.getMetaData()
     read_results = table_reader_cursor.fetchall()
     tables = [str(row[2]) for row in read_results if row[3] == 'TABLE']
+
     return tables
 
 
 def export_schema(class_paths, max_java_heap, java_path, subsystem_dir, jdbc, db_tables):
     base_dir = os.path.join(subsystem_dir, 'header')
 
-    if os.path.isfile(os.path.join(base_dir,'metadata.xml')):
+    if os.path.isfile(os.path.join(base_dir, 'metadata.xml')):
         return
 
     init_jvm(class_paths, max_java_heap, java_path)  # Start Java virtual machine # TODO: Virker ikke å starte jvm med jpype før bruk av jaydebeapi
@@ -115,9 +122,12 @@ def get_java_path_sep():
 def test_db_connect(JDBC_URL, bin_dir, class_path,  java_path, MAX_JAVA_HEAP, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES):
 
     url, driver_jar, driver_class = get_db_details(JDBC_URL, bin_dir)
+
     if driver_jar and driver_class:
         # Start Java virtual machine if not started already:
         class_paths = class_path + get_java_path_sep() + driver_jar
+        if driver_jar != 'org.h2.Driver':
+            class_paths = class_paths + get_java_path_sep() + os.path.join(bin_dir, 'vendor', 'jars', 'h2.jar')
 
         init_jvm(class_paths, MAX_JAVA_HEAP, java_path)  # TODO: Virker ikke å starte jvm med jpype før bruk av jaydebeapi
 
@@ -153,8 +163,8 @@ def export_db_schema(JDBC_URL, bin_dir, class_path, java_path, MAX_JAVA_HEAP, DB
             jdbc = Jdbc(url, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, driver_jar, driver_class, True, True)
             if jdbc:
                 # Get database metadata:
-                db_tables, table_columns = get_db_meta(jdbc)
-                export_schema(class_paths, MAX_JAVA_HEAP, java_path, subsystem_dir, jdbc, db_tables) # TODO: Feiler her
+                db_tables, table_columns = get_db_meta(jdbc)  # WAIT: Fiks så ikke henter to ganger (også i test)
+                export_schema(class_paths, MAX_JAVA_HEAP, java_path, subsystem_dir, jdbc, db_tables)  # TODO: Feiler her
                 export_tables, overwrite_tables = table_check(INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, db_tables)
 
             if export_tables:
@@ -179,16 +189,21 @@ def get_db_meta(jdbc):
     table_columns = {}
     conn = jdbc.connection
     cursor = conn.cursor()
-    tables = get_tables(conn, jdbc.db_schema)
+    tables = get_tables(conn, jdbc.db_name, jdbc.db_schema)
 
     # Get row count per table:
     for table in tables:
-        cursor.execute('SELECT COUNT(*) from "' + table + '";')
+        # TODO: Endre så ikke viser select når testet med alle støttede db-typer
+        a = 'SELECT COUNT(*) from "' + table + '";'
+        print(a)
+        cursor.execute(a)
         (row_count,) = cursor.fetchone()
         db_tables[table] = row_count
 
         # Get column names of table:
-        cursor.execute('SELECT * from "' + table + '"')
+        b = 'SELECT * from "' + table + '"'
+        print(b)
+        cursor.execute(b)
         table_columns[table] = [str(desc[0]) for desc in cursor.description]
 
     cursor.close()
@@ -253,7 +268,7 @@ def get_target_tables(jdbc):
     target_tables = {}
     conn = jdbc.connection
     cursor = conn.cursor()
-    tables = get_tables(conn, jdbc.db_schema)
+    tables = get_tables(conn, jdbc.db_name, jdbc.db_schema)
 
     # Get row count per table:
     for table in tables:
@@ -406,8 +421,8 @@ def create_index(table, pk_dict, unique_dict, ddl):
 
 def copy_db_schema(subsystem_dir, s_jdbc, class_path, java_path, max_java_heap, export_tables, bin_dir, table_columns, overwrite_tables, DDL_GEN):
     batch = wb_batch(class_path, max_java_heap, java_path)
-    Path(os.path.join(subsystem_dir, 'content','data')).mkdir(parents=True, exist_ok=True)
-    target_url = 'jdbc:h2:' + os.path.join(subsystem_dir, 'content', 'data' ,s_jdbc.db_name + '_' + s_jdbc.db_schema) + ';autocommit=off'
+    Path(os.path.join(subsystem_dir, 'content', 'data')).mkdir(parents=True, exist_ok=True)
+    target_url = 'jdbc:h2:' + os.path.join(subsystem_dir, 'content', 'data', s_jdbc.db_name + '_' + s_jdbc.db_schema) + ';autocommit=off'
     target_url, driver_jar, driver_class = get_db_details(target_url, bin_dir)
     print(target_url)
     print(driver_jar)

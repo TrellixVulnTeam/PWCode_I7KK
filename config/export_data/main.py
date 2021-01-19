@@ -1,3 +1,9 @@
+from defs import (  # .defs.py
+    export_db_schema,
+    capture_files,
+    test_db_connect,
+    get_java_path_sep
+)
 import shutil
 import os
 import sys
@@ -9,12 +15,6 @@ from common.file import md5sum
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 # TODO: Legg disse enkeltvis i defs under heller?
 
-from defs import (  # .defs.py
-    export_db_schema,
-    capture_files,
-    test_db_connect,
-    get_java_path_sep
-)
 
 def main():
     bin_dir = os.environ["pwcode_bin_dir"]  # Get PWCode executable path
@@ -26,7 +26,7 @@ def main():
     tmp_config_path = os.path.join(config_dir, 'tmp', 'pwcode.xml')
     tmp_config = XMLSettings(tmp_config_path)
     class_path = os.environ['CLASSPATH']  # Get jar path
-    class_paths = class_path + get_java_path_sep() + #TODO: Path til h2 jar her
+    # class_path = class_path + get_java_path_sep() +  # TODO: Path til h2 jar her
 
     if not os.path.isfile(tmp_config_path):
         return 'No config file found. Exiting.'
@@ -196,7 +196,7 @@ def main():
     # TODO: Fortsatt wim for eksporterte mapper på win -> fiks installer slik at win programvare installeres
     # TODO: Sjekk om ext på 'archive' under blir feilaktig win når på windows -> ser ut til å skulle være tar for win også
     if package:
-        print(archive) # TODO: For test
+        print(archive)  # TODO: For test
         capture_files(bin_dir, project_dir, archive, exclude)
         for sub_dir_path in [f.path for f in os.scandir(project_dir) if f.is_dir()]:
             if sub_dir_path != os.path.join(project_dir, '.pwcode'):

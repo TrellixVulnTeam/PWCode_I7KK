@@ -23,12 +23,13 @@ def init_jvm(class_paths, max_heap_size, java_path):
     if jp.isJVMStarted():
         return
 
-    jp.startJVM(jp.getDefaultJVMPath(), # java_path,
+    jp.startJVM(jp.getDefaultJVMPath(),  # java_path,
                 '-Djava.class.path=%s' % class_paths,
                 # '-Djava.class.path=/home/bba/bin/PWCode/bin/vendor/jars/h2.jar',
                 '-Dfile.encoding=UTF8',
                 '-ea', max_heap_size,
                 )
+
 
 def wb_batch(class_paths, max_java_heap, java_path):
     # Start Java virtual machine if not started already:
