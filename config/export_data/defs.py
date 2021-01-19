@@ -413,13 +413,13 @@ def gen_sync_table(table, columns, target_url, driver_jar, driver_class, source_
     return source_query
 
 
-def create_index(table, pk_dict, unique_dict, ddl):
+def create_index(table, pk_dict, unique_dict, ddl, t_count):
     if table in pk_dict:
         for col in pk_dict[table]:
-            ddl = ddl + '\nCREATE INDEX c_' + col + ' ON "' + table + '" ("' + col + '");'
+            ddl = ddl + '\nCREATE INDEX c_' + col + '_' + str(t_count) + ' ON "' + table + '" ("' + col + '");'
     if table in unique_dict:
         for col in unique_dict[table]:
-            ddl = ddl + '\nCREATE INDEX c_' + col + ' ON "' + table + '" ("' + col + '");'
+            ddl = ddl + '\nCREATE INDEX c_' + col + '_' + str(t_count) + ' ON "' + table + '" ("' + col + '");'
 
     return ddl
 
@@ -444,14 +444,17 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, java_path, max_java_heap, 
     mode = '-mode=INSERT'
     std_params = ' -ignoreIdentityColumns=false -removeDefaults=true -commitEvery=1000 '
     previous_export = []
+    t_count = 0
     for table, row_count in export_tables.items():
+        t_count += 1
         insert = True
         params = mode + std_params
 
         col_query = ''
-        if table in blob_columns:
-            for column in blob_columns[table]:
-                col_query = ',LENGTH("' + column + '") AS ' + column.upper() + '_BLOB_LENGTH_PWCODE'
+        # WAIT: Endre kode på blob length så virker også på mssql mm senere
+        # if table in blob_columns:
+        #     for column in blob_columns[table]:
+        #         col_query = ',LENGTH("' + column + '") AS ' + column.upper() + '_BLOB_LENGTH_PWCODE'
 
         source_query = 'SELECT "' + '","'.join(table_columns[table]) + '"' + col_query + ' FROM "' + s_jdbc.db_schema + '"."' + table + '"'
 
@@ -478,16 +481,17 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, java_path, max_java_heap, 
                 # table_name = ddl_columns[table][:-1]
                 # print(table_name)
                 ddl = '\nCREATE TABLE "' + table + '"\n(\n' + ddl_columns[table][:-1] + '\n);'
-                ddl = create_index(table, pk_dict, unique_dict, ddl)
+                ddl = create_index(table, pk_dict, unique_dict, ddl, t_count)
                 print(ddl)
                 sql = 'DROP TABLE IF EXISTS "' + table + '"; ' + ddl
                 run_ddl(t_jdbc, sql)
 
-            if table in blob_columns:
-                for column in blob_columns[table]:
-                    t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)
-                    sql = 'ALTER TABLE "' + table + '" ADD COLUMN ' + column.upper() + '_BLOB_LENGTH_PWCODE VARCHAR(255);'
-                    run_ddl(t_jdbc, sql)
+            # WAIT: Endre kode på blob length så virker også på mssql mm senere
+            # if table in blob_columns:
+            #     for column in blob_columns[table]:
+            #         t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)
+            #         sql = 'ALTER TABLE "' + table + '" ADD COLUMN ' + column.upper() + '_BLOB_LENGTH_PWCODE VARCHAR(255);'
+            #         run_ddl(t_jdbc, sql)
 
         batch.runScript("WbConnect -url='" + s_jdbc.url + "' -username='" + s_jdbc.usr + "' -password=" + s_jdbc.pwd + ";")
         target_conn = '"username=,password=,url=' + target_url + '" ' + params
