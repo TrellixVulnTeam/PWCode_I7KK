@@ -1,9 +1,4 @@
-from defs import (  # .defs.py
-    export_db_schema,
-    capture_files,
-    test_db_connect,
-    get_java_path_sep
-)
+
 import shutil
 import os
 import sys
@@ -13,6 +8,12 @@ import xml.etree.ElementTree as ET
 from common.file import md5sum
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from defs import (  # .defs.py
+    export_db_schema,
+    capture_files,
+    test_db_connect,
+    get_java_path_sep
+)
 # TODO: Legg disse enkeltvis i defs under heller?
 
 

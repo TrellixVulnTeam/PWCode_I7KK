@@ -40,6 +40,7 @@ def get_db_details(jdbc_url, bin_dir):
         driver_jar = os.path.join(jars_path, 'h2.jar')
         driver_class = 'org.h2.Driver'
     elif 'jdbc:sqlserver:' in jdbc_url:  # mssql database
+        # TODO: db_name må alltid legges til hvis ikke er i url ennå -> legg til på slutten: ;databaseName=NYGSYS
         if ';SELECTMETHOD=CURSOR' not in jdbc_url.upper():
             jdbc_url = jdbc_url + ';SELECTMETHOD=CURSOR'  # Modify url for less memory use
         driver_jar = os.path.join(jars_path, 'mssql-jdbc.jre11.jar')
@@ -194,14 +195,18 @@ def get_db_meta(jdbc):
     # Get row count per table:
     for table in tables:
         # TODO: Endre så ikke viser select når testet med alle støttede db-typer
+        # TODO: aldri nøvdendig med quotes når select fra source? Endre når insert bare?
         a = 'SELECT COUNT(*) from "' + table + '";'
+        # a = 'SELECT COUNT(*) from ' + table + ';'
         print(a)
         cursor.execute(a)
         (row_count,) = cursor.fetchone()
         db_tables[table] = row_count
 
         # Get column names of table:
-        b = 'SELECT * from "' + table + '"'
+        # TODO: Finnes db-uavhengig måte å begrense til kun en linje hentet ut?
+        b = 'SELECT * from "' + table + '";'
+        # b = 'SELECT * from ' + table + ';'
         print(b)
         cursor.execute(b)
         table_columns[table] = [str(desc[0]) for desc in cursor.description]
