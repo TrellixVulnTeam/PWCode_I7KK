@@ -188,6 +188,7 @@ def export_db_schema(JDBC_URL, bin_dir, class_path, java_path, MAX_JAVA_HEAP, DB
 
 
 def get_db_meta(jdbc):
+    # TODO: Henter samme data flere ganger (her og fra metadata.xml) -> fiks
     db_tables = {}
     table_columns = {}
     conn = jdbc.connection
@@ -197,20 +198,17 @@ def get_db_meta(jdbc):
     # Get row count per table:
     for table in tables:
         # TODO: Endre så ikke viser select når testet med alle støttede db-typer
-        # TODO: aldri nøvdendig med quotes når select fra source? Endre når insert bare?
-        a = 'SELECT COUNT(*) from "' + table + '";'
-        # a = 'SELECT COUNT(*) from ' + table + ';'
-        print(a)
-        cursor.execute(a)
+        get_count = 'SELECT COUNT(*) from "' + table + '";'
+        print(get_count)
+        cursor.execute(get_count)
         (row_count,) = cursor.fetchone()
         db_tables[table] = row_count
 
         # Get column names of table:
         # TODO: Finnes db-uavhengig måte å begrense til kun en linje hentet ut?
-        b = 'SELECT * from "' + table + '";'
-        # b = 'SELECT * from ' + table + ';'
-        print(b)
-        cursor.execute(b)
+        get_columns = 'SELECT * from "' + table + '";'
+        print(get_columns)
+        cursor.execute(get_columns)
         table_columns[table] = [str(desc[0]) for desc in cursor.description]
 
     cursor.close()
@@ -551,7 +549,7 @@ jdbc_to_iso_data_type = {
 
 def get_ddl_columns(subsystem_dir):
     ddl_columns = {}
-    schema_file = subsystem_dir + '/header/metadata.xml'
+    schema_file = os.path.join(subsystem_dir, 'header', 'metadata.xml')
     tree = ET.parse(schema_file)
 
     table_defs = tree.findall("table-def")
