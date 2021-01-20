@@ -19,6 +19,7 @@ from pathlib import Path
 # import glob
 import tarfile
 import jaydebeapi
+import shutil
 from common.jvm import init_jvm, wb_batch
 from common.print import print_and_exit
 import jpype as jp
@@ -71,35 +72,6 @@ def get_tables(driver_class, jdbc_url, driver_jar):
     return tables, table_columns
 
 
-# def get_db_meta(jdbc):
-#     # TODO: Henter samme data flere ganger (her og fra metadata.xml) -> fiks
-#     db_tables = {}
-#     table_columns = {}
-#     conn = jdbc.connection
-#     cursor = conn.cursor()
-#     tables = get_tables(conn, jdbc.db_name, jdbc.db_schema)
-
-#     # Get row count per table:
-#     for table in tables:
-#         # TODO: Endre så ikke viser select når testet med alle støttede db-typer
-#         get_count = 'SELECT COUNT(*) from "' + table + '";'
-#         print(get_count)
-#         cursor.execute(get_count)
-#         (row_count,) = cursor.fetchone()
-#         db_tables[table] = row_count
-
-#         # Get column names of table:
-#         # TODO: Finnes db-uavhengig måte å begrense til kun en linje hentet ut?
-#         get_columns = 'SELECT * from "' + table + '";'
-#         print(get_columns)
-#         cursor.execute(get_columns)
-#         table_columns[table] = [str(desc[0]) for desc in cursor.description]
-
-#     cursor.close()
-#     conn.close()
-#     return db_tables, table_columns
-
-
 def get_java_path_sep():
     path_sep = ';'
     if os.name == "posix":
@@ -118,7 +90,7 @@ def export_db_schema(data_dir, sub_system, class_path, java_path, bin_dir, memor
 
     tables, table_columns = get_tables(driver_class, jdbc_url, driver_jar)
     if tables == 'error':
-        return 'not workee'
+        print_and_exit('Error. No tables in source')
 
     for table in tables:
         batch.runScript("WbConnect -url='" + jdbc_url + "';")
@@ -126,11 +98,7 @@ def export_db_schema(data_dir, sub_system, class_path, java_path, bin_dir, memor
         # TODO: Hvorfor ha med navn på kolonner i select under? Beholde det? -> ja -> sikrer at får eksportert kolonner med ellers ulovlige navn pga quotes
         # --> TODO: har det som trengs for å hente kolonnenavn mm i koden under -> blir forenklet versjon av det
 
-        col_query = ''
-        # if table in blob_columns:
-        #     for column in blob_columns[table]:
-        #         col_query = ',LENGTH("' + column + '") AS ' + column.upper() + '_BLOB_LENGTH_PWCODE'
-        source_query = 'SELECT "' + '","'.join(table_columns[table]) + '"' + col_query + ' FROM PUBLIC."' + table + '"'
+        source_query = 'SELECT "' + '","'.join(table_columns[table]) + '"  FROM PUBLIC."' + table + '"'
 
         export_data_list = ["WbExport ",
                             "-type=text ",
@@ -151,99 +119,13 @@ def export_db_schema(data_dir, sub_system, class_path, java_path, bin_dir, memor
                             ]
 
         export_data_str = ''.join(export_data_list)
-        # print(export_data_str)
-
-        # export_data_str = "WbExport -type=text -file=" + tsv_file + " -continueOnError=false -encoding=UTF8 -header=true -decimal='.' -maxDigits=0 -lineEnding=lf  -sourceQuery=" + source_query + ";"
-
-        # WbExport -type=text -file="tsv_fil_full_path.tsv" -continueOnError=false -encoding=UTF8 -header=true -decimal='.' -maxDigits=0 -lineEnding=lf
-        # -clobAsFile=false -blobType=base64 -delimiter=\t -replaceExpression='(\n|\r\n|\r|\t|^$)' -replaceWith=' ' -nullString=' ' -showProgress=10000; SELECT "RI_ID", "ABSENCE_YEAR", "ABSENCE_QUARTER", "ABSENCE_DAYS", "ABSENCE_PERIOD" FROM "ABSENCE";
-        # TODO: Endre så eksport til tsv heller enn copy
-
-        # copy_data_str = "WbCopy -targetConnection=" + target_conn + " -targetSchema=PUBLIC -targetTable=" + target_table + " -sourceQuery=" + source_query + ";"
         result = batch.runScript(export_data_str)
-        target_table = '"' + table + '"'
-        # result = batch.runScript(copy_data_str)
         batch.runScript("WbDisconnect;")
         jp.java.lang.System.gc()
         if str(result) == 'Error':
             print_and_exit("Error on exporting table '" + table + "'\nScroll up for details.")
 
-    return
-
-    jdbc = Jdbc(url, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, driver_jar, driver_class, True, True)
-
-    return 'så langt'
-
-    target_url = 'jdbc:h2:' + subsystem_dir + '/content/data/' + s_jdbc.db_name + '_' + s_jdbc.db_schema + ';autocommit=off'
-    target_url, driver_jar, driver_class = get_db_details(target_url, bin_dir)
-    t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)
-    target_tables = get_target_tables(t_jdbc)
-    # pk_dict = get_primary_keys(subsystem_dir, export_tables)
-    # unique_dict = get_unique_indexes(subsystem_dir, export_tables)
-    blob_columns = get_blob_columns(subsystem_dir, export_tables)
-
-    mode = '-mode=INSERT'
-    std_params = ' -ignoreIdentityColumns=false -removeDefaults=true -commitEvery=1000 '
-    previous_export = []
-    for table, row_count in export_tables.items():
-        insert = True
-        params = mode + std_params
-
-        col_query = ''
-        if table in blob_columns:
-            for column in blob_columns[table]:
-                col_query = ',LENGTH("' + column + '") AS ' + column.upper() + '_BLOB_LENGTH_PWCODE'
-
-        source_query = 'SELECT "' + '","'.join(table_columns[table]) + '"' + col_query + ' FROM "' + s_jdbc.db_schema + '"."' + table + '"'
-
-        if table in target_tables and table not in overwrite_tables:
-            t_row_count = target_tables[table]
-            if t_row_count == row_count:
-                previous_export.append(table)
-                continue
-            elif t_row_count > row_count:
-                print_and_exit("Error. More data in target than in source. Table '" + table + "'. Exiting.")
-            elif table in pk_dict:
-                source_query = gen_sync_table(table, pk_dict[table], target_url, driver_jar, driver_class, source_query)
-                insert = False
-            elif table in unique_dict:
-                source_query = gen_sync_table(table, unique_dict[table], target_url, driver_jar, driver_class, source_query)
-                insert = False
-
-        if insert:
-            print("Copying table '" + table + "':")
-            if DDL_GEN == 'SQL Workbench':
-                params = mode + std_params + ' -createTarget=true -dropTarget=true'
-            elif DDL_GEN == 'Native':
-                t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)
-                ddl = '\nCREATE TABLE "' + table + '"\n(\n' + ddl_columns[table][:-1] + '\n);'
-                ddl = create_index(table, pk_dict, unique_dict, ddl)
-                print(ddl)
-                sql = 'DROP TABLE IF EXISTS "' + table + '"; ' + ddl
-                run_ddl(t_jdbc, sql)
-
-            if table in blob_columns:
-                for column in blob_columns[table]:
-                    t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)
-                    sql = 'ALTER TABLE "' + table + '" ADD COLUMN ' + column.upper() + '_BLOB_LENGTH_PWCODE VARCHAR(255);'
-                    run_ddl(t_jdbc, sql)
-
-        batch.runScript("WbConnect -url='" + s_jdbc.url + "' -password=" + s_jdbc.pwd + ";")
-        target_conn = '"username=,password=,url=' + target_url + '" ' + params
-        target_table = '"' + table + '"'
-        copy_data_str = "WbCopy -targetConnection=" + target_conn + " -targetSchema=PUBLIC -targetTable=" + target_table + " -sourceQuery=" + source_query + ";"
-        result = batch.runScript(copy_data_str)
-        batch.runScript("WbDisconnect;")
-        jp.java.lang.System.gc()
-        if str(result) == 'Error':
-            print_and_exit("Error on copying table '" + table + "'\nScroll up for details.")
-
-    if len(previous_export) == len(export_tables.keys()):
-        print('All tables already exported.')
-    elif not previous_export:
-        print('Database export complete.')
-    else:
-        print('Database export complete. ' + str(len(previous_export)) + ' of ' + str(len(export_tables.keys())) + ' tables were already exported.')
+    return 'ok'
 
 
 def process(project_dir, bin_dir, class_path, java_path, memory):
@@ -255,8 +137,15 @@ def process(project_dir, bin_dir, class_path, java_path, memory):
         h2_file = os.path.join(data_dir, sub_system + '.mv.db')
         if os.path.isfile(h2_file):
             data_docs_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'data_documents')
+            schema_file = os.path.join(sub_systems_dir, sub_system, 'header', 'metadata.xml')
+            schema_file_raw = os.path.join(sub_systems_dir, sub_system, 'header', 'metadata_raw.xml')
+            # print(schema_file)
             Path(data_docs_dir).mkdir(parents=True, exist_ok=True)
-            export_db_schema(data_dir, sub_system, class_path, java_path, bin_dir, memory)
+            result = export_db_schema(data_dir, sub_system, class_path, java_path, bin_dir, memory)
+            if result == 'ok':
+                shutil.copyfile(schema_file, schema_file_raw)
+                # TODO: Skriv til configfil at export gjort allerede
+                # TODO: Flytt exporterte blob'er. Lag kopi av metadata.xml før gjøres endringer på den
 
         # process files:
         docs_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'documents')
