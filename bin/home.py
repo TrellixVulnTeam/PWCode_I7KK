@@ -336,7 +336,7 @@ class HomeTab(ttk.Frame):
         self.project_frame.merge_option_frame = merge_option
 
     def normalize_data(self, app):
-        project_dir = multi_open(app.data_dir, mode='dir')
+        project_dir = multi_open(app.data_dir + os.path.sep, mode='dir')
         if not project_dir:
             return 'No folder chosen.'
 

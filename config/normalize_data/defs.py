@@ -20,6 +20,9 @@ from pathlib import Path
 import tarfile
 import jaydebeapi
 from common.jvm import init_jvm, wb_batch
+from common.print import print_and_exit
+import jpype as jp
+import jpype.imports
 
 
 def mount_wim(filepath, mount_dir):
@@ -44,7 +47,16 @@ def get_tables(driver_class, jdbc_url, driver_jar):
         curs = conn.cursor()
         curs.execute("SHOW TABLES;")
         data = curs.fetchall()
-        tables = [x[0] for x in data]
+        tables = [str(x[0]) for x in data]
+        table_columns = {}
+
+        for table in tables:
+            # Get column names of table:
+            # TODO: Finnes db-uavhengig måte å begrense til kun en linje hentet ut?
+            get_columns = 'SELECT * from "' + table + '";'
+            print(get_columns)
+            curs.execute(get_columns)
+            table_columns[table] = [str(desc[0]) for desc in curs.description]
 
     except Exception as e:
         print(e)
@@ -56,43 +68,105 @@ def get_tables(driver_class, jdbc_url, driver_jar):
         if conn is not None:
             conn.close()
 
-    return tables
+    return tables, table_columns
+
+
+# def get_db_meta(jdbc):
+#     # TODO: Henter samme data flere ganger (her og fra metadata.xml) -> fiks
+#     db_tables = {}
+#     table_columns = {}
+#     conn = jdbc.connection
+#     cursor = conn.cursor()
+#     tables = get_tables(conn, jdbc.db_name, jdbc.db_schema)
+
+#     # Get row count per table:
+#     for table in tables:
+#         # TODO: Endre så ikke viser select når testet med alle støttede db-typer
+#         get_count = 'SELECT COUNT(*) from "' + table + '";'
+#         print(get_count)
+#         cursor.execute(get_count)
+#         (row_count,) = cursor.fetchone()
+#         db_tables[table] = row_count
+
+#         # Get column names of table:
+#         # TODO: Finnes db-uavhengig måte å begrense til kun en linje hentet ut?
+#         get_columns = 'SELECT * from "' + table + '";'
+#         print(get_columns)
+#         cursor.execute(get_columns)
+#         table_columns[table] = [str(desc[0]) for desc in cursor.description]
+
+#     cursor.close()
+#     conn.close()
+#     return db_tables, table_columns
+
+
+def get_java_path_sep():
+    path_sep = ';'
+    if os.name == "posix":
+        path_sep = ':'
+
+    return path_sep
 
 
 # def export_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tables, bin_dir, table_columns, overwrite_tables, DDL_GEN):
 def export_db_schema(data_dir, sub_system, class_path, java_path, bin_dir, memory):
-    jdbc_url = 'jdbc:h2:' + data_dir + sub_system + ';LAZY_QUERY_EXECUTION=1'
+    jdbc_url = 'jdbc:h2:' + data_dir + os.path.sep + sub_system + ';LAZY_QUERY_EXECUTION=1'
     driver_class = 'org.h2.Driver'
     driver_jar = os.path.join(bin_dir, 'vendor', 'jars', 'h2.jar')
-    class_paths = class_path + ':' + driver_jar
+    class_paths = class_path + get_java_path_sep() + driver_jar
     batch = wb_batch(class_paths, memory, java_path)  # TODO: Heller init_jvm direkte bare her?
 
-    tables = get_tables(driver_class, jdbc_url, driver_jar)
+    tables, table_columns = get_tables(driver_class, jdbc_url, driver_jar)
     if tables == 'error':
         return 'not workee'
 
-    # /home/bba/bin/PWCode/projects/bbf/content/sub_systems/fsad_PUBLIC/content/data/
-    # fsad_PUBLIC
-    # jdbc:h2:/home/bba/bin/PWCode/projects/bbf/content/sub_systems/fsad_PUBLIC/content/data/fsad_PUBLIC;LAZY_QUERY_EXECUTION=1
-    return
-
     for table in tables:
         batch.runScript("WbConnect -url='" + jdbc_url + "';")
-        tsv_file = data_dir + table + '.tsv'
+        tsv_file = os.path.join(data_dir, table + '.tsv')
         # TODO: Hvorfor ha med navn på kolonner i select under? Beholde det? -> ja -> sikrer at får eksportert kolonner med ellers ulovlige navn pga quotes
         # --> TODO: har det som trengs for å hente kolonnenavn mm i koden under -> blir forenklet versjon av det
 
-        # WbExport -type=text -file="tsv_fil_full_path.tsv" -continueOnError=false -encoding=UTF8 -header=true -decimal='.' -maxDigits=0 -lineEnding=lf -clobAsFile=false -blobType=base64 -delimiter=\t -replaceExpression='(\n|\r\n|\r|\t|^$)' -replaceWith=' ' -nullString=' ' -showProgress=10000; SELECT "RI_ID", "ABSENCE_YEAR", "ABSENCE_QUARTER", "ABSENCE_DAYS", "ABSENCE_PERIOD" FROM "ABSENCE";
+        col_query = ''
+        # if table in blob_columns:
+        #     for column in blob_columns[table]:
+        #         col_query = ',LENGTH("' + column + '") AS ' + column.upper() + '_BLOB_LENGTH_PWCODE'
+        source_query = 'SELECT "' + '","'.join(table_columns[table]) + '"' + col_query + ' FROM PUBLIC."' + table + '"'
+
+        export_data_list = ["WbExport ",
+                            "-type=text ",
+                            "-file = " + tsv_file + " ",
+                            "-continueOnError = false ",
+                            "-encoding=UTF8 ",
+                            "-header=true ",
+                            "-decimal='.' ",
+                            "-maxDigits=0 ",
+                            "-lineEnding=lf ",
+                            "-clobAsFile=false ",
+                            "-blobType=file ",
+                            "-delimiter=\t ",
+                            "-replaceExpression='(\n|\r\n|\r|\t|^$)' -replaceWith=' ' ",
+                            "-nullString=' ' ",
+                            "-showProgress=10000 ",
+                            ";" + source_query + ";"
+                            ]
+
+        export_data_str = ''.join(export_data_list)
+        # print(export_data_str)
+
+        # export_data_str = "WbExport -type=text -file=" + tsv_file + " -continueOnError=false -encoding=UTF8 -header=true -decimal='.' -maxDigits=0 -lineEnding=lf  -sourceQuery=" + source_query + ";"
+
+        # WbExport -type=text -file="tsv_fil_full_path.tsv" -continueOnError=false -encoding=UTF8 -header=true -decimal='.' -maxDigits=0 -lineEnding=lf
+        # -clobAsFile=false -blobType=base64 -delimiter=\t -replaceExpression='(\n|\r\n|\r|\t|^$)' -replaceWith=' ' -nullString=' ' -showProgress=10000; SELECT "RI_ID", "ABSENCE_YEAR", "ABSENCE_QUARTER", "ABSENCE_DAYS", "ABSENCE_PERIOD" FROM "ABSENCE";
         # TODO: Endre så eksport til tsv heller enn copy
 
         # copy_data_str = "WbCopy -targetConnection=" + target_conn + " -targetSchema=PUBLIC -targetTable=" + target_table + " -sourceQuery=" + source_query + ";"
+        result = batch.runScript(export_data_str)
+        target_table = '"' + table + '"'
         # result = batch.runScript(copy_data_str)
-        # # target_table = '"' + table + '"'
-        # result = batch.runScript(copy_data_str)
-        # batch.runScript("WbDisconnect;")
-        # jp.java.lang.System.gc()
-        # if str(result) == 'Error':
-        #     print_and_exit("Error on copying table '" + table + "'\nScroll up for details.")
+        batch.runScript("WbDisconnect;")
+        jp.java.lang.System.gc()
+        if str(result) == 'Error':
+            print_and_exit("Error on exporting table '" + table + "'\nScroll up for details.")
 
     return
 
@@ -173,19 +247,19 @@ def export_db_schema(data_dir, sub_system, class_path, java_path, bin_dir, memor
 
 
 def process(project_dir, bin_dir, class_path, java_path, memory):
-    sub_systems_dir = project_dir + '/content/sub_systems/'
+    sub_systems_dir = os.path.join(project_dir, 'content', 'sub_systems')
 
     for sub_system in os.listdir(sub_systems_dir):
         # process db's:
-        data_dir = sub_systems_dir + sub_system + "/content/data/"
-        h2_file = data_dir + sub_system + ".mv.db"
+        data_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'data')
+        h2_file = os.path.join(data_dir, sub_system + '.mv.db')
         if os.path.isfile(h2_file):
-            data_docs_dir = sub_systems_dir + sub_system + "/content/data_documents/"
+            data_docs_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'data_documents')
             Path(data_docs_dir).mkdir(parents=True, exist_ok=True)
             export_db_schema(data_dir, sub_system, class_path, java_path, bin_dir, memory)
 
         # process files:
-        docs_dir = sub_systems_dir + sub_system + "/content/documents"
+        docs_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'documents')
         files = get_files(('*.wim', '*.tar'), docs_dir)
         for file in files:
             export_dir = os.path.splitext(file)[0]

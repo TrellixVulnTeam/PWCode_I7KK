@@ -1,10 +1,10 @@
 import os
 from pathlib import Path
-from common.config import add_config_section
+# from common.config import add_config_section
 from common.file import md5sum, copy_file_progress
 from common.xml_settings import XMLSettings
 import tarfile
-import xml.etree.ElementTree as ET
+# import xml.etree.ElementTree as ET
 from defs import (  # .defs.py
     process
 )
@@ -43,7 +43,7 @@ def main():
             else:
                 return "Checksum mismatch. Check data integrity. Exiting."
 
-    sub_systems_dir = project_dir + '/content/sub_systems/'
+    sub_systems_dir = os.path.join(project_dir, 'content', 'sub_systems')
     extracted = False
     if os.path.isdir(sub_systems_dir):
         if len(os.listdir(sub_systems_dir)) != 0:
