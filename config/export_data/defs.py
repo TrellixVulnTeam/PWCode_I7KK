@@ -29,6 +29,7 @@ from common.xml import indent
 # TODO: Bytt ut print_and_exit og fjern så den (må sjekke at da avslutter hele med return heller)
 # WAIT: Har path til schema file som arg heller enn at hardkodet flere steder
 
+# TODO: Endre slik at gui for kobling mer som i dbeaver og ikke manuell innlegging av url -> blir for mye å parse
 def get_db_details(jdbc_url, bin_dir):
     # TODO: Legg inn støtte for flere dbtyper
     driver_jar = None
@@ -137,7 +138,8 @@ def test_db_connect(JDBC_URL, bin_dir, class_path,  java_path, MAX_JAVA_HEAP, DB
             # TODO: Legg inn sjekk på at jdbc url er riktig, ikke bare på om db_name og skjema returnerer tabeller
             if jdbc:
                 # Get database metadata:
-                db_tables, table_columns = get_db_meta(jdbc)
+                db_tables, table_columns = get_db_meta(jdbc)  # WAIT: Endre så ikke henter columns og her
+
                 if not db_tables:
                     return "Database '" + DB_NAME + "', schema '" + DB_SCHEMA + "' returns no tables."
 
@@ -436,7 +438,7 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, java_path, max_java_heap, 
     target_tables = get_target_tables(t_jdbc)
     pk_dict = get_primary_keys(subsystem_dir, export_tables)
     unique_dict = get_unique_indexes(subsystem_dir, export_tables)
-    blob_columns = get_blob_columns(subsystem_dir, export_tables)
+    # blob_columns = get_blob_columns(subsystem_dir, export_tables)
 
     if DDL_GEN == 'Native':
         ddl_columns = get_ddl_columns(subsystem_dir)
@@ -559,8 +561,12 @@ def get_ddl_columns(subsystem_dir):
 
         ddl_columns_list = []
         column_defs = table_def.findall("column-def")
+        column_defs[:] = sorted(
+            column_defs,
+            key=lambda elem: int(elem.findtext('dbms-position')))
         for column_def in column_defs:
             column_name = column_def.find('column-name')
+            print(column_name.text)
             java_sql_type = column_def.find('java-sql-type')
             dbms_data_size = column_def.find('dbms-data-size')
 
