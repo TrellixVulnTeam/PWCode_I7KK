@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 # from common.config import add_config_section
-from common.file import md5sum, copy_file_progress
+from common.file import md5sum
 from common.xml_settings import XMLSettings
 import tarfile
 # import xml.etree.ElementTree as ET

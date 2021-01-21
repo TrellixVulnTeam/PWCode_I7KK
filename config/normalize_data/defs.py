@@ -16,15 +16,16 @@
 import os
 import subprocess
 from pathlib import Path
-# import glob
+import glob
 import tarfile
 import jaydebeapi
 import shutil
-from common.jvm import init_jvm, wb_batch
+from common.jvm import wb_batch
 from common.print import print_and_exit
 import jpype as jp
 import jpype.imports
 import xml.etree.ElementTree as ET
+from common.metadata import run_tika
 
 
 def mount_wim(filepath, mount_dir):
@@ -81,7 +82,6 @@ def get_java_path_sep():
     return path_sep
 
 
-# def export_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tables, bin_dir, table_columns, overwrite_tables, DDL_GEN):
 def export_db_schema(data_dir, sub_system, class_path, java_path, bin_dir, memory):
     jdbc_url = 'jdbc:h2:' + data_dir + os.path.sep + sub_system + ';LAZY_QUERY_EXECUTION=1'
     driver_class = 'org.h2.Driver'
@@ -182,7 +182,13 @@ def process(project_dir, bin_dir, class_path, java_path, memory):
             if tables:
                 dispose_tables(sub_systems_dir, sub_system, tables)
                 os.remove(h2_file)
-                # TODO: Flytt exporterte blob'er
+
+                for data_file in glob.iglob(data_dir + os.path.sep + '*.data'):
+                    shutil.move(data_file, data_docs_dir)
+                    if len(os.listdir(data_dir)) == 0:
+                        os.rmdir(data_dir)
+                    else:
+                        run_tika(tsv_path, base_source_dir, tmp_dir)  # TODO
 
         # process files:
         docs_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'documents')
@@ -194,7 +200,10 @@ def process(project_dir, bin_dir, class_path, java_path, memory):
             if len(os.listdir(export_dir)) != 0:
                 continue
 
-            # TODO: Skal vel mountes her? Def over og ikke wimapply?
+            # TODO: Skal vel mountes her? Def over og ikke wimapply? Bare for tika? Og så eksportere?
+            # -> ja (clamdscan -m -v mappe_path virker ikke med mount) -> eksporter fra mount og så clamdscan mm videre
+            # -> trenger uttrekk fra windows å teste på først -> fiks så dette
+            # Noe sånt: mount_wim(wim_filepath, mount_dir)
             if Path(file).suffix == '.wim':
                 subprocess.run("wimapply " + file + " " + export_dir, shell=True)
             else:
@@ -202,5 +211,13 @@ def process(project_dir, bin_dir, class_path, java_path, memory):
                     tar.extractall(path=export_dir)
 
             os.remove(file)
+
+        # Cleanup:
+        if os.path.exists(data_docs_dir):
+            if len(os.listdir(data_docs_dir)) == 0:
+                os.rmdir(data_docs_dir)
+        if os.path.exists(docs_dir):
+            if len(os.listdir(docs_dir)) == 0:
+                os.rmdir(docs_dir)
 
     return 'endre denne'
