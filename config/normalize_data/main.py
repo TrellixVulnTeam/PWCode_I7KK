@@ -54,7 +54,7 @@ def main():
             tar.extractall(path=project_dir)
 
     # TODO: Hent java path
-    process(project_dir, bin_dir, class_path, java_path, memory)
+    process(project_dir, bin_dir, class_path, java_path, memory, tmp_dir)
     # process_files(project_dir)
 
     return 'hva her?'

@@ -42,6 +42,10 @@ def run_tika(tsv_path, base_source_dir, tmp_dir):
     json_path = os.path.join(tmp_dir, 'merged.json')
     # TODO: Endre linje under så cross platform mm
     tika_path = '~/bin/tika/tika-app.jar'  # WAIT: Som configvalg hvor heller?
+
+    # TODO: java - jar tika-app.jar - -config = <tika-config.xml >
+    # -> path for mappe og så path for jar og config og så bruk disse i cmd under
+
     # if not os.path.isfile(tsv_path):
     # TODO: Endre så bruker bundlet java
     # TODO: Legg inn switch for om hente ut metadata også (bruke tika da). Bruke hva ellers?

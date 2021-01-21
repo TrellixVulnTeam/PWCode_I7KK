@@ -167,7 +167,7 @@ def dispose_tables(sub_systems_dir, sub_system, tables):
     tree.write(schema_file)
 
 
-def process(project_dir, bin_dir, class_path, java_path, memory):
+def process(project_dir, bin_dir, class_path, java_path, memory, tmp_dir):
     sub_systems_dir = os.path.join(project_dir, 'content', 'sub_systems')
 
     for sub_system in os.listdir(sub_systems_dir):
@@ -185,10 +185,12 @@ def process(project_dir, bin_dir, class_path, java_path, memory):
 
                 for data_file in glob.iglob(data_dir + os.path.sep + '*.data'):
                     shutil.move(data_file, data_docs_dir)
-                    if len(os.listdir(data_dir)) == 0:
-                        os.rmdir(data_dir)
-                    else:
-                        run_tika(tsv_path, base_source_dir, tmp_dir)  # TODO
+
+                if len(os.listdir(data_dir)) == 0:
+                    os.rmdir(data_dir)
+                else:
+                    tsv_file = os.path.join(sub_systems_dir, sub_system, 'header', 'data_documents.tsv')
+                    run_tika(tsv_file, data_docs_dir, tmp_dir)
 
         # process files:
         docs_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'documents')
