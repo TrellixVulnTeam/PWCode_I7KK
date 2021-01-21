@@ -143,8 +143,7 @@ class Explorer(SidePanel):
         else:
             self.curexpl_iid = None
 
-        self.selection_set()            
-        
+        self.selection_set()
 
     def populate_folder(self, iid, folder):
         for child in folder.entries:
@@ -179,19 +178,20 @@ class Explorer(SidePanel):
             self.on_file_selected(file_obj)
 
     def on_file_selected(self, file_obj):
-        if file_obj.path in self.path2id:
-            iid = self.path2id[file_obj.path]
-            self.tree.focus(iid)
-            self.current_iid = iid
-        else:
-            self.current_iid = None
+        if file_obj is not None:  # WAIT: Riktig fix?
+            if file_obj.path in self.path2id:
+                iid = self.path2id[file_obj.path]
+                self.tree.focus(iid)
+                self.current_iid = iid
+            else:
+                self.current_iid = None
 
-        if file_obj.path in self.expl_dict:
-            self.curexpl_iid = self.expl_dict[file_obj.path]
-        else:
-            self.curexpl_iid = None
+            if file_obj.path in self.expl_dict:
+                self.curexpl_iid = self.expl_dict[file_obj.path]
+            else:
+                self.curexpl_iid = None
 
-        self.selection_set()
+            self.selection_set()
 
     def on_file_closed(self, file_obj):
         iid = self.path2id[file_obj.path]

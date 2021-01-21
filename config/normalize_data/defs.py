@@ -24,6 +24,7 @@ from common.jvm import init_jvm, wb_batch
 from common.print import print_and_exit
 import jpype as jp
 import jpype.imports
+import xml.etree.ElementTree as ET
 
 
 def mount_wim(filepath, mount_dir):
@@ -125,7 +126,45 @@ def export_db_schema(data_dir, sub_system, class_path, java_path, bin_dir, memor
         if str(result) == 'Error':
             print_and_exit("Error on exporting table '" + table + "'\nScroll up for details.")
 
-    return 'ok'
+    return tables
+
+
+def indent(elem, level=0):
+    i = "\n" + level * "  "
+    if len(elem):
+        if not elem.text or not elem.text.strip():
+            elem.text = i + "  "
+        if not elem.tail or not elem.tail.strip():
+            elem.tail = i
+        for elem in elem:
+            indent(elem, level + 1)
+        if not elem.tail or not elem.tail.strip():
+            elem.tail = i
+    else:
+        if level and (not elem.tail or not elem.tail.strip()):
+            elem.tail = i
+
+
+def dispose_tables(sub_systems_dir, sub_system, tables):
+    schema_file = os.path.join(sub_systems_dir, sub_system, 'header', 'metadata.xml')
+    schema_file_raw = os.path.join(sub_systems_dir, sub_system, 'header', 'metadata_raw.xml')
+
+    shutil.copyfile(schema_file, schema_file_raw)
+
+    tree = ET.parse(schema_file_raw)
+    table_defs = tree.findall("table-def")
+    for table_def in table_defs:
+        table_name = table_def.find("table-name")
+        disposed = ET.Element("disposed")
+        disposed.text = "false"
+        if table_name.text not in tables:
+            disposed.text = "true"
+
+        table_def.insert(5, disposed)
+
+    root = tree.getroot()
+    indent(root)
+    tree.write(schema_file)
 
 
 def process(project_dir, bin_dir, class_path, java_path, memory):
@@ -137,15 +176,13 @@ def process(project_dir, bin_dir, class_path, java_path, memory):
         h2_file = os.path.join(data_dir, sub_system + '.mv.db')
         if os.path.isfile(h2_file):
             data_docs_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'data_documents')
-            schema_file = os.path.join(sub_systems_dir, sub_system, 'header', 'metadata.xml')
-            schema_file_raw = os.path.join(sub_systems_dir, sub_system, 'header', 'metadata_raw.xml')
-            # print(schema_file)
             Path(data_docs_dir).mkdir(parents=True, exist_ok=True)
-            result = export_db_schema(data_dir, sub_system, class_path, java_path, bin_dir, memory)
-            if result == 'ok':
-                shutil.copyfile(schema_file, schema_file_raw)
-                # TODO: Skriv til configfil at export gjort allerede
-                # TODO: Flytt exporterte blob'er. Lag kopi av metadata.xml før gjøres endringer på den
+
+            tables = export_db_schema(data_dir, sub_system, class_path, java_path, bin_dir, memory)
+            if tables:
+                dispose_tables(sub_systems_dir, sub_system, tables)
+                os.remove(h2_file)
+                # TODO: Flytt exporterte blob'er
 
         # process files:
         docs_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'documents')
@@ -157,6 +194,7 @@ def process(project_dir, bin_dir, class_path, java_path, memory):
             if len(os.listdir(export_dir)) != 0:
                 continue
 
+            # TODO: Skal vel mountes her? Def over og ikke wimapply?
             if Path(file).suffix == '.wim':
                 subprocess.run("wimapply " + file + " " + export_dir, shell=True)
             else:
@@ -166,129 +204,3 @@ def process(project_dir, bin_dir, class_path, java_path, memory):
             os.remove(file)
 
     return 'endre denne'
-
-    # sub_systems_dir = project_dir + '/content/sub_systems'
-    # extracted = False
-    # if os.path.isdir(sub_systems_dir):
-    #     if len(os.listdir(sub_systems_dir)) != 0:
-    #         extracted = True
-
-    # if not extracted:
-    #     with tarfile.open(archive) as tar:
-    #         tar.extractall(path=project_dir)
-
-    # for dir in os.listdir(sub_systems_dir):
-    #     # system_name = os.path.basename(SYSTEM_DIR)
-    #     # documentation_dir = sub_systems_dir + "/" + dir + "/documentation/"
-    #     data_docs_dir = sub_systems_dir + "/" + dir + "/content/data_documents"
-    #     docs_dir = sub_systems_dir + "/" + dir + "/content/documents"
-    #     data_dir = sub_systems_dir + "/" + dir + "/content/data"
-    #     h2_file = data_dir + dir + ".mv.db"
-    #     # schema_file = sub_systems_dir + "/" + dir + "/documentation/metadata_mod.xml"
-    #     # header_schema_file = sub_systems_dir + "/" + dir + "/header/metadata.xml"
-
-    #     # TODO: Sjekk først i xml-fil om db og eller filuttrekk slik at ikke lager tommme mapper
-    #     for dir in [data_docs_dir, data_dir, docs_dir]:
-    #         Path(dir).mkdir(parents=True, exist_ok=True)
-
-    #     files = get_files(('*.wim', '*.tar'), docs_dir)
-    #     for file in files:
-    #         export_dir = os.path.splitext(file)[0]
-    #         Path(export_dir).mkdir(parents=True, exist_ok=True)
-
-    #         if len(os.listdir(export_dir)) != 0:
-    #             continue
-
-    #         if Path(file).suffix == '.wim':
-    #             subprocess.run("wimapply " + file + " " + export_dir, shell=True)
-    #         else:
-    #             with tarfile.open(file) as tar:
-    #                 tar.extractall(path=export_dir)
-
-    #         os.remove(file)
-
-    # h2_export(h2_file)   # TODO: Test om denne koden ferdig -> nei
-
-    # subdir_and_files = [
-    #     tarinfo for tarinfo in tar.getmembers()
-    #     if tarinfo.name.startswith("subfolder/")
-    # ]
-    # tar.extractall(members=subdir_and_files)
-
-    # mount_wim(archive, project_extracted_dir)  # TODO: Legg inn støtte for tar også
-    # sql_file = tmp_dir + "/file_process.sql"
-    # in_dir = os.path.dirname(filepath) + "/"
-    # sys_name = os.path.splitext(os.path.basename(filepath))[0]
-    # project_extracted_dir = data_dir + "/" + sys_name + "_mount"
-    # av_done_file = in_dir + sys_name + "_av_done"
-
-    # open(tmp_dir + "/PWB.log", 'w').close()  # Clear log file
-    # open(sql_file, 'w').close()  # Blank out between runs
-
-
-def h2_export(h2_file):
-    print(h2_file)
-    return
-
-    h2_done_file = documentation_dir + "done"  # TODO: bruk config
-    if (os.path.isfile(h2_file + ".mv.db")
-            and not os.path.isfile(h2_done_file)):
-        conn = jaydebeapi.connect(  # WAIT: Endre til egen def
-            "org.h2.Driver",
-            "jdbc:h2:" + h2_file,
-            ["", ""],
-            bin_dir +
-            "/h2-1.4.196.jar",  # WAIT: Fjern harkodet filnavn
-        )
-
-        try:
-            curs = conn.cursor()
-            curs.execute("SHOW TABLES;")
-            data = curs.fetchall()
-            tables_in_h2 = [x[0] for x in data]
-
-        except Exception as e:
-            print(e)
-
-        finally:
-            if curs is not None:
-                curs.close()
-            if conn is not None:
-                conn.close()
-
-        tree = ET.parse(header_xml_file)
-        table_defs = tree.findall("table-def")
-        for table_def in table_defs:
-            table_name = table_def.find("table-name")
-            disposed = ET.Element("disposed")
-            disposed.text = "false"
-            if table_name.text not in tables_in_h2:
-                disposed.text = "true"
-
-            table_def.insert(5, disposed)
-
-        root = tree.getroot()
-        indent(root)
-        tree.write(mod_xml_file)
-
-        xsl = [
-            "\n",
-            "WbXslt -inputfile=" + mod_xml_file,
-            "-stylesheet=" + h2_to_tsv_script,
-            '-xsltParameters="url=jdbc:h2:' + h2_file + '"',
-            '-xsltParameters="outputdir=' + data_folder + '"',
-            "-xsltOutput=" + wbexport_script + ';',
-        ]
-        with open(tmp_dir + '/h2_to_tsv.sql', "w") as file:
-            file.write("\n".join(xsl))
-
-        # TODO: Lag subprocess def som kalles to ganger her med forskjellige parametre
-        cmd = 'java -jar sqlworkbench.jar -script=' + tmp_dir + '/h2_to_tsv.sql'
-        returncode, stdout, stderr = run_shell_command(cmd, bin_dir)
-        print(stdout)
-
-        cmd = 'java -jar sqlworkbench.jar -script=' + tmp_dir + '/wbexport.sql'
-        returncode, stdout, stderr = run_shell_command(cmd, bin_dir)
-        print(stdout)
-
-        open(h2_done_file, 'a').close()
