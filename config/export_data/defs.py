@@ -70,6 +70,7 @@ def capture_files(bin_dir, source_path, target_path, exclude=None):
     try:
         if archive_format == 'wim':
             # TODO: Hvorfor vises ikke output? Sammenlign med tidligere kode
+            # ---> Viser output riktig ved utpakking av wim på linux -> sjekk hvilken andre forskjeller enn OS
             cmd = os.path.join(bin_dir, "vendor", "windows", "wimlib", "wimlib-imagex.exe") + " capture " + source_path + " " + target_path + " --no-acls --compress=none"
             check_output(cmd, stderr=STDOUT, shell=True).decode()
         else:

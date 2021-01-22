@@ -36,7 +36,7 @@ def merge_json_files(tmp_dir, json_path):
         json.dump(glob_data, f, indent=4)
 
 
-def run_tika(tsv_path, base_source_dir, tika_tmp_dir):
+def run_tika(tsv_path, base_source_dir, tika_tmp_dir, java_path):
     Path(tika_tmp_dir).mkdir(parents=True, exist_ok=True)
 
     json_path = os.path.join(tika_tmp_dir, 'merged.json')
@@ -50,7 +50,7 @@ def run_tika(tsv_path, base_source_dir, tika_tmp_dir):
     # if not os.path.isfile(tsv_path):
     print('\nIdentifying file types and extracting metadata...')
     subprocess.run(  # TODO: Denne blir ikke avsluttet ved ctrl-k -> fix (kill prosess gruppe?)
-        # TODO: Endre så bruker bundlet java
+        # TODO: Endre så bruker java_path fra def arg heller i linjen under
         'java -jar ' + tika_path + ' -J -m -i ' + base_source_dir + ' -o ' + tika_tmp_dir,
         stderr=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,
