@@ -67,8 +67,9 @@ def run_tika(tsv_path, base_source_dir, tmp_dir):
     if not os.path.isfile(tsv_path):
         json_to_tsv(json_path, tsv_path)
 
-    if os.path.isfile(tsv_path):
-        shutil.rmtree(tmp_dir)
+    # TODO: Annen tmp? og i hvert fall ikke slett std tmp dir som kode under
+    # if os.path.isfile(tsv_path):
+    #     shutil.rmtree(tmp_dir)
 
 
 def reduce_item(key, value):
