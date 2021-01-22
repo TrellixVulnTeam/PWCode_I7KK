@@ -36,40 +36,39 @@ def merge_json_files(tmp_dir, json_path):
         json.dump(glob_data, f, indent=4)
 
 
-def run_tika(tsv_path, base_source_dir, tmp_dir):
-    Path(tmp_dir).mkdir(parents=True, exist_ok=True)
+def run_tika(tsv_path, base_source_dir, tika_tmp_dir):
+    Path(tika_tmp_dir).mkdir(parents=True, exist_ok=True)
 
-    json_path = os.path.join(tmp_dir, 'merged.json')
+    json_path = os.path.join(tika_tmp_dir, 'merged.json')
     # TODO: Endre linje under så cross platform mm
     tika_path = '~/bin/tika/tika-app.jar'  # WAIT: Som configvalg hvor heller?
 
     # TODO: java - jar tika-app.jar - -config = <tika-config.xml >
     # -> path for mappe og så path for jar og config og så bruk disse i cmd under
 
+    # TODO: Ha sjekk på om tsv finnes allerede?
     # if not os.path.isfile(tsv_path):
-    # TODO: Endre så bruker bundlet java
-    # TODO: Legg inn switch for om hente ut metadata også (bruke tika da). Bruke hva ellers?
     print('\nIdentifying file types and extracting metadata...')
     subprocess.run(  # TODO: Denne blir ikke avsluttet ved ctrl-k -> fix (kill prosess gruppe?)
-        'java -jar ' + tika_path + ' -J -m -i ' + base_source_dir + ' -o ' + tmp_dir,
+        # TODO: Endre så bruker bundlet java
+        'java -jar ' + tika_path + ' -J -m -i ' + base_source_dir + ' -o ' + tika_tmp_dir,
         stderr=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,
         shell=True,
     )
 
     # Flatten dir hierarchy:
-    flatten_dir(tmp_dir)
+    flatten_dir(tika_tmp_dir)
 
     # Merge Tika-generated files:
     if not os.path.isfile(json_path):
-        merge_json_files(tmp_dir, json_path)
+        merge_json_files(tika_tmp_dir, json_path)
 
     if not os.path.isfile(tsv_path):
         json_to_tsv(json_path, tsv_path)
 
-    # TODO: Annen tmp? og i hvert fall ikke slett std tmp dir som kode under
-    # if os.path.isfile(tsv_path):
-    #     shutil.rmtree(tmp_dir)
+    if os.path.isfile(tsv_path):
+        shutil.rmtree(tika_tmp_dir)
 
 
 def reduce_item(key, value):

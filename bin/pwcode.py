@@ -122,14 +122,14 @@ if __name__ == "__main__":
 
     python_path = 'python3'
     if os.name == "posix":
-        os.environ['pwcode_java_path'] = os.path.join(bin_dir, 'vendor', 'linux', 'jre', 'lib', 'server', 'libjvm.so')
+        os.environ['pwcode_java_path'] = os.path.join(bin_dir, 'vendor', 'linux', 'jre', 'bin', 'java')
         os.environ['JAVA_HOME'] = os.path.join(bin_dir, 'vendor', 'linux')
         python_path = os.path.join(bin_dir, 'vendor', 'linux', 'python', 'usr', 'bin', 'python')
         fix_desktop_file(bin_dir, pwcode_icon_file, 'PWCode.desktop')
         fix_desktop_file(bin_dir, sqlwb_icon_file, 'SQLWB.desktop')
         fix_desktop_file(bin_dir, python_icon_file, 'Python.desktop')
     else:
-        os.environ['pwcode_java_path'] = os.path.join(bin_dir, 'vendor', 'windows', 'jre', 'bin', 'server', 'jvm.dll')
+        os.environ['pwcode_java_path'] = os.path.join(bin_dir, 'vendor', 'windows', 'jre', 'bin', 'java.exe')
         os.environ['JAVA_HOME'] = os.path.join(bin_dir, 'vendor', 'windows')
         jre_dir = os.path.join(bin_dir, 'vendor', 'windows', 'jre')
         os.environ['PATH'] += os.pathsep + jre_dir  # Needed by Windows 2016 Server

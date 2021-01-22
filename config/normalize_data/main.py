@@ -12,7 +12,7 @@ from defs import (  # .defs.py
 
 def main():
     bin_dir = os.environ["pwcode_bin_dir"]  # Get PWCode executable path
-    java_path = os.environ['pwcode_java_path']  # Get Java home path
+    # java_path = os.environ['pwcode_java_path']  # Get Java home path
     class_path = os.environ['CLASSPATH']  # Get jar path
     config_dir = os.environ["pwcode_config_dir"]  # Get PWCode config path
     tmp_dir = os.path.join(config_dir, 'tmp')

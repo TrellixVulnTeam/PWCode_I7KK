@@ -82,12 +82,12 @@ def get_java_path_sep():
     return path_sep
 
 
-def export_db_schema(data_dir, sub_system, class_path, java_path, bin_dir, memory):
+def export_db_schema(data_dir, sub_system, class_path, bin_dir, memory):
     jdbc_url = 'jdbc:h2:' + data_dir + os.path.sep + sub_system + ';LAZY_QUERY_EXECUTION=1'
     driver_class = 'org.h2.Driver'
     driver_jar = os.path.join(bin_dir, 'vendor', 'jars', 'h2.jar')
     class_paths = class_path + get_java_path_sep() + driver_jar
-    batch = wb_batch(class_paths, memory, java_path)  # TODO: Heller init_jvm direkte bare her?
+    batch = wb_batch(class_paths, memory)
 
     tables, table_columns = get_tables(driver_class, jdbc_url, driver_jar)
     if tables == 'error':
@@ -101,6 +101,7 @@ def export_db_schema(data_dir, sub_system, class_path, java_path, bin_dir, memor
 
         source_query = 'SELECT "' + '","'.join(table_columns[table]) + '"  FROM PUBLIC."' + table + '"'
 
+        # TODO: Ha blobtype-valg pr tabell?
         export_data_list = ["WbExport ",
                             "-type=text ",
                             "-file = " + tsv_file + " ",
@@ -111,7 +112,8 @@ def export_db_schema(data_dir, sub_system, class_path, java_path, bin_dir, memor
                             "-maxDigits=0 ",
                             "-lineEnding=lf ",
                             "-clobAsFile=false ",
-                            "-blobType=file ",
+                            # "-blobType=file ",
+                            "-blobType=base64 ",  # TODO: Test eksport på nytt av nygsys med denne
                             "-delimiter=\t ",
                             "-replaceExpression='(\n|\r\n|\r|\t|^$)' -replaceWith=' ' ",
                             "-nullString=' ' ",
@@ -174,14 +176,17 @@ def process(project_dir, bin_dir, class_path, java_path, memory, tmp_dir):
         # process db's:
         data_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'data')
         h2_file = os.path.join(data_dir, sub_system + '.mv.db')
+        h2_trace_file = os.path.join(data_dir, sub_system + '.trace.db')
         if os.path.isfile(h2_file):
             data_docs_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'data_documents')
             Path(data_docs_dir).mkdir(parents=True, exist_ok=True)
 
-            tables = export_db_schema(data_dir, sub_system, class_path, java_path, bin_dir, memory)
+            tables = export_db_schema(data_dir, sub_system, class_path, bin_dir, memory)
             if tables:
                 dispose_tables(sub_systems_dir, sub_system, tables)
                 os.remove(h2_file)
+                if os.path.isfile(h2_trace_file):
+                    os.remove(h2_trace_file)
 
                 for data_file in glob.iglob(data_dir + os.path.sep + '*.data'):
                     shutil.move(data_file, data_docs_dir)
@@ -190,7 +195,8 @@ def process(project_dir, bin_dir, class_path, java_path, memory, tmp_dir):
                     os.rmdir(data_dir)
                 else:
                     tsv_file = os.path.join(sub_systems_dir, sub_system, 'header', 'data_documents.tsv')
-                    run_tika(tsv_file, data_docs_dir, tmp_dir)
+                    tika_tmp_dir = os.path.join(tmp_dir, 'tika')
+                    run_tika(tsv_file, data_docs_dir, tika_tmp_dir, java_path)
 
         # process files:
         docs_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'documents')
@@ -207,7 +213,7 @@ def process(project_dir, bin_dir, class_path, java_path, memory, tmp_dir):
             # -> trenger uttrekk fra windows å teste på først -> fiks så dette
             # Noe sånt: mount_wim(wim_filepath, mount_dir)
             if Path(file).suffix == '.wim':
-                subprocess.run("wimapply " + file + " " + export_dir, shell=True)
+                subprocess.run("wimapply " + str(file) + " " + export_dir, shell=True)
             else:
                 with tarfile.open(file) as tar:
                     tar.extractall(path=export_dir)
