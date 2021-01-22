@@ -64,7 +64,7 @@ def capture_files(bin_dir, source_path, target_path, exclude=None):
     def exclude_items(item):
         if exclude is None:
             return item
-        elif source_path + '/' + item.name not in exclude:  # TODO: Endre til os separator auto
+        elif os.path.join(source_path, item.name) not in exclude:
             return item
 
     try:
