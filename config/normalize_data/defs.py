@@ -175,18 +175,18 @@ def process(project_dir, bin_dir, class_path, java_path, memory, tmp_dir):
     for sub_system in os.listdir(sub_systems_dir):
         # process db's:
         data_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'data')
-        h2_file = os.path.join(data_dir, sub_system + '.mv.db')
-        h2_trace_file = os.path.join(data_dir, sub_system + '.trace.db')
-        if os.path.isfile(h2_file):
+        db_file = os.path.join(data_dir, 'database', sub_system + '.mv.db')
+        if os.path.isfile(db_file):
             data_docs_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'data_documents')
             Path(data_docs_dir).mkdir(parents=True, exist_ok=True)
 
             tables = export_db_schema(data_dir, sub_system, class_path, bin_dir, memory)
             if tables:
                 dispose_tables(sub_systems_dir, sub_system, tables)
-                os.remove(h2_file)
-                if os.path.isfile(h2_trace_file):
-                    os.remove(h2_trace_file)
+                # TODO: Endre så har egen undermappe til database (hsqldb sprer over enda flere filer)
+                os.remove(db_file)  # TODO: Slett mappen den er i heller enn kun filen
+                # if os.path.isfile(h2_trace_file):
+                #     os.remove(h2_trace_file)
 
                 for data_file in glob.iglob(data_dir + os.path.sep + '*.data'):
                     shutil.move(data_file, data_docs_dir)

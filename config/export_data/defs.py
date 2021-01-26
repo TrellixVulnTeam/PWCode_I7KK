@@ -40,6 +40,11 @@ def get_db_details(jdbc_url, bin_dir):
             jdbc_url = jdbc_url + ';LAZY_QUERY_EXECUTION=1'  # Modify url for less memory use
         driver_jar = os.path.join(jars_path, 'h2.jar')
         driver_class = 'org.h2.Driver'
+    if 'jdbc:hsqldb:' in jdbc_url:  # HSQLDB database
+        if ';AUTOCOMMIT=FALSE' not in jdbc_url.upper():
+            jdbc_url = jdbc_url + ';AUTOCOMMIT=FALSE'
+        driver_jar = os.path.join(jars_path, 'hsqldb.jar')
+        driver_class = 'org.hsqldb.jdbc.JDBCDriver'
     elif 'jdbc:sqlserver:' in jdbc_url:  # mssql database
         # TODO: db_name må alltid legges til hvis ikke er i url ennå -> legg til på slutten: ;databaseName=NYGSYS
         if ';SELECTMETHOD=CURSOR' not in jdbc_url.upper():
@@ -93,13 +98,13 @@ def get_tables(conn, db_name, db_schema):
     return tables
 
 
-def export_schema(class_paths, max_java_heap, java_path, subsystem_dir, jdbc, db_tables):
+def export_schema(class_paths, max_java_heap, subsystem_dir, jdbc, db_tables):
     base_dir = os.path.join(subsystem_dir, 'header')
 
     if os.path.isfile(os.path.join(base_dir, 'metadata.xml')):
         return
 
-    init_jvm(class_paths, max_java_heap, java_path)  # Start Java virtual machine # TODO: Virker ikke å starte jvm med jpype før bruk av jaydebeapi
+    init_jvm(class_paths, max_java_heap)
     WbManager = jp.JPackage('workbench').WbManager
     WbManager.prepareForEmbedded()
     batch = jp.JPackage('workbench.sql').BatchRunner()
@@ -129,10 +134,12 @@ def test_db_connect(JDBC_URL, bin_dir, class_path,  java_path, MAX_JAVA_HEAP, DB
     if driver_jar and driver_class:
         # Start Java virtual machine if not started already:
         class_paths = class_path + get_java_path_sep() + driver_jar
-        if driver_jar != 'org.h2.Driver':
-            class_paths = class_paths + get_java_path_sep() + os.path.join(bin_dir, 'vendor', 'jars', 'h2.jar')
+        # if driver_jar != 'org.h2.Driver':
+        #     class_paths = class_paths + get_java_path_sep() + os.path.join(bin_dir, 'vendor', 'jars', 'h2.jar')
+        if driver_jar != 'org.hsqldb.jdbc.JDBCDriver':
+            class_paths = class_paths + get_java_path_sep() + os.path.join(bin_dir, 'vendor', 'jars', 'hsqldb.jar')
 
-        init_jvm(class_paths, MAX_JAVA_HEAP, java_path)  # TODO: Virker ikke å starte jvm med jpype før bruk av jaydebeapi
+        init_jvm(class_paths, MAX_JAVA_HEAP)
 
         try:
             jdbc = Jdbc(url, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, driver_jar, driver_class, True, True)
@@ -162,18 +169,18 @@ def export_db_schema(JDBC_URL, bin_dir, class_path, java_path, MAX_JAVA_HEAP, DB
     if driver_jar and driver_class:
         # Start Java virtual machine if not started already:
         class_paths = class_path + get_java_path_sep() + driver_jar
-        init_jvm(class_paths, MAX_JAVA_HEAP, java_path)  # TODO: Virker ikke å starte jvm med jpype før bruk av jaydebeapi
+        init_jvm(class_paths, MAX_JAVA_HEAP)
         try:
             jdbc = Jdbc(url, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, driver_jar, driver_class, True, True)
             if jdbc:
                 # Get database metadata:
                 db_tables, table_columns = get_db_meta(jdbc)  # WAIT: Fiks så ikke henter to ganger (også i test)
-                export_schema(class_paths, MAX_JAVA_HEAP, java_path, subsystem_dir, jdbc, db_tables)  # TODO: Feiler her
+                export_schema(class_paths, MAX_JAVA_HEAP, subsystem_dir, jdbc, db_tables)
                 export_tables, overwrite_tables = table_check(INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, db_tables)
 
             if export_tables:
                 # Copy schema data:
-                copy_db_schema(subsystem_dir, jdbc, class_path, java_path, MAX_JAVA_HEAP, export_tables, bin_dir, table_columns, overwrite_tables, DDL_GEN)
+                copy_db_schema(subsystem_dir, jdbc, class_path, MAX_JAVA_HEAP, export_tables, bin_dir, table_columns, overwrite_tables, DDL_GEN)
                 return 'ok'
             else:
                 print('No table data to export. Exiting.')
@@ -425,10 +432,12 @@ def create_index(table, pk_dict, unique_dict, ddl, t_count):
     return ddl
 
 
-def copy_db_schema(subsystem_dir, s_jdbc, class_path, java_path, max_java_heap, export_tables, bin_dir, table_columns, overwrite_tables, DDL_GEN):
-    batch = wb_batch(class_path, max_java_heap, java_path)
-    Path(os.path.join(subsystem_dir, 'content', 'data')).mkdir(parents=True, exist_ok=True)
-    target_url = 'jdbc:h2:' + os.path.join(subsystem_dir, 'content', 'data', s_jdbc.db_name + '_' + s_jdbc.db_schema) + ';autocommit=off'
+def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tables, bin_dir, table_columns, overwrite_tables, DDL_GEN):
+    batch = wb_batch(class_path, max_java_heap)
+    Path(os.path.join(subsystem_dir, 'content', 'data', 'database')).mkdir(parents=True, exist_ok=True)
+    # target_url = 'jdbc:h2:' + os.path.join(subsystem_dir, 'content', 'data', 'database', s_jdbc.db_name + '_' + s_jdbc.db_schema) + ';autocommit=off'
+    target_url = 'jdbc:hsqldb:' + os.path.join(subsystem_dir, 'content', 'data', 'database', s_jdbc.db_name + '_' + s_jdbc.db_schema) + ';autocommit=false;hsqldb.log_data=false;sql.syntax_pgs=true'
+
     target_url, driver_jar, driver_class = get_db_details(target_url, bin_dir)
     print(target_url)
     print(driver_jar)
@@ -513,11 +522,10 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, java_path, max_java_heap, 
         print('Database export complete. ' + str(len(previous_export)) + ' of ' + str(len(export_tables.keys())) + ' tables were already exported.')
 
 
-# WAIT: Mangler disse for å ha alle i JDBC 4.0: ROWID=-8 og SQLXML=2009
-# jdbc-id  iso-name               jdbc-name
+# Brukt med h2 -> endret variant for test med hsqldb under
 jdbc_to_iso_data_type = {
     '-16': 'clob',               # LONGNVARCHAR
-    '-15': 'varchar',            # NCHAR
+    '-15': 'text',            # NCHAR
     '-9': 'varchar',            # NVARCHAR
     '-7': 'boolean',            # BIT
     '-6': 'integer',            # TINYINT
@@ -535,6 +543,37 @@ jdbc_to_iso_data_type = {
     '7': 'real',               # REAL
     '8': 'double precision',   # DOUBLE
     '12': 'varchar',            # VARCHAR
+    '16': 'boolean',            # BOOLEAN
+    '91': 'date',               # DATE
+    '92': 'time',               # TIME
+    '93': 'timestamp',          # TIMESTAMP
+    '2004': 'blob',               # BLOB
+    '2005': 'clob',               # CLOB
+    '2011': 'clob',               # NCLOB
+}
+
+# WAIT: Mangler disse for å ha alle i JDBC 4.0: ROWID=-8 og SQLXML=2009
+# jdbc-id  iso-name               jdbc-name
+jdbc_to_iso_data_type = {
+    '-16': 'clob',               # LONGNVARCHAR
+    '-15': 'text',            # NCHAR
+    '-9': 'text',            # NVARCHAR
+    '-7': 'boolean',            # BIT
+    '-6': 'integer',            # TINYINT
+    '-5': 'integer',            # BIGINT
+    '-4': 'blob',               # LONGVARBINARY
+    '-3': 'blob',               # VARBINARY
+    '-2': 'blob',               # BINARY
+    '-1': 'clob',               # LONGVARCHAR
+    '1': 'text',            # CHAR
+    '2': 'numeric',            # NUMERIC
+    '3': 'decimal',            # DECIMAL
+    '4': 'integer',            # INTEGER
+    '5': 'integer',            # SMALLINT
+    '6': 'float',              # FLOAT
+    '7': 'real',               # REAL
+    '8': 'double precision',   # DOUBLE
+    '12': 'text',            # VARCHAR
     '16': 'boolean',            # BOOLEAN
     '91': 'date',               # DATE
     '92': 'time',               # TIME
