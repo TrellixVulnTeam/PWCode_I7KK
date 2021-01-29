@@ -134,10 +134,8 @@ def test_db_connect(JDBC_URL, bin_dir, class_path,  java_path, MAX_JAVA_HEAP, DB
     if driver_jar and driver_class:
         # Start Java virtual machine if not started already:
         class_paths = class_path + get_java_path_sep() + driver_jar
-        # if driver_jar != 'org.h2.Driver':
-        #     class_paths = class_paths + get_java_path_sep() + os.path.join(bin_dir, 'vendor', 'jars', 'h2.jar')
-        if driver_jar != 'org.hsqldb.jdbc.JDBCDriver':
-            class_paths = class_paths + get_java_path_sep() + os.path.join(bin_dir, 'vendor', 'jars', 'hsqldb.jar')
+        if driver_jar != 'org.h2.Driver':
+            class_paths = class_paths + get_java_path_sep() + os.path.join(bin_dir, 'vendor', 'jars', 'h2.jar')
 
         init_jvm(class_paths, MAX_JAVA_HEAP)
 
@@ -435,8 +433,8 @@ def create_index(table, pk_dict, unique_dict, ddl, t_count):
 def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tables, bin_dir, table_columns, overwrite_tables, DDL_GEN):
     batch = wb_batch(class_path, max_java_heap)
     Path(os.path.join(subsystem_dir, 'content', 'data', 'database')).mkdir(parents=True, exist_ok=True)
-    # target_url = 'jdbc:h2:' + os.path.join(subsystem_dir, 'content', 'data', 'database', s_jdbc.db_name + '_' + s_jdbc.db_schema) + ';autocommit=off'
-    target_url = 'jdbc:hsqldb:' + os.path.join(subsystem_dir, 'content', 'data', 'database', s_jdbc.db_name + '_' + s_jdbc.db_schema) + ';autocommit=false;hsqldb.log_data=false;sql.syntax_pgs=true'
+    target_url = 'jdbc:h2:' + os.path.join(subsystem_dir, 'content', 'data', 'database', s_jdbc.db_name + '_' + s_jdbc.db_schema) + ';autocommit=off'
+    # target_url = 'jdbc:hsqldb:' + os.path.join(subsystem_dir, 'content', 'data', 'database', s_jdbc.db_name + '_' + s_jdbc.db_schema) + ';autocommit=false;hsqldb.log_data=false;sql.syntax_pgs=true'
 
     target_url, driver_jar, driver_class = get_db_details(target_url, bin_dir)
     print(target_url)
@@ -522,7 +520,8 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
         print('Database export complete. ' + str(len(previous_export)) + ' of ' + str(len(export_tables.keys())) + ' tables were already exported.')
 
 
-# Brukt med h2 -> endret variant for test med hsqldb under
+# WAIT: Mangler disse for å ha alle i JDBC 4.0: ROWID=-8 og SQLXML=2009
+# jdbc-id  iso-name               jdbc-name
 jdbc_to_iso_data_type = {
     '-16': 'clob',               # LONGNVARCHAR
     '-15': 'text',            # NCHAR
@@ -552,36 +551,6 @@ jdbc_to_iso_data_type = {
     '2011': 'clob',               # NCLOB
 }
 
-# WAIT: Mangler disse for å ha alle i JDBC 4.0: ROWID=-8 og SQLXML=2009
-# jdbc-id  iso-name               jdbc-name
-jdbc_to_iso_data_type = {
-    '-16': 'clob',               # LONGNVARCHAR
-    '-15': 'text',            # NCHAR
-    '-9': 'text',            # NVARCHAR
-    '-7': 'boolean',            # BIT
-    '-6': 'integer',            # TINYINT
-    '-5': 'integer',            # BIGINT
-    '-4': 'blob',               # LONGVARBINARY
-    '-3': 'blob',               # VARBINARY
-    '-2': 'blob',               # BINARY
-    '-1': 'clob',               # LONGVARCHAR
-    '1': 'text',            # CHAR
-    '2': 'numeric',            # NUMERIC
-    '3': 'decimal',            # DECIMAL
-    '4': 'integer',            # INTEGER
-    '5': 'integer',            # SMALLINT
-    '6': 'float',              # FLOAT
-    '7': 'real',               # REAL
-    '8': 'double precision',   # DOUBLE
-    '12': 'text',            # VARCHAR
-    '16': 'boolean',            # BOOLEAN
-    '91': 'date',               # DATE
-    '92': 'time',               # TIME
-    '93': 'timestamp',          # TIMESTAMP
-    '2004': 'blob',               # BLOB
-    '2005': 'clob',               # CLOB
-    '2011': 'clob',               # NCLOB
-}
 
 # WAIT: Sortere long raw sist eller først for å unngå bug i driver?
 # -> https://blog.jooq.org/tag/long-raw/

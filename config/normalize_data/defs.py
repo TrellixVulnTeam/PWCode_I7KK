@@ -83,7 +83,8 @@ def get_java_path_sep():
 
 
 def export_db_schema(data_dir, sub_system, class_path, bin_dir, memory):
-    jdbc_url = 'jdbc:h2:' + data_dir + os.path.sep + sub_system + ';LAZY_QUERY_EXECUTION=1'
+    database_dir = os.path.join(data_dir, 'database')
+    jdbc_url = 'jdbc:h2:' + database_dir + os.path.sep + sub_system + ';LAZY_QUERY_EXECUTION=1;TRACE_LEVEL_FILE=0'
     driver_class = 'org.h2.Driver'
     driver_jar = os.path.join(bin_dir, 'vendor', 'jars', 'h2.jar')
     class_paths = class_path + get_java_path_sep() + driver_jar
@@ -173,9 +174,11 @@ def process(project_dir, bin_dir, class_path, java_path, memory, tmp_dir):
     sub_systems_dir = os.path.join(project_dir, 'content', 'sub_systems')
 
     for sub_system in os.listdir(sub_systems_dir):
+
         # process db's:
         data_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'data')
-        db_file = os.path.join(data_dir, 'database', sub_system + '.mv.db')
+        database_dir = os.path.join(data_dir, 'database')
+        db_file = os.path.join(database_dir, sub_system + '.mv.db')
         if os.path.isfile(db_file):
             data_docs_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'data_documents')
             Path(data_docs_dir).mkdir(parents=True, exist_ok=True)
@@ -183,10 +186,7 @@ def process(project_dir, bin_dir, class_path, java_path, memory, tmp_dir):
             tables = export_db_schema(data_dir, sub_system, class_path, bin_dir, memory)
             if tables:
                 dispose_tables(sub_systems_dir, sub_system, tables)
-                # TODO: Endre så har egen undermappe til database (hsqldb sprer over enda flere filer)
-                os.remove(db_file)  # TODO: Slett mappen den er i heller enn kun filen
-                # if os.path.isfile(h2_trace_file):
-                #     os.remove(h2_trace_file)
+                shutil.rmtree(database_dir)
 
                 for data_file in glob.iglob(data_dir + os.path.sep + '*.data'):
                     shutil.move(data_file, data_docs_dir)
