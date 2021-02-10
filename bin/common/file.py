@@ -17,9 +17,10 @@ import fileinput
 import os
 import sys
 import subprocess
-import hashlib
 from pathlib import Path
 from common.print import pretty_size, print_progress_bar
+import hashlib
+import blake3
 
 
 def get_unique_dir(directory):
@@ -44,6 +45,14 @@ def xdg_open_file(filename):
     else:
         opener = "open" if sys.platform == "darwin" else "xdg-open"
         subprocess.call([opener, filename])
+
+
+def get_checksum(filename, blocksize=65536):
+    hash = blake3.blake3()
+    with open(filename, "rb") as f:
+        for block in iter(lambda: f.read(blocksize), b""):
+            hash.update(block)
+    return hash.hexdigest()
 
 
 def md5sum(filename, blocksize=65536):

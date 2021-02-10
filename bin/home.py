@@ -435,7 +435,7 @@ class HomeTab(ttk.Frame):
 
         config, config_dir = config_init('pwcode')
         config.put('name', self.project_frame.name_entry.get())
-        config.put('md5sum', 'null')
+        config.put('checksum', 'null')
         config.put('options/memory', self.project_frame.memory_option.get())
         config.put('options/ddl', self.project_frame.ddl_option.get())
         config.put('options/create_package', self.project_frame.package_option.get())

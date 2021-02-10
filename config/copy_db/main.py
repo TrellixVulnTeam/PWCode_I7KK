@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 from common.xml_settings import XMLSettings
 import xml.etree.ElementTree as ET
-from common.file import md5sum
+from common.file import get_checksum
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 # TODO: Legg disse enkeltvis i defs under heller?
@@ -197,12 +197,12 @@ def main():
             if sub_dir_path != os.path.join(project_dir, '.pwcode'):
                 shutil.rmtree(sub_dir_path, ignore_errors=True)
 
-        checksum = md5sum(archive)
+        checksum = get_checksum(archive)
     else:
         checksum = 'n/a'
 
-    config.put('md5sum', checksum)
-    config.put('md5sum_verified', 'No')
+    config.put('checksum', checksum)
+    config.put('checksum_verified', 'No')
     config.save()
 
     return 'All data copied and system data package created.'

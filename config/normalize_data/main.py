@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 # from common.config import add_config_section
-from common.file import md5sum
+from common.file import get_checksum
 from common.xml_settings import XMLSettings
 import tarfile
 # import xml.etree.ElementTree as ET
@@ -29,16 +29,16 @@ def main():
         if not os.path.isfile(archive):
             return "'" + archive + "' does not exist. Exiting."
 
-        checksum = config.get('md5sum')
-        checksum_verified = config.get('md5sum_verified')
+        checksum = config.get('checksum')
+        checksum_verified = config.get('checksum_verified')
 
         if not checksum:
             return "No checksum in config file. Exiting."
 
         if not checksum_verified == 'Yes':
-            if checksum == md5sum(archive):
+            if checksum == get_checksum(archive):
                 print("Data verified by checksum.")
-                config.put('md5sum_verified', 'Yes')
+                config.put('checksum_verified', 'Yes')
                 config.save()
             else:
                 return "Checksum mismatch. Check data integrity. Exiting."
