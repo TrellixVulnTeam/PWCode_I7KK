@@ -1,5 +1,5 @@
 [Net.ServicePointManager]::SecurityProtocol = "tls12, tls11, tls"
-$tmpDir = [IO.Path]::Combine($Env:USERPROFILE, 'appdata\local\temp')
+$tmpDir = "$Env:USERPROFILE\AppData\Local\Temp"
 $windowsDir = (get-item $PSScriptRoot).FullName
 $vendorDir = (get-item $windowsDir).parent.FullName
 
@@ -16,7 +16,7 @@ If (-Not (Test-Path "$windowsDir\wimlib\wimlib-imagex.exe")) {
 
 # Download python:
 If (-Not (Test-Path "$windowsDir\python\python.exe")) {
-    $url= "https://github.com/Preservation-Workbench/windows_deps/latest/download/python-3.8.5-embed-amd64.zip"
+    $url= "https://github.com/Preservation-Workbench/windows_deps/releases/latest/download/python-3.8.5-embed-amd64.zip"
     $filename = [System.IO.Path]::GetFileName($url);
     Write-Host "Downloading $filename "
     Invoke-WebRequest -Uri $url -OutFile "$tmpDir\$filename"
@@ -26,7 +26,7 @@ If (-Not (Test-Path "$windowsDir\python\python.exe")) {
 
 # Download JRE:
 If (-Not (Test-Path "$windowsDir\jre\bin\java.exe")) {
-    $url= "https://github.com/Preservation-Workbench/windows_deps/latest/download/jre.zip"
+    $url= "https://github.com/Preservation-Workbench/windows_deps/releases/latest/download/jre.zip"
     $filename = [System.IO.Path]::GetFileName($url);
     Write-Host "Downloading $filename "
     Invoke-WebRequest -Uri $url -OutFile "$tmpDir\$filename"
