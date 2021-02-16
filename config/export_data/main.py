@@ -54,8 +54,9 @@ def main():
     subsystems = list(tree.find('subsystems'))
 
     archive_format = 'wim'
-    if os.name == "posix":
-        archive_format = 'tar'
+    # TODO: Linjer under kommentert ut for wim test på linux. Juster tilbake senere
+    # if os.name == "posix":
+    #     archive_format = 'tar'
 
     # TODO: Splitte ut som egen def for å fjerne duplisering av kode -> Skrive alle variabler til dict heller? Egen config-klasse?
     all_exported = True

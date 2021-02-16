@@ -179,8 +179,8 @@ def process(project_dir, bin_dir, class_path, java_path, memory, tmp_dir):
         data_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'data')
         database_dir = os.path.join(data_dir, 'database')
         db_file = os.path.join(database_dir, sub_system + '.mv.db')
+        data_docs_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'data_documents')
         if os.path.isfile(db_file):
-            data_docs_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'data_documents')
             Path(data_docs_dir).mkdir(parents=True, exist_ok=True)
 
             tables = export_db_schema(data_dir, sub_system, class_path, bin_dir, memory)
@@ -213,12 +213,21 @@ def process(project_dir, bin_dir, class_path, java_path, memory, tmp_dir):
             # -> trenger uttrekk fra windows å teste på først -> fiks så dette
             # Noe sånt: mount_wim(wim_filepath, mount_dir)
             if Path(file).suffix == '.wim':
+                mount_dir = export_dir + '_mount'
+                Path(mount_dir).mkdir(parents=True, exist_ok=True)
                 subprocess.run("wimapply " + str(file) + " " + export_dir, shell=True)
+                subprocess.run("clamdscan -m -v " + export_dir, shell=True)
+                subprocess.run("wimmount " + str(file) + " " + mount_dir, shell=True)
+                # TODO: Kjør tika her
+                subprocess.run("wimunmount" + mount_dir, shell=True)
+
+                # os.remove(file)
+
             else:
                 with tarfile.open(file) as tar:
                     tar.extractall(path=export_dir)
 
-            os.remove(file)
+                os.remove(file)
 
         # Cleanup:
         if os.path.exists(data_docs_dir):
@@ -227,5 +236,3 @@ def process(project_dir, bin_dir, class_path, java_path, memory, tmp_dir):
         if os.path.exists(docs_dir):
             if len(os.listdir(docs_dir)) == 0:
                 os.rmdir(docs_dir)
-
-    return 'endre denne'
