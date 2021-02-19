@@ -217,7 +217,7 @@ def get_db_meta(jdbc):
         get_count = 'SELECT COUNT(*) from "' + table + '";'
         print(get_count)
         cursor.execute(get_count)
-        (row_count,) = cursor.fetchone()''
+        (row_count,) = cursor.fetchone()
         db_tables[table] = row_count
 
         # Get column names of table:
