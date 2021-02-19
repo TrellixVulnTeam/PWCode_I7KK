@@ -208,6 +208,9 @@ def get_db_meta(jdbc):
     cursor = conn.cursor()
     tables = get_tables(conn, jdbc.db_name, jdbc.db_schema)
 
+    if 'oracle' in conn:
+        cursor.execute('ALTER SESSION SET CURRENT_SCHEMA = ' + jdbc.db_schema)
+
     # Get row count per table:
     for table in tables:
         # TODO: Endre så ikke viser select når testet med alle støttede db-typer
