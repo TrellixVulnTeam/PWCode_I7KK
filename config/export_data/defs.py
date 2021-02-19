@@ -208,7 +208,7 @@ def get_db_meta(jdbc):
     cursor = conn.cursor()
     tables = get_tables(conn, jdbc.db_name, jdbc.db_schema)
 
-    if 'oracle' in conn:
+    if 'oracle' in jdbc.url:
         cursor.execute('ALTER SESSION SET CURRENT_SCHEMA = ' + jdbc.db_schema)
 
     # Get row count per table:
@@ -217,7 +217,7 @@ def get_db_meta(jdbc):
         get_count = 'SELECT COUNT(*) from "' + table + '";'
         print(get_count)
         cursor.execute(get_count)
-        (row_count,) = cursor.fetchone()
+        (row_count,) = cursor.fetchone()''
         db_tables[table] = row_count
 
         # Get column names of table:
