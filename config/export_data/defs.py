@@ -534,7 +534,7 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
 # jdbc-id  iso-name               jdbc-name
 jdbc_to_iso_data_type = {
     '-16': 'clob',               # LONGNVARCHAR
-    '-15': 'text',            # NCHAR
+    '-15': 'varchar',            # NCHAR
     '-9': 'varchar',            # NVARCHAR
     '-7': 'boolean',            # BIT
     '-6': 'integer',            # TINYINT
