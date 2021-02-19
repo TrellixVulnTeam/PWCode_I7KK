@@ -58,6 +58,9 @@ def get_db_details(jdbc_url, bin_dir):
         #     jdbc_url = jdbc_url + ';SELECTMETHOD=CURSOR'  # Modify url for less memory use
         driver_jar = os.path.join(jars_path, 'mysql-connector-java.jar')
         driver_class = 'com.mysql.cj.jdbc.Driver'
+    elif 'jdbc:oracle:' in jdbc_url:  # oracle database
+        driver_jar = os.path.join(jars_path, 'ojdbc10.jar')  # TODO: Endre så ikke versjon i filnavn
+        driver_class = 'oracle.jdbc.OracleDriver'
 
     return jdbc_url, driver_jar, driver_class
 

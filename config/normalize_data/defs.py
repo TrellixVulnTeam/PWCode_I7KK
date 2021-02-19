@@ -172,6 +172,7 @@ def dispose_tables(sub_systems_dir, sub_system, tables):
 
 def process(project_dir, bin_dir, class_path, java_path, memory, tmp_dir):
     sub_systems_dir = os.path.join(project_dir, 'content', 'sub_systems')
+    tika_tmp_dir = os.path.join(tmp_dir, 'tika')
 
     for sub_system in os.listdir(sub_systems_dir):
 
@@ -195,7 +196,6 @@ def process(project_dir, bin_dir, class_path, java_path, memory, tmp_dir):
                     os.rmdir(data_dir)
                 else:
                     tsv_file = os.path.join(sub_systems_dir, sub_system, 'header', 'data_documents.tsv')
-                    tika_tmp_dir = os.path.join(tmp_dir, 'tika')
                     run_tika(tsv_file, data_docs_dir, tika_tmp_dir, java_path)
 
         # process files:
@@ -218,7 +218,8 @@ def process(project_dir, bin_dir, class_path, java_path, memory, tmp_dir):
                 subprocess.run("wimapply " + str(file) + " " + export_dir, shell=True)
                 subprocess.run("clamdscan -m -v " + export_dir, shell=True)
                 subprocess.run("wimmount " + str(file) + " " + mount_dir, shell=True)
-                # TODO: Kjør tika her
+                tsv_file = os.path.join(sub_systems_dir, sub_system, 'header', 'data_documents.tsv')
+                run_tika(tsv_file, docs_dir, tika_tmp_dir, java_path)
                 subprocess.run("wimunmount" + mount_dir, shell=True)
 
                 # os.remove(file)
