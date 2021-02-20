@@ -224,7 +224,7 @@ def get_db_meta(jdbc):
 
         # Get column names of table:
         # TODO: Finnes db-uavhengig måte å begrense til kun en linje hentet ut?
-        get_columns = 'SELECT * from "' + table + '"'
+        get_columns = 'SELECT * from "' + jdbc.db_schema + '"."' + table + '"'
         print(get_columns)
         cursor.execute(get_columns)
         table_columns[table] = [str(desc[0]) for desc in cursor.description]
@@ -295,7 +295,7 @@ def get_target_tables(jdbc):
 
     # Get row count per table:
     for table in tables:
-        cursor.execute('SELECT COUNT(*) from "' + table + '";')
+        cursor.execute('SELECT COUNT(*) from "' + jdbc.db_schema + '"."' + table + '"')
         (row_count,) = cursor.fetchone()
         target_tables[table] = row_count
 
