@@ -208,13 +208,15 @@ def get_db_meta(jdbc):
     cursor = conn.cursor()
     tables = get_tables(conn, jdbc.db_name, jdbc.db_schema)
 
-    if 'oracle' in jdbc.url:
-        cursor.execute('ALTER SESSION SET CURRENT_SCHEMA = ' + jdbc.db_schema)
+    # if 'oracle' in jdbc.url:
+    #     cursor.execute('ALTER SESSION SET CURRENT_SCHEMA = ' + jdbc.db_schema + ';')
 
     # Get row count per table:
     for table in tables:
         # TODO: Endre så ikke viser select når testet med alle støttede db-typer
-        get_count = 'SELECT COUNT(*) from "' + table + '";'
+        # get_count = 'SELECT COUNT(*) from ' + jdbc.db_schema + '.' + table + ';'
+        get_count = 'SELECT COUNT(*) from "' + jdbc.db_schema + '"."' + table + '"'
+        # get_count = 'SELECT COUNT(*) from "' + table + '";'
         print(get_count)
         cursor.execute(get_count)
         (row_count,) = cursor.fetchone()
@@ -222,7 +224,7 @@ def get_db_meta(jdbc):
 
         # Get column names of table:
         # TODO: Finnes db-uavhengig måte å begrense til kun en linje hentet ut?
-        get_columns = 'SELECT * from "' + table + '";'
+        get_columns = 'SELECT * from "' + table + '"'
         print(get_columns)
         cursor.execute(get_columns)
         table_columns[table] = [str(desc[0]) for desc in cursor.description]
