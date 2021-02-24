@@ -208,26 +208,22 @@ def process(project_dir, bin_dir, class_path, java_path, memory, tmp_dir):
             if len(os.listdir(export_dir)) != 0:
                 continue
 
-            # TODO: Skal vel mountes her? Def over og ikke wimapply? Bare for tika? Og så eksportere?
-            # -> ja (clamdscan -m -v mappe_path virker ikke med mount) -> eksporter fra mount og så clamdscan mm videre
-            # -> trenger uttrekk fra windows å teste på først -> fiks så dette
-            # Noe sånt: mount_wim(wim_filepath, mount_dir)
+            mount_dir = export_dir + '_mount'
+            tsv_file = os.path.join(sub_systems_dir, sub_system, 'header', os.path.basename(export_dir) + '_documents.tsv')
             if Path(file).suffix == '.wim':
-                mount_dir = export_dir + '_mount'
                 Path(mount_dir).mkdir(parents=True, exist_ok=True)
-                subprocess.run("wimapply " + str(file) + " " + export_dir, shell=True)
-                subprocess.run("clamdscan -m -v " + export_dir, shell=True)
-                subprocess.run("wimmount " + str(file) + " " + mount_dir, shell=True)
-                tsv_file = os.path.join(sub_systems_dir, sub_system, 'header', 'data_documents.tsv')
-                run_tika(tsv_file, docs_dir, tika_tmp_dir, java_path)
-                subprocess.run("wimunmount" + mount_dir, shell=True)
-
-                # os.remove(file)
-
+                subprocess.run('wimapply ' + str(file) + ' ' + export_dir, shell=True)
+                subprocess.run('clamdscan -m -v ' + export_dir, shell=True)
+                subprocess.run('wimmount ' + str(file) + ' ' + mount_dir, shell=True)
             else:
                 with tarfile.open(file) as tar:
                     tar.extractall(path=export_dir)
 
+            run_tika(tsv_file, export_dir, tika_tmp_dir, java_path)
+            if os.path.exists(mount_dir):
+                subprocess.run('wimunmount --force ' + mount_dir, shell=True)
+
+            if os.path.isfile(file):
                 os.remove(file)
 
         # Cleanup:
@@ -237,3 +233,6 @@ def process(project_dir, bin_dir, class_path, java_path, memory, tmp_dir):
         if os.path.exists(docs_dir):
             if len(os.listdir(docs_dir)) == 0:
                 os.rmdir(docs_dir)
+        for file in files:
+            mount_dir = os.path.splitext(file)[0] + '_mount'
+            subprocess.run('rm -rdf ' + mount_dir, shell=True)
