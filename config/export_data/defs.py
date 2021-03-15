@@ -432,13 +432,25 @@ def gen_sync_table(table, columns, target_url, driver_jar, driver_class, source_
 
 
 def create_index(table, pk_dict, unique_dict, ddl, t_count):
+    # TODO: Renskriv def etter testet mot profdoc
+
+    # TODO: Må forhindre at de "to" under lager samme index hvis finnes i begge...
+    # --> Må endre ddl slik at den er dicionary heller og sjekk på om finnes fra før før legger inn ny
+    # -> Gjør så om til streng helt nederst før return bare
+
+    ddl_list = []
     if table in pk_dict:
         for col in pk_dict[table]:
-            ddl = ddl + '\nCREATE INDEX c_' + col + '_' + str(t_count) + ' ON "' + table + '" ("' + col + '");'
+            # TODO: Beholde \n her
+            ddl_list.append = 'CREATE INDEX c_' + col + '_' + str(t_count) + ' ON "' + table + '" ("' + col + '");'
+            # ddl = ddl + '\nCREATE INDEX c_' + col + '_' + str(t_count) + ' ON "' + table + '" ("' + col + '");'
     if table in unique_dict:
         for col in unique_dict[table]:
-            ddl = ddl + '\nCREATE INDEX c_' + col + '_' + str(t_count) + ' ON "' + table + '" ("' + col + '");'
+            # TODO: Beholde \n her
+            ddl_list.append = 'CREATE INDEX c_' + col + '_' + str(t_count) + ' ON "' + table + '" ("' + col + '");'
+            # ddl = ddl + '\nCREATE INDEX c_' + col + '_' + str(t_count) + ' ON "' + table + '" ("' + col + '");'
 
+    ddl = '\n'.join(set(ddl_list))
     return ddl
 
 
