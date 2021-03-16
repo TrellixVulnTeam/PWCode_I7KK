@@ -442,12 +442,12 @@ def create_index(table, pk_dict, unique_dict, ddl, t_count):
     if table in pk_dict:
         for col in pk_dict[table]:
             # TODO: Beholde \n her
-            ddl_list.append = 'CREATE INDEX c_' + col + '_' + str(t_count) + ' ON "' + table + '" ("' + col + '");'
+            ddl_list.append('CREATE INDEX c_' + col + '_' + str(t_count) + ' ON "' + table + '" ("' + col + '");')
             # ddl = ddl + '\nCREATE INDEX c_' + col + '_' + str(t_count) + ' ON "' + table + '" ("' + col + '");'
     if table in unique_dict:
         for col in unique_dict[table]:
             # TODO: Beholde \n her
-            ddl_list.append = 'CREATE INDEX c_' + col + '_' + str(t_count) + ' ON "' + table + '" ("' + col + '");'
+            ddl_list.append('CREATE INDEX c_' + col + '_' + str(t_count) + ' ON "' + table + '" ("' + col + '");')
             # ddl = ddl + '\nCREATE INDEX c_' + col + '_' + str(t_count) + ' ON "' + table + '" ("' + col + '");'
 
     ddl = '\n'.join(set(ddl_list))
