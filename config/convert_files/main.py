@@ -1,16 +1,13 @@
 
-from defs import file_convert  # .defs.py
+# from defs import file_convert  # .defs.py
 import sys
 import shutil
 import os
 import xml.etree.ElementTree as ET
-from pathlib import Path
-import subprocess
-import csv
-import petl as etl
-import base64
+# import subprocess
+# import csv
 from common.xml_settings import XMLSettings
-from common.metadata import run_tika
+from common.convert import convert_folder
 # from petl import extendheader, rename, appendtsv
 
 # WAIT: Lage egen plugin.py som setter paths mm så slipper å repetere i plugin kode
@@ -44,186 +41,6 @@ mime_to_norm = {
     'text/plain': (False, 'x2utf8', 'txt'),
     'message/rfc822': (False, 'eml2pdf', 'pdf'),
 }
-
-
-def append_tsv_row(file_path, row):
-    with open(file_path, 'a') as tsv_file:
-        writer = csv.writer(
-            tsv_file,
-            delimiter='\t',
-            quoting=csv.QUOTE_NONE,
-            quotechar='',
-            lineterminator='\n',
-            escapechar='')
-        writer.writerow(row)
-
-
-def append_txt_file(file_path, msg):
-    with open(file_path, 'a') as txt_file:
-        txt_file.write(msg + '\n')
-
-
-def convert_folder(project_dir, folder, merge, tmp_dir, tika=False, ocr=False):
-    # TODO: Legg inn i gui at kan velge om skal ocr-behandles
-    base_source_dir = folder.text
-    base_target_dir = os.path.join(project_dir, folder.tag)
-    tsv_source_path = base_target_dir + '.tsv'
-    txt_target_path = base_target_dir + '_result.txt'
-    tsv_target_path = base_target_dir + '_processed.tsv'
-    json_tmp_dir = base_target_dir + '_tmp'
-    converted_now = False
-    errors = False
-
-    Path(base_target_dir).mkdir(parents=True, exist_ok=True)
-
-    # TODO: Viser mime direkte om er pdf/a eller må en sjekke mot ekstra felt i de to under?
-
-    if not os.path.isfile(tsv_source_path):
-        if tika:
-            # TODO: Må tilpasse tsv under for tilfelle tika. Bare testet med siegried så langt
-            run_tika(tsv_source_path, base_source_dir, json_tmp_dir)
-        else:
-            run_siegfried(base_source_dir, project_dir, tsv_source_path)
-
-    table = etl.fromtsv(tsv_source_path)
-    row_count = etl.nrows(table)
-
-    # error_documents
-    # original_documents
-    # TODO: Legg inn at ikke skal telle filer i mapper med de to navnene over
-    file_count = sum([len(files) for r, d, files in os.walk(base_source_dir)])
-
-    # WAIT: Sjekk i forkant om garbage files som skal slettes?
-    if row_count == 0:
-        print('No files to convert. Exiting.')
-        return 'error'
-    elif file_count != row_count:
-        print("Files listed in '" + tsv_source_path + "' doesn't match files on disk. Exiting.")
-        return 'error'
-    else:
-        print('Converting files..')
-
-    # WAIT: Legg inn sjekk på filstørrelse før og etter konvertering
-
-    table = etl.rename(table, {'filename': 'source_file_path', 'filesize': 'file_size', 'mime': 'mime_type'}, strict=False)
-
-    new_fields = ('norm_file_path', 'result', 'original_file_copy')
-    for field in new_fields:
-        if field not in etl.fieldnames(table):
-            table = etl.addfield(table, field, None)
-
-    header = etl.header(table)
-    append_tsv_row(tsv_target_path, header)
-
-    # Treat csv (detected from extension only) as plain text:
-    table = etl.convert(table, 'mime_type', lambda v, row: 'text/plain' if row.id == 'x-fmt/18' else v, pass_row=True)
-
-    # Update for missing mime types where id is known:
-    table = etl.convert(table, 'mime_type', lambda v, row: 'application/xml' if row.id == 'fmt/979' else v, pass_row=True)
-
-    if os.path.isfile(txt_target_path):
-        os.remove(txt_target_path)
-
-    data = etl.dicts(table)
-    count = 0
-    for row in data:
-        count += 1
-        count_str = ('(' + str(count) + '/' + str(file_count) + '): ')
-        source_file_path = row['source_file_path']
-        mime_type = row['mime_type']
-        if ';' in mime_type:
-            mime_type = mime_type.split(';')[0]
-
-        version = row['version']
-        result = None
-        old_result = row['result']
-
-        print(count_str + source_file_path + ' (' + mime_type + ')')
-
-        if mime_type not in mime_to_norm.keys():
-            errors = True
-            converted_now = True
-            result = 'Conversion not supported'
-            append_txt_file(txt_target_path, result + ': ' + source_file_path + ' (' + mime_type + ')')
-            row['norm_file_path'] = ''
-            row['original_file_copy'] = ''
-        else:
-            keep_original = mime_to_norm[mime_type][0]
-            function = mime_to_norm[mime_type][1]
-
-            # Ensure unique file names in dir hierarchy:
-            norm_ext = (base64.b32encode(bytes(str(count), encoding='ascii'))).decode('utf8').replace('=', '').lower() + '.' + mime_to_norm[mime_type][2]
-
-            target_dir = os.path.dirname(source_file_path.replace(base_source_dir, base_target_dir))
-            normalized = file_convert(source_file_path, mime_type, version, function, target_dir, keep_original, tmp_dir, norm_ext, count_str, ocr)
-
-            if normalized['result'] == 0:
-                errors = True
-                result = 'Conversion failed'
-                append_txt_file(txt_target_path, result + ': ' + source_file_path + ' (' + mime_type + ')')
-            elif normalized['result'] == 1:
-                result = 'Converted successfully'
-                converted_now = True
-            elif normalized['result'] == 2:
-                errors = True
-                result = 'Conversion not supported'
-                append_txt_file(txt_target_path, result + ': ' + source_file_path + ' (' + mime_type + ')')
-            elif normalized['result'] == 3:
-                if old_result not in ('Converted successfully', 'Manually converted'):
-                    result = 'Manually converted'
-                    converted_now = True
-                else:
-                    result = old_result
-            elif normalized['result'] == 4:
-                converted_now = True
-                errors = True
-                result = normalized['error']
-                append_txt_file(txt_target_path, result + ': ' + source_file_path + ' (' + mime_type + ')')
-            elif normalized['result'] == 5:
-                result = 'Not a file'
-
-            row['norm_file_path'] = normalized['norm_file_path']
-            row['original_file_copy'] = normalized['original_file_copy']
-
-        row['result'] = result
-        append_tsv_row(tsv_target_path, list(row.values()))
-
-    shutil.move(tsv_target_path, tsv_source_path)
-
-    # TODO: Legg inn valg om at hvis merge = true kopieres alle filer til mappe på øverste nivå og så slettes tomme undermapper
-
-    msg = None
-    if converted_now:
-        if errors:
-            msg = "Not all files were converted. See '" + txt_target_path + "' for details."
-        else:
-            msg = 'All files converted succcessfully.'
-    else:
-        msg = 'All files converted previously.'
-
-    print(msg)
-    # return msg # TODO: Fiks så bruker denne heller for oppsummering til slutt når flere mapper konvertert
-
-
-def run_siegfried(base_source_dir, project_dir, tsv_path):
-    print('\nIdentifying file types...')
-
-    csv_path = os.path.join(project_dir, 'tmp.csv')
-    subprocess.run(
-        'sf -z -csv "' + base_source_dir + '" > ' + csv_path,
-        stderr=subprocess.DEVNULL,
-        stdout=subprocess.DEVNULL,
-        shell=True,
-    )
-
-    with open(csv_path, 'r') as csvin, open(tsv_path, 'w') as tsvout:
-        csvin = csv.reader(csvin)
-        tsvout = csv.writer(tsvout, delimiter='\t')
-        for row in csvin:
-            tsvout.writerow(row)
-
-    if os.path.exists(csv_path):
-        os.remove(csv_path)
 
 
 def main():
@@ -261,7 +78,7 @@ def main():
 
     results = {}
     for folder in folders:
-        result = convert_folder(project_dir, folder, merge, tmp_dir)
+        result = convert_folder(project_dir, folder, merge, tmp_dir, mime_to_norm)
         results[folder.text] = result
 
     # print('\n')

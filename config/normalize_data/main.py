@@ -61,10 +61,7 @@ def main():
 
 
 # TODO: Rekkefølge:
-# -- Fix directories and extract from H2 if exists
-# WbVarDef -file=tmp/pwb.ini; WbSysExec -program='python3' -argument='"$[pwb_path]/process_files_pre.py"' -env="PATH=$[py_path]";
-# -- Virus check and metadata extract
-# WbVarDef -file=tmp/pwb.ini; WbSysExec -ifNotEmpty=wim_path -program='python3' -argument='"$[pwb_path]/process_files_check.py"' -env="PATH=$[py_path]";
+# Gjort så langt
 # -- Convert files
 # WbVarDef -file=tmp/pwb.ini; WbSysExec -ifNotEmpty=wim_path -program='python3' -argument='"$[pwb_path]/process_files_convert.py"' -env="PATH=$[py_path]";
 # -- Save log/unmount wim image

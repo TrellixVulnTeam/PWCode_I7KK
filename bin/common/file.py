@@ -1,4 +1,4 @@
-# Copyright (C) 2020 Morten Eek
+# Copyright (C) 2021 Morten Eek
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,24 @@ from pathlib import Path
 from common.print import pretty_size, print_progress_bar
 import hashlib
 import blake3
+import csv
+
+
+def append_tsv_row(file_path, row):
+    with open(file_path, 'a') as tsv_file:
+        writer = csv.writer(
+            tsv_file,
+            delimiter='\t',
+            quoting=csv.QUOTE_NONE,
+            quotechar='',
+            lineterminator='\n',
+            escapechar='')
+        writer.writerow(row)
+
+
+def append_txt_file(file_path, msg):
+    with open(file_path, 'a') as txt_file:
+        txt_file.write(msg + '\n')
 
 
 def get_unique_dir(directory):

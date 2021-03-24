@@ -36,15 +36,33 @@ def merge_json_files(tmp_dir, json_path):
         json.dump(glob_data, f, indent=4)
 
 
+def run_siegfried(base_source_dir, project_dir, tsv_path):
+    print('\nIdentifying file types...')
+
+    csv_path = os.path.join(project_dir, 'tmp.csv')
+    subprocess.run(
+        'sf -z -csv "' + base_source_dir + '" > ' + csv_path,
+        stderr=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        shell=True,
+    )
+
+    with open(csv_path, 'r') as csvin, open(tsv_path, 'w') as tsvout:
+        csvin = csv.reader(csvin)
+        tsvout = csv.writer(tsvout, delimiter='\t')
+        for row in csvin:
+            tsvout.writerow(row)
+
+    if os.path.exists(csv_path):
+        os.remove(csv_path)
+
+
 def run_tika(tsv_path, base_source_dir, tika_tmp_dir, java_path):
     Path(tika_tmp_dir).mkdir(parents=True, exist_ok=True)
-
+    tika_env = os.environ.copy()
+    tika_env["PATH"] = os.path.expanduser("~") + '/bin/tika/tika.config'
     json_path = os.path.join(tika_tmp_dir, 'merged.json')
-    # TODO: Endre linje under så cross platform mm
     tika_path = '~/bin/tika/tika-app.jar'  # WAIT: Som configvalg hvor heller?
-
-    # TODO: java - jar tika-app.jar - -config = <tika-config.xml >
-    # -> path for mappe og så path for jar og config og så bruk disse i cmd under
 
     # TODO: Ha sjekk på om tsv finnes allerede?
     # if not os.path.isfile(tsv_path):
@@ -55,6 +73,7 @@ def run_tika(tsv_path, base_source_dir, tika_tmp_dir, java_path):
         stderr=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,
         shell=True,
+        env=tika_env
     )
 
     # Flatten dir hierarchy:
