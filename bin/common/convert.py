@@ -418,7 +418,7 @@ def file_convert(source_file_path, mime_type, version, function, target_dir, kee
     return normalized
 
 
-def convert_folder(project_dir, folder, merge, tmp_dir, mime_to_norm, tika=False, ocr=False):
+def convert_folder(project_dir, folder, merge, tmp_dir, mime_to_norm, java_path, tika=False, ocr=False):
     # TODO: Legg inn i gui at kan velge om skal ocr-behandles
     base_source_dir = folder.text
     base_target_dir = os.path.join(project_dir, folder.tag)
@@ -436,7 +436,7 @@ def convert_folder(project_dir, folder, merge, tmp_dir, mime_to_norm, tika=False
     if not os.path.isfile(tsv_source_path):
         if tika:
             # TODO: Må tilpasse tsv under for tilfelle tika. Bare testet med siegried så langt
-            run_tika(tsv_source_path, base_source_dir, json_tmp_dir)
+            run_tika(tsv_source_path, base_source_dir, json_tmp_dir, java_path)
         else:
             run_siegfried(base_source_dir, project_dir, tsv_source_path)
 

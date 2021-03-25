@@ -59,21 +59,20 @@ def run_siegfried(base_source_dir, project_dir, tsv_path):
 
 def run_tika(tsv_path, base_source_dir, tika_tmp_dir, java_path):
     Path(tika_tmp_dir).mkdir(parents=True, exist_ok=True)
-    tika_env = os.environ.copy()
-    tika_env["PATH"] = os.path.expanduser("~") + '/bin/tika/tika.config'
     json_path = os.path.join(tika_tmp_dir, 'merged.json')
-    tika_path = '~/bin/tika/tika-app.jar'  # WAIT: Som configvalg hvor heller?
+    tika_dir = os.path.expanduser("~") + '/bin/tika/'
+    tika_jar = tika_dir + 'tika-app.jar'
+    tika_config = tika_dir + 'tika.config'
 
     # TODO: Ha sjekk på om tsv finnes allerede?
     # if not os.path.isfile(tsv_path):
     print('\nIdentifying file types and extracting metadata...')
     subprocess.run(  # TODO: Denne blir ikke avsluttet ved ctrl-k -> fix (kill prosess gruppe?)
         # TODO: Endre så bruker java_path fra def arg heller i linjen under
-        'java -jar ' + tika_path + ' -J -m -i ' + base_source_dir + ' -o ' + tika_tmp_dir,
+        java_path + ' -jar ' + tika_jar + ' -c ' + tika_config + ' -J -m -i ' + base_source_dir + ' -o ' + tika_tmp_dir,
         stderr=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,
-        shell=True,
-        env=tika_env
+        shell=True
     )
 
     # Flatten dir hierarchy:
