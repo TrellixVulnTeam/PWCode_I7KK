@@ -285,7 +285,7 @@ class HomeTab(ttk.Frame):
             self.msg_label.config(text='Missing project name')
             return
 
-        ok = self.create_project_dir(app.data_dir + project_name, project_name)
+        ok = self.create_project_dir(os.path.join(app.data_dir, project_name), project_name)
         if ok:
             self.msg_label.config(text='')
         else:
