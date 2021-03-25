@@ -1,7 +1,0 @@
-builder.OpenFile("/home/bba/bin/PWB/_DATA/test_mount/content/sub_systems/test1/content/documents/dir1/lwdaaxxx.xls", "");
-var ws;
-var sheets = Api.GetSheets();
-var arrayLength = sheets.length;
-for (var i = 0; i < arrayLength; i++) {ws = sheets[i];ws.SetPageOrientation("xlLandscape");}
-builder.SaveFile("pdf", "/home/bba/bin/PWB/_DATA/test_mount/content/sub_systems/test1/content/documents_normalized/dir1/lwdaaxxx.xls.tmp.pdf");
-builder.CloseFile();
