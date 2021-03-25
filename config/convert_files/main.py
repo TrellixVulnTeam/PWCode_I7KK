@@ -45,9 +45,10 @@ mime_to_norm = {
 
 def main():
     config_dir = os.environ['pwcode_config_dir']
-    tmp_dir = config_dir + 'tmp'
+    tmp_dir = os.path.join(config_dir, 'tmp')
     data_dir = os.environ['pwcode_data_dir']
     java_path = os.environ['pwcode_java_path']
+    bin_dir = os.environ["pwcode_bin_dir"]  # Get PWCode executable path
     tmp_config_path = os.path.join(config_dir, 'tmp', 'convert_files.xml')
     tmp_config = XMLSettings(tmp_config_path)
 
@@ -79,12 +80,12 @@ def main():
 
     results = {}
     for folder in folders:
-        result = convert_folder(project_dir, folder, merge, tmp_dir, mime_to_norm, java_path)
+        result = convert_folder(project_dir, folder, merge, tmp_dir, mime_to_norm, java_path, bin_dir)
         results[folder.text] = result
 
     # print('\n')
-    # for k, v in results.items():
-    #     print(k + ': ', v)
+    for k, v in results.items():
+        print(k + ': ', v)
 
     # return results
 

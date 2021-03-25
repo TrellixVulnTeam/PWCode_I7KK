@@ -214,9 +214,12 @@ def image2norm(args):
 @ add_converter()
 def docbuilder2x(args):
     ok = False
-    docbuilder_file = os.path.join(args['tmp_dir'], '/x2x.docbuilder')
-    docbuilder = None
+    template_file = os.path.join(args['bin_dir'], 'vendor', 'config', 'x2x.docbuilder')
+    docbuilder_file = os.path.join(args['tmp_dir'], 'x2x.docbuilder')
+    if not os.path.exists(docbuilder_file):
+        shutil.copyfile(template_file, docbuilder_file)
 
+    docbuilder = None
     if args['mime_type'] in (
             'application/vnd.ms-excel',
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -346,7 +349,7 @@ def html2pdf(args):
     return ok
 
 
-def file_convert(source_file_path, mime_type, version, function, target_dir, keep_original, tmp_dir, norm_ext, count_str, ocr):
+def file_convert(source_file_path, mime_type, version, function, target_dir, keep_original, tmp_dir, norm_ext, count_str, ocr, bin_dir):
     source_file_name = os.path.basename(source_file_path)
     base_file_name = os.path.splitext(source_file_name)[0] + '.'
     tmp_file_path = tmp_dir + '/' + base_file_name + 'tmp'
@@ -366,7 +369,6 @@ def file_convert(source_file_path, mime_type, version, function, target_dir, kee
             pathlib.Path(target_dir).mkdir(parents=True, exist_ok=True)
 
             # print(count_str + source_file_path + ' (' + mime_type + ')')
-
             function_args = {'source_file_path': source_file_path,
                              'tmp_file_path': tmp_file_path,
                              'norm_file_path': norm_file_path,
@@ -375,6 +377,7 @@ def file_convert(source_file_path, mime_type, version, function, target_dir, kee
                              'mime_type': mime_type,
                              'version': version,
                              'ocr': ocr,
+                             'bin_dir': bin_dir
                              }
 
             ok = converters[function](function_args)
@@ -418,7 +421,7 @@ def file_convert(source_file_path, mime_type, version, function, target_dir, kee
     return normalized
 
 
-def convert_folder(project_dir, folder, merge, tmp_dir, mime_to_norm, java_path, tika=False, ocr=False):
+def convert_folder(project_dir, folder, merge, tmp_dir, mime_to_norm, java_path, bin_dir, tika=False, ocr=False):
     # TODO: Legg inn i gui at kan velge om skal ocr-behandles
     base_source_dir = folder.text
     base_target_dir = os.path.join(project_dir, folder.tag)
@@ -508,9 +511,8 @@ def convert_folder(project_dir, folder, merge, tmp_dir, mime_to_norm, java_path,
 
             # Ensure unique file names in dir hierarchy:
             norm_ext = (base64.b32encode(bytes(str(count), encoding='ascii'))).decode('utf8').replace('=', '').lower() + '.' + mime_to_norm[mime_type][2]
-
             target_dir = os.path.dirname(source_file_path.replace(base_source_dir, base_target_dir))
-            normalized = file_convert(source_file_path, mime_type, version, function, target_dir, keep_original, tmp_dir, norm_ext, count_str, ocr)
+            normalized = file_convert(source_file_path, mime_type, version, function, target_dir, keep_original, tmp_dir, norm_ext, count_str, ocr, bin_dir)
 
             if normalized['result'] == 0:
                 errors = True
@@ -556,5 +558,5 @@ def convert_folder(project_dir, folder, merge, tmp_dir, mime_to_norm, java_path,
     else:
         msg = 'All files converted previously.'
 
-    print(msg)
-    # return msg # TODO: Fiks så bruker denne heller for oppsummering til slutt når flere mapper konvertert
+    # print(msg)
+    return msg  # TODO: Fiks så bruker denne heller for oppsummering til slutt når flere mapper konvertert

@@ -26,6 +26,7 @@ import jpype as jp
 import jpype.imports
 import xml.etree.ElementTree as ET
 from common.metadata import run_tika
+from common.convert import convert_folder
 
 
 def mount_wim(filepath, mount_dir):
@@ -226,12 +227,22 @@ def process(project_dir, bin_dir, class_path, java_path, memory, tmp_dir):
             if os.path.isfile(file):
                 os.remove(file)
 
-        # Cleanup:
+        # TODO: Kjør konvertering mot export dir her (eller i loop over?)
+        # Kjør for data_docs_dir og docs_dire
+
         if os.path.exists(data_docs_dir):
             if len(os.listdir(data_docs_dir)) == 0:
                 os.rmdir(data_docs_dir)
+            else:
+                results = {}
+                for folder in folders:
+                    # TODO: MÅ ha sjekk på om Tika kjørt allerede?
+                    result = convert_folder(project_dir, folder, merge, tmp_dir, mime_to_norm, java_path)
+                    results[folder.text] = result
+
         if os.path.exists(docs_dir):
             if len(os.listdir(docs_dir)) == 0:
+
                 os.rmdir(docs_dir)
         for file in files:
             mount_dir = os.path.splitext(file)[0] + '_mount'
