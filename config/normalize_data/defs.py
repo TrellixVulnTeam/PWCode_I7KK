@@ -214,36 +214,51 @@ def process(project_dir, bin_dir, class_path, java_path, memory, tmp_dir):
             if Path(file).suffix == '.wim':
                 Path(mount_dir).mkdir(parents=True, exist_ok=True)
                 subprocess.run('wimapply ' + str(file) + ' ' + export_dir, shell=True)
+                print('Scanning files for viruses...')
+                # TODO: Egen funksjon for virus sjekk med return verdi
                 subprocess.run('clamdscan -m -v ' + export_dir, shell=True)
                 subprocess.run('wimmount ' + str(file) + ' ' + mount_dir, shell=True)
             else:
                 with tarfile.open(file) as tar:
                     tar.extractall(path=export_dir)
 
-            run_tika(tsv_file, export_dir, tika_tmp_dir, java_path)
+            run_tika(tsv_file, mount_dir, tika_tmp_dir, java_path)
+
             if os.path.exists(mount_dir):
                 subprocess.run('wimunmount --force ' + mount_dir, shell=True)
+
+            # TODO: Må først oppdatere filbaner i TSV-fil? -> ja, siden tika kjørte mot mountet mappe og ikke eksportert mappe
+            # TODO: Hva er riktig mappe å konvertere til? Sjekk PWB-kode
+            base_target_dir = os.path.join(project_dir, folder.tag)
+            convert_folder(project_dir, docs_dir, base_target_dir, tmp_dir, java_path, tsv_source_path=tsv_file)
 
             if os.path.isfile(file):
                 os.remove(file)
 
         # TODO: Kjør konvertering mot export dir her (eller i loop over?)
-        # Kjør for data_docs_dir og docs_dire
+        # Kjør for data_docs_dir og docs_dir
+
+        if os.path.exists(docs_dir):
+            if len(os.listdir(docs_dir)) == 0:
+                os.rmdir(docs_dir)
+            # else:
+            #     dirs=[f.path for f in os.scandir(docs_dir) if f.is_dir()]
+            #     for dir in dirs:
+            #         # TODO: Finn path til tsv-fil her
+            #         convert_folder(project_dir, docs_dir, tmp_dir, java_path, tsv_source_path = False))
+
+                # TODO: Må sjekk data_docs_dir direkte + sjekke om docs_dir finnes og i så fall  gå gjennom undermapper i den
+                # dirs = get_files(('*.wim', '*.tar'), docs_dir)
+                # result = convert_folder(project_dir, docs_dir, tmp_dir, java_path, tsv_source_path=False))
 
         if os.path.exists(data_docs_dir):
             if len(os.listdir(data_docs_dir)) == 0:
                 os.rmdir(data_docs_dir)
-            else:
-                results = {}
-                for folder in folders:
-                    # TODO: MÅ ha sjekk på om Tika kjørt allerede?
-                    result = convert_folder(project_dir, folder, merge, tmp_dir, mime_to_norm, java_path)
-                    results[folder.text] = result
+            # else:
+            #     # TODO: MÅ ha sjekk på om Tika kjørt allerede?
+            #     # --> Må legge til arg for eksisterende tsv-fil hvis finnes
+            #     result = convert_folder(project_dir, data_docs_dir, tmp_dir, java_path, tsv_source_path=)
 
-        if os.path.exists(docs_dir):
-            if len(os.listdir(docs_dir)) == 0:
-
-                os.rmdir(docs_dir)
         for file in files:
             mount_dir = os.path.splitext(file)[0] + '_mount'
             subprocess.run('rm -rdf ' + mount_dir, shell=True)
