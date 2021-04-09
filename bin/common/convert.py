@@ -443,16 +443,18 @@ def file_convert(source_file_path, mime_type, version, function, target_dir, kee
     return normalized
 
 
-def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_path, tika=False, ocr=False, merge=False, tsv_source_path=None):
+def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_path, tika=False, ocr=False, merge=False, tsv_source_path=None, tsv_target_path=None):
     # TODO: Legg inn i gui at kan velge om skal ocr-behandles
     txt_target_path = base_target_dir + '_result.txt'
-    tsv_target_path = base_target_dir + '_processed.tsv'
     json_tmp_dir = base_target_dir + '_tmp'
     converted_now = False
     errors = False
 
     if tsv_source_path is None:
         tsv_source_path = base_target_dir + '.tsv'
+
+    if tsv_target_path is None:
+        tsv_target_path = base_target_dir + '_processed.tsv'
 
     Path(base_target_dir).mkdir(parents=True, exist_ok=True)
 
@@ -472,6 +474,10 @@ def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_
     # original_documents
     # TODO: Legg inn at ikke skal telle filer i mapper med de to navnene over
     file_count = sum([len(files) for r, d, files in os.walk(base_source_dir)])
+    # print(base_source_dir)
+    # print(base_target_dir)
+    # print(file_count)
+    # print(row_count)
 
     # WAIT: Sjekk i forkant om garbage files som skal slettes?
     if row_count == 0:
@@ -485,9 +491,18 @@ def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_
 
     # WAIT: Legg inn sjekk på filstørrelse før og etter konvertering
 
-    table = etl.rename(table, {'filename': 'source_file_path', 'filesize': 'file_size', 'mime': 'mime_type'}, strict=False)
+    table = etl.rename(table,
+                       {
+                           'filename': 'source_file_path',
+                           'tika_batch_fs_relative_path': 'source_file_path',
+                           'filesize': 'file_size',
+                           'mime': 'mime_type',
+                           'Content_Type': 'mime_type',
+                           'Version': 'version'
+                       },
+                       strict=False)
 
-    new_fields = ('norm_file_path', 'result', 'original_file_copy')
+    new_fields = ('norm_file_path', 'result', 'original_file_copy', 'id')
     for field in new_fields:
         if field not in etl.fieldnames(table):
             table = etl.addfield(table, field, None)
@@ -510,7 +525,11 @@ def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_
         count += 1
         count_str = ('(' + str(count) + '/' + str(file_count) + '): ')
         source_file_path = row['source_file_path']
+        if '/' not in source_file_path:
+            source_file_path = os.path.join(base_source_dir, source_file_path)
+
         mime_type = row['mime_type']
+        # TODO: Virker ikke når Tika brukt -> finn hvorfor
         if ';' in mime_type:
             mime_type = mime_type.split(';')[0]
 
