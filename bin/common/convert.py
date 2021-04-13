@@ -28,6 +28,7 @@ import pathlib
 from pdfy import Pdfy
 import petl as etl
 import base64
+from os.path import relpath
 from pathlib import Path
 from common.metadata import run_tika, run_siegfried
 from common.file import append_tsv_row, append_txt_file
@@ -443,6 +444,20 @@ def file_convert(source_file_path, mime_type, version, function, target_dir, kee
     return normalized
 
 
+def remove_fields(fields, table):
+    for field in fields:
+        if field in etl.fieldnames(table):
+            table = etl.cutout(table, field)
+    return table
+
+
+def add_fields(fields, table):
+    for field in fields:
+        if field not in etl.fieldnames(table):
+            table = etl.addfield(table, field, None)
+    return table
+
+
 def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_path, tika=False, ocr=False, merge=False, tsv_source_path=None, tsv_target_path=None):
     # TODO: Legg inn i gui at kan velge om skal ocr-behandles
     txt_target_path = base_target_dir + '_result.txt'
@@ -468,29 +483,6 @@ def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_
             run_siegfried(base_source_dir, project_dir, tsv_source_path)
 
     table = etl.fromtsv(tsv_source_path)
-    row_count = etl.nrows(table)
-
-    # error_documents
-    # original_documents
-    # TODO: Legg inn at ikke skal telle filer i mapper med de to navnene over
-    file_count = sum([len(files) for r, d, files in os.walk(base_source_dir)])
-    # print(base_source_dir)
-    # print(base_target_dir)
-    # print(file_count)
-    # print(row_count)
-
-    # WAIT: Sjekk i forkant om garbage files som skal slettes?
-    if row_count == 0:
-        print('No files to convert. Exiting.')
-        return 'error'
-    elif file_count != row_count:
-        print("Files listed in '" + tsv_source_path + "' doesn't match files on disk. Exiting.")
-        return 'error'
-    else:
-        print('Converting files..')
-
-    # WAIT: Legg inn sjekk på filstørrelse før og etter konvertering
-
     table = etl.rename(table,
                        {
                            'filename': 'source_file_path',
@@ -502,10 +494,39 @@ def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_
                        },
                        strict=False)
 
-    new_fields = ('norm_file_path', 'result', 'original_file_copy', 'id')
-    for field in new_fields:
-        if field not in etl.fieldnames(table):
-            table = etl.addfield(table, field, None)
+    thumbs_table = etl.select(table, lambda rec: Path(rec.source_file_path).name == 'Thumbs.db')
+    if etl.nrows(thumbs_table) > 0:
+        thumbs_paths = etl.values(thumbs_table, 'source_file_path')
+        for path in thumbs_paths:
+            if '/' not in path:
+                path = os.path.join(base_source_dir, path)
+            if os.path.isfile(path):
+                os.remove(path)
+
+        table = etl.select(table, lambda rec: Path(rec.source_file_path).name != 'Thumbs.db')
+
+    row_count = etl.nrows(table)
+
+    # error_documents
+    # original_documents
+    # TODO: Legg inn at ikke skal telle filer i mapper med de to navnene over
+    file_count = sum([len(files) for r, d, files in os.walk(base_source_dir)])
+    if row_count == 0:
+        print('No files to convert. Exiting.')
+        return 'error'
+    elif file_count != row_count:
+        print("Files listed in '" + tsv_source_path + "' doesn't match files on disk. Exiting.")
+        return 'error'
+    else:
+        print('Converting files..')
+
+    # WAIT: Legg inn sjekk på filstørrelse før og etter konvertering
+
+    append_fields = ('norm_file_path', 'result', 'original_file_copy', 'id')
+    table = add_fields(append_fields, table)
+
+    cut_fields = ('0', '1')
+    table = remove_fields(cut_fields, table)
 
     header = etl.header(table)
     append_tsv_row(tsv_target_path, header)
@@ -580,14 +601,16 @@ def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_
             elif normalized['result'] == 5:
                 result = 'Not a file'
 
-            row['norm_file_path'] = normalized['norm_file_path']
-            row['original_file_copy'] = normalized['original_file_copy']
+            row['norm_file_path'] = relpath(normalized['norm_file_path'], base_target_dir)
+            file_copy_path = normalized['original_file_copy']
+            if file_copy_path:
+                file_copy_path = relpath(file_copy_path, base_target_dir)
+            row['original_file_copy'] = file_copy_path
 
         row['result'] = result
         append_tsv_row(tsv_target_path, list(row.values()))
 
     shutil.move(tsv_target_path, tsv_source_path)
-
     # TODO: Legg inn valg om at hvis merge = true kopieres alle filer til mappe på øverste nivå og så slettes tomme undermapper
 
     msg = None

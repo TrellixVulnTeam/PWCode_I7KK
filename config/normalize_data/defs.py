@@ -206,17 +206,12 @@ def process(project_dir, bin_dir, class_path, java_path, memory, tmp_dir):
             export_dir = os.path.splitext(file)[0]
             Path(export_dir).mkdir(parents=True, exist_ok=True)
 
-            # WAIT: Bedre sjekk enn denne?
-            # if len(os.listdir(export_dir)) != 0:
-            #     continue
-
             mount_dir = export_dir + '_mount'
             tsv_file = os.path.join(sub_systems_dir, sub_system, 'header', os.path.basename(export_dir) + '_documents.tsv')
             if not os.path.isfile(tsv_file):
                 if Path(file).suffix == '.wim':
                     Path(mount_dir).mkdir(parents=True, exist_ok=True)
-                    # WAIT: Skjul warnings for wimapply (spiller ingen rolle siden vi bruke wimmount heller for henting av metadata)
-                    subprocess.run('wimapply ' + str(file) + ' ' + export_dir, shell=True)
+                    subprocess.run('wimapply ' + str(file) + ' ' + export_dir + ' 2>/dev/null', shell=True)
                     print('Scanning files for viruses...')
                     # TODO: Egen funksjon for virus sjekk med return verdi
                     subprocess.run('clamdscan -m -v ' + export_dir, shell=True)
@@ -228,16 +223,19 @@ def process(project_dir, bin_dir, class_path, java_path, memory, tmp_dir):
                 run_tika(tsv_file, mount_dir, tika_tmp_dir, java_path)
 
             if os.path.exists(mount_dir):
-                subprocess.run('wimunmount --force ' + mount_dir, shell=True)
+                subprocess.run('wimunmount --force ' + mount_dir + ' 2>/dev/null', shell=True)
 
             # TODO: Hva er riktig mappe å konvertere til? Sjekk PWB-kode
             base_target_dir = export_dir + '_normalized'
             tsv_target_path = os.path.splitext(tsv_file)[0] + '_processed.tsv'
-            convert_folder(project_dir, export_dir, base_target_dir, tmp_dir, java_path, tsv_source_path=tsv_file, tsv_target_path=tsv_target_path)
+            result = convert_folder(project_dir, export_dir, base_target_dir, tmp_dir, java_path, tsv_source_path=tsv_file, tsv_target_path=tsv_target_path)
 
-            # TODO: Hvilken sjekk før sletting av denne? -> Alle filer må være ferdig konvertert
-            # if os.path.isfile(file):
-            #     os.remove(file)
+            if 'All files converted' in result:
+                if os.path.isfile(file):
+                    os.remove(file)
+
+                shutil.rmtree(export_dir)
+                shutil.move(base_target_dir, export_dir)
 
         # TODO: Kjør konvertering mot export dir her (eller i loop over?)
         # Kjør for data_docs_dir og docs_dir

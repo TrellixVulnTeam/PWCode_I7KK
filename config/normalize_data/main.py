@@ -62,10 +62,6 @@ def main():
 
 # TODO: Rekkefølge:
 # Gjort så langt
-# -- Convert files
-# WbVarDef -file=tmp/pwb.ini; WbSysExec -ifNotEmpty=wim_path -program='python3' -argument='"$[pwb_path]/process_files_convert.py"' -env="PATH=$[py_path]";
-# -- Save log/unmount wim image
-# WbVarDef -file=tmp/pwb.ini; WbSysExec -ifNotEmpty=wim_path -program='python3' -argument='"$[pwb_path]/wim_umount.py"' -env="PATH=$[py_path]";
 # -- Clean up
 # WbVarDef -file=tmp/pwb.ini; WbSysExec -ifNotEmpty=wim_path -program='python3' -argument='"$[pwb_path]/cleanup.py"' -env="PATH=$[py_path]";
 # WbSysExec -ifEmpty=wim_path -program='echo "*** Some files not converted. Scroll up to see the list. ***"'
