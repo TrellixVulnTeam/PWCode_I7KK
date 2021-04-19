@@ -544,19 +544,21 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
         print('Database export complete. ' + str(len(previous_export)) + ' of ' + str(len(export_tables.keys())) + ' tables were already exported.')
 
 
-# WAIT: Mangler disse for å ha alle i JDBC 4.0: ROWID=-8 og SQLXML=2009
+# WAIT: Mangler denne for å ha alle i JDBC 4.0: SQLXML=2009
+# -> må ha reelle data å teste det på først. Takler sqlwb det eller må det egen kode til?
 # jdbc-id  iso-name               jdbc-name
 jdbc_to_iso_data_type = {
-    '-16': 'clob',               # LONGNVARCHAR
-    '-15': 'varchar',            # NCHAR
-    '-9': 'varchar',            # NVARCHAR
-    '-7': 'boolean',            # BIT
-    '-6': 'integer',            # TINYINT
-    '-5': 'integer',            # BIGINT
-    '-4': 'blob',               # LONGVARBINARY
-    '-3': 'blob',               # VARBINARY
-    '-2': 'blob',               # BINARY
-    '-1': 'clob',               # LONGVARCHAR
+    '-8': 'varchar',           # ROWID
+    '-16': 'clob',             # LONGNVARCHAR
+    '-15': 'varchar',          # NCHAR
+    '-9': 'varchar',           # NVARCHAR
+    '-7': 'boolean',           # BIT
+    '-6': 'integer',           # TINYINT
+    '-5': 'integer',           # BIGINT
+    '-4': 'blob',              # LONGVARBINARY
+    '-3': 'blob',              # VARBINARY
+    '-2': 'blob',              # BINARY
+    '-1': 'clob',              # LONGVARCHAR
     '1': 'varchar',            # CHAR
     '2': 'numeric',            # NUMERIC
     '3': 'decimal',            # DECIMAL
@@ -565,14 +567,14 @@ jdbc_to_iso_data_type = {
     '6': 'float',              # FLOAT
     '7': 'real',               # REAL
     '8': 'double precision',   # DOUBLE
-    '12': 'varchar',            # VARCHAR
-    '16': 'boolean',            # BOOLEAN
-    '91': 'date',               # DATE
-    '92': 'time',               # TIME
-    '93': 'timestamp',          # TIMESTAMP
-    '2004': 'blob',               # BLOB
-    '2005': 'clob',               # CLOB
-    '2011': 'clob',               # NCLOB
+    '12': 'varchar',           # VARCHAR
+    '16': 'boolean',           # BOOLEAN
+    '91': 'date',              # DATE
+    '92': 'time',              # TIME
+    '93': 'timestamp',         # TIMESTAMP
+    '2004': 'blob',            # BLOB
+    '2005': 'clob',            # CLOB
+    '2011': 'clob',            # NCLOB
 }
 
 
