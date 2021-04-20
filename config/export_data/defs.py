@@ -119,7 +119,10 @@ def export_schema(class_paths, max_java_heap, subsystem_dir, jdbc, db_tables):
 
     batch.setBaseDir(base_dir)
     batch.runScript("WbConnect -url='" + jdbc.url + "' -username='" + jdbc.usr + "' -password=" + jdbc.pwd + ";")
-    gen_report_str = "WbSchemaReport -file=metadata.xml -schemas=" + jdbc.db_schema + " -types=SYNONYM,TABLE,VIEW -includeProcedures=true \
+    # TODO: Fjernet foreløpig SYNONYM, fra types under
+    # --> Hvorfor ble ikke SYNONYM håndtert -> sjekk i senere kode. Var dette evt tilfelle hvor synonym ikke er annet navn på table
+    # men annen type dataobjekt?
+    gen_report_str = "WbSchemaReport -file=metadata.xml -schemas=" + jdbc.db_schema + " -types=TABLE,VIEW -includeProcedures=true \
                             -includeTriggers=true -writeFullSource=true;"
     batch.runScript(gen_report_str)
     add_row_count_to_schema_file(subsystem_dir, db_tables)
