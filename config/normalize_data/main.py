@@ -2,11 +2,12 @@ import os
 from pathlib import Path
 # from common.config import add_config_section
 from common.file import get_checksum
+from common.process_metadata_pre import test_data
 from common.xml_settings import XMLSettings
 import tarfile
 # import xml.etree.ElementTree as ET
 from defs import (  # .defs.py
-    process
+    process_data
 )
 
 
@@ -54,7 +55,11 @@ def main():
             tar.extractall(path=project_dir)
 
     # TODO: Hent java path
-    process(project_dir, bin_dir, class_path, java_path, memory, tmp_dir)
+    process_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir)
+    test_data(config_dir)
+
+    # TODO: Ny def her "test_data"
+
     # process_files(project_dir)
 
     return 'hva her?'
@@ -62,12 +67,6 @@ def main():
 
 # TODO: Rekkefølge:
 # Gjort så langt
-# -- Clean up
-# WbVarDef -file=tmp/pwb.ini; WbSysExec -ifNotEmpty=wim_path -program='python3' -argument='"$[pwb_path]/cleanup.py"' -env="PATH=$[py_path]";
-# WbSysExec -ifEmpty=wim_path -program='echo "*** Some files not converted. Scroll up to see the list. ***"'
-# -- Read env variables from config-file
-# WbVarDef -file=tmp/pwb.ini;
-# -- Normalize metadata and generate sql
 # WbSysExec -program='python3' -argument='"$[pwb_path]/process_metadata_pre.py"' -env="PATH=$[py_path]";
 # -- Read env variables from config-file
 # WbVarDef -file=tmp/pwb.ini;
