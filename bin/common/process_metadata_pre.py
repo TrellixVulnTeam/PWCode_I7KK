@@ -22,18 +22,16 @@ import sys
 if os.name == "posix":
     import xml.etree.ElementTree as ET
 
-from configparser import SafeConfigParser
+# from configparser import SafeConfigParser
 import fileinput
-from process_files_pre import mount_wim, quit
+# from process_files_pre import mount_wim, quit
 from toposort import toposort_flatten
 from tempfile import NamedTemporaryFile
 import shutil
 import csv
 import petl as etl
-from process_files_pre import indent
 # from common.gui import pwb_add_wim_file
 # from common.dialog import pwb_yes_no_prompt
-# from common.dictionary import pwb_lower_dict
 # from common.file import pwb_replace_in_file
 # from common.config import pwb_add_config_section
 from common.petl import pwb_lower_case_header
@@ -110,7 +108,28 @@ def pwb_replace_in_file(file_path, search_text, new_text):
             print(new_line, end='')
 
 
-def sort_dependent_tables(table_defs, base_path):
+def pwb_lower_dict(d):
+    new_dict = dict((k.lower(), v.lower()) for k, v in d.items())
+    return new_dict
+
+
+def indent(elem, level=0):
+    i = "\n" + level * "  "
+    if len(elem):
+        if not elem.text or not elem.text.strip():
+            elem.text = i + "  "
+        if not elem.tail or not elem.tail.strip():
+            elem.tail = i
+        for elem in elem:
+            indent(elem, level + 1)
+        if not elem.tail or not elem.tail.strip():
+            elem.tail = i
+    else:
+        if level and (not elem.tail or not elem.tail.strip()):
+            elem.tail = i
+
+
+def sort_dependent_tables(table_defs, base_path, empty_tables, illegal_tables):
     deps_dict = {}
     for table_def in table_defs:
         table_name = table_def.find("table-name")
@@ -192,8 +211,9 @@ def tsv_fix(base_path, new_file_name, pk_list, illegal_columns_lower_case, tsv_p
     return row_count
 
 
-def test_data(config_dir):
+def test_data(project_dir, config_dir):
     illegal_terms_file = os.path.join(config_dir, 'illegal_terms.txt')
+    sub_systems_dir = os.path.join(project_dir, 'content', 'sub_systems')
 
     # config = SafeConfigParser()
     # pwb_dir = os.path.abspath(os.path.dirname(__file__))
@@ -238,19 +258,19 @@ def test_data(config_dir):
     # if not proceed:
     #     sys.exit()
 
-    subfolders = os.listdir(sub_systems_path)
+    subfolders = os.listdir(sub_systems_dir)
     for folder in subfolders:
-        base_path = sub_systems_path + folder
-        ddl_file = base_path + "/documentation/metadata.sql"
-        tsv_done_file = base_path + "/documentation/tsv_done"
-        oracle_dir = base_path + "/documentation/oracle_import/"
-        header_xml_file = base_path + "/header/metadata.xml"
-        mod_xml_file = base_path + "/documentation/metadata_mod.xml"
+        base_path = os.path.join(sub_systems_dir, folder)
+        ddl_file = os.path.join(base_path, 'documentation', 'metadata.sql')
+        tsv_done_file = os.path.join(base_path, 'documentation', 'tsv_done')
+        oracle_dir = os.path.join(base_path, 'documentation', 'oracle_import')
+        header_xml_file = os.path.join(base_path, 'header', 'metadata.xml')
+        mod_xml_file = os.path.join(base_path, 'documentation', 'metadata_mod.xml')
 
         pathlib.Path(oracle_dir).mkdir(parents=True, exist_ok=True)
 
         if os.path.isdir(
-                os.path.join(os.path.abspath(sub_systems_path),
+                os.path.join(os.path.abspath(sub_systems_dir),
                              folder)) and os.path.isfile(header_xml_file):
             tree = ET.parse(header_xml_file)
             tree_lookup = ET.parse(header_xml_file)
@@ -359,7 +379,7 @@ def test_data(config_dir):
                 table_def.insert(7, disposal_comment)
 
             # Sort tables in dependent order:
-            deps_list = sort_dependent_tables(table_defs, base_path)
+            deps_list = sort_dependent_tables(table_defs, base_path, empty_tables, illegal_tables)
             with open(base_path + '/documentation/import_order.txt', 'w') as file:
                 for val in deps_list:
                     file.write('%s\n' % val)
@@ -427,7 +447,7 @@ def test_data(config_dir):
                     for source_column in source_columns:
                         source_column_names = source_column.findall('column')
 
-                        source_columns_string = ''
+                        # source_columns_string = ''
                         for source_column_name in source_column_names:
                             old_source_column_name = ET.Element("original-column")
                             old_source_column_name.text = source_column_name.text
@@ -459,10 +479,10 @@ def test_data(config_dir):
                 ddl_columns_list = []
                 for column_def in column_defs:
                     column_name = column_def.find('column-name')
-                    java_sql_type_name = column_def.find('java-sql-type-name')
+                    # java_sql_type_name = column_def.find('java-sql-type-name')
                     java_sql_type = column_def.find('java-sql-type')
                     dbms_data_size = column_def.find('dbms-data-size')
-                    dbms_data_type = column_def.find('dbms-data-type')
+                    # dbms_data_type = column_def.find('dbms-data-type')
                     old_column_name = ET.Element("original-column-name")
                     old_column_name.text = column_name.text
                     column_name.text = normalize_name(column_name.text, illegal_columns).lower()

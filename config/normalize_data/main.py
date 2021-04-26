@@ -56,7 +56,7 @@ def main():
 
     # TODO: Hent java path
     process_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir)
-    test_data(config_dir)
+    test_data(project_dir, config_dir)
 
     # TODO: Ny def her "test_data"
 
