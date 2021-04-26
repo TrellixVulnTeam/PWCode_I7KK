@@ -24,6 +24,8 @@ from database.jdbc import Jdbc
 from common.jvm import init_jvm, wb_batch
 from common.print import print_and_exit
 from common.xml import indent
+import re
+import shutil
 
 
 # TODO: Bytt ut print_and_exit og fjern så den (må sjekke at da avslutter hele med return heller)
@@ -105,10 +107,29 @@ def get_tables(conn, db_name, db_schema):
     return tables
 
 
+def remove_illegal_character(path):
+    path_w = os.path.splitext(path)[0]+'.tmp'
+    repls = (
+        ('‘', 'æ'),
+        ('›', 'ø'),
+        ('†', 'å'),
+    )
+
+    with open(path_w, "wb") as file_w:
+        with open(path, 'r', encoding='utf-8', errors='ignore') as file_r:
+            data = file_r.read()
+            for k, v in repls:
+                data = re.sub(k, v, data, flags=re.MULTILINE)
+        file_w.write(data.encode('utf8'))
+
+    shutil.move(path_w, path)
+
+
 def export_schema(class_paths, max_java_heap, subsystem_dir, jdbc, db_tables):
     base_dir = os.path.join(subsystem_dir, 'header')
+    schema_file = os.path.join(subsystem_dir, 'header', 'metadata.xml')
 
-    if os.path.isfile(os.path.join(base_dir, 'metadata.xml')):
+    if os.path.isfile(schema_file):
         return
 
     init_jvm(class_paths, max_java_heap)
@@ -125,6 +146,7 @@ def export_schema(class_paths, max_java_heap, subsystem_dir, jdbc, db_tables):
     gen_report_str = "WbSchemaReport -file=metadata.xml -schemas=" + jdbc.db_schema + " -types=TABLE,VIEW -includeProcedures=true \
                             -includeTriggers=true -writeFullSource=true;"
     batch.runScript(gen_report_str)
+    remove_illegal_character(schema_file)
     add_row_count_to_schema_file(subsystem_dir, db_tables)
 
 

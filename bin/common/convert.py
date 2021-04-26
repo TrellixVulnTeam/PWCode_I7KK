@@ -14,29 +14,30 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # from PIL import Image
-import ocrmypdf
-import subprocess
 import os
+import subprocess
 import shutil
 # import sys
 import signal
 import zipfile
 import re
-import cchardet as chardet
 import pathlib
 # import img2pdf
-from pdfy import Pdfy
 import petl as etl
 import base64
 from os.path import relpath
 from pathlib import Path
 from common.metadata import run_tika, run_siegfried
 from common.file import append_tsv_row, append_txt_file
+import cchardet as chardet
 # from pathlib import Path
 # from functools import reduce
 # import wand
 # from wand.image import Image, Color
 # from wand.exceptions import BlobError
+if os.name == "posix":
+    import ocrmypdf
+    from pdfy import Pdfy
 
 # mime_type: (keep_original, function name, new file extension)
 mime_to_norm = {
