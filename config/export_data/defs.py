@@ -107,12 +107,16 @@ def get_tables(conn, db_name, db_schema):
     return tables
 
 
-def remove_illegal_character(path):
+def remove_illegal_characters(path):
     path_w = os.path.splitext(path)[0]+'.tmp'
     repls = (
         ('‘', 'æ'),
         ('›', 'ø'),
         ('†', 'å'),
+        ('\x27', ''), # TODO: Verifiser denne
+        ('\x06', ''), # TODO: Verifiser denne
+        ('\x1b', ''),
+        ('', ''), # TODO: Verifiser denne
     )
 
     with open(path_w, "wb") as file_w:
@@ -146,7 +150,7 @@ def export_schema(class_paths, max_java_heap, subsystem_dir, jdbc, db_tables):
     gen_report_str = "WbSchemaReport -file=metadata.xml -schemas=" + jdbc.db_schema + " -types=TABLE,VIEW -includeProcedures=true \
                             -includeTriggers=true -writeFullSource=true;"
     batch.runScript(gen_report_str)
-    remove_illegal_character(schema_file)
+    remove_illegal_characters(schema_file)
     add_row_count_to_schema_file(subsystem_dir, db_tables)
 
 
