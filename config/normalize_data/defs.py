@@ -97,7 +97,7 @@ def export_db_schema(data_dir, sub_system, class_path, bin_dir, memory):
 
     for table in tables:
         batch.runScript("WbConnect -url='" + jdbc_url + "';")
-        tsv_file = os.path.join(data_dir, table + '.tsv')
+        txt_file = os.path.join(data_dir, table + '.txt')
         # TODO: Hvorfor ha med navn på kolonner i select under? Beholde det? -> ja -> sikrer at får eksportert kolonner med ellers ulovlige navn pga quotes
         # --> TODO: har det som trengs for å hente kolonnenavn mm i koden under -> blir forenklet versjon av det
 
@@ -106,7 +106,7 @@ def export_db_schema(data_dir, sub_system, class_path, bin_dir, memory):
         # TODO: Ha blobtype-valg pr tabell?
         export_data_list = ["WbExport ",
                             "-type=text ",
-                            "-file = " + tsv_file + " ",
+                            "-file = " + txt_file + " ",
                             "-continueOnError = false ",
                             "-encoding=UTF8 ",
                             "-header=true ",

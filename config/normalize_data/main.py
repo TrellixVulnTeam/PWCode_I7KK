@@ -67,9 +67,6 @@ def main():
 
 # TODO: Rekkefølge:
 # Gjort så langt
-# WbSysExec -program='python3' -argument='"$[pwb_path]/process_metadata_pre.py"' -env="PATH=$[py_path]";
-# -- Read env variables from config-file
-# WbVarDef -file=tmp/pwb.ini;
 # -- Test data import
 # WbSysExec -ifNotEmpty=wim_path -program='python3' -argument='"$[pwb_path]/process_metadata_check.py"' -env="PATH=$[py_path]";
 # -- Save log/unmount wim image

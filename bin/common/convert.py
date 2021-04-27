@@ -60,6 +60,7 @@ mime_to_norm = {
     'application/zip': (False, 'extract_nested_zip', 'zip'),  # TODO: Legg inn for denne
     'image/gif': (False, 'image2norm', 'pdf'),
     'image/jpeg': (False, 'image2norm', 'pdf'),
+    'image/jpeg': (False, 'file_copy', 'jpg'),
     'image/png': (False, 'file_copy', 'png'),
     'image/tiff': (False, 'image2norm', 'pdf'),
     'text/html': (False, 'html2pdf', 'pdf'),  # TODO: Legg til undervarianter her (var opprinnelig 'startswith)

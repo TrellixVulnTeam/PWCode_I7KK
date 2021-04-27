@@ -266,12 +266,11 @@ def test_data(project_dir, config_dir):
         oracle_dir = os.path.join(base_path, 'documentation', 'oracle_import')
         header_xml_file = os.path.join(base_path, 'header', 'metadata.xml')
         mod_xml_file = os.path.join(base_path, 'documentation', 'metadata_mod.xml')
+        # sub_system_path = os.path.join(os.path.abspath(sub_systems_dir), folder)
 
         pathlib.Path(oracle_dir).mkdir(parents=True, exist_ok=True)
 
-        if os.path.isdir(
-                os.path.join(os.path.abspath(sub_systems_dir),
-                             folder)) and os.path.isfile(header_xml_file):
+        if os.path.isfile(header_xml_file):
             tree = ET.parse(header_xml_file)
             tree_lookup = ET.parse(header_xml_file)
             illegal_columns_lower_case = pwb_lower_dict(illegal_columns)  # TODO: Feil for kolonner som legges til illegal i etterkant?
@@ -296,9 +295,8 @@ def test_data(project_dir, config_dir):
                     t_count += 1
                     illegal_tables[table_name.text] = table_name.text[:26] + "_" + str(t_count) + "_"
 
-                file_name = base_path + "/content/data/" + table_name.text.lower(
-                ) + ".txt"
-                new_file_name = os.path.splitext(file_name)[0] + '.tsv'
+                file_name = base_path + "/content/data/" + table_name.text + ".txt"
+                new_file_name = base_path + "/content/data/" + table_name.text.lower() + ".tsv"
 
                 tsv_process = False
                 if not os.path.isfile(tsv_done_file):
@@ -393,7 +391,7 @@ def test_data(project_dir, config_dir):
                 self_dep_set = set()
                 index = 0
 
-                ora_ctl_file = oracle_dir + table_name.text + '.ctl'
+                ora_ctl_file = os.path.join(oracle_dir, table_name.text + '.ctl')
                 ora_ctl_list = []
                 if disposed.text != "true":
                     ora_ctl = [
