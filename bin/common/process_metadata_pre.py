@@ -211,7 +211,7 @@ def tsv_fix(base_path, new_file_name, pk_list, illegal_columns_lower_case, tsv_p
     return row_count
 
 
-def test_data(project_dir, config_dir):
+def normalize_metadata(project_dir, config_dir):
     illegal_terms_file = os.path.join(config_dir, 'illegal_terms.txt')
     sub_systems_dir = os.path.join(project_dir, 'content', 'sub_systems')
 
@@ -266,7 +266,6 @@ def test_data(project_dir, config_dir):
         oracle_dir = os.path.join(base_path, 'documentation', 'oracle_import')
         header_xml_file = os.path.join(base_path, 'header', 'metadata.xml')
         mod_xml_file = os.path.join(base_path, 'documentation', 'metadata_mod.xml')
-        # sub_system_path = os.path.join(os.path.abspath(sub_systems_dir), folder)
 
         pathlib.Path(oracle_dir).mkdir(parents=True, exist_ok=True)
 

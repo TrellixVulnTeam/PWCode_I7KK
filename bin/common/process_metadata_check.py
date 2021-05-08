@@ -21,9 +21,11 @@ import sys
 import shutil
 import pathlib
 from functools import reduce
-from configparser import SafeConfigParser
+# from configparser import SafeConfigParser
 
-if __name__ == "__main__":
+
+def load_data(project_dir, config_dir):
+    sub_systems_dir = os.path.join(project_dir, 'content', 'sub_systems')
     # config = SafeConfigParser()
     # tmp_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'tmp'))
     ora_reset_script = os.path.abspath(os.path.join(os.path.dirname(__file__), 'sql/oracle_reset.sql'))
@@ -62,19 +64,14 @@ if __name__ == "__main__":
         with open(import_sql_files[db], "w") as file:
             file.write("\n".join(ln))
 
-    # TODO: Se her for datatyper: http://troels.arvin.dk/db/rdbms/#data_types
-
-    sub_systems_path = mount_dir + "/content/sub_systems/"
-    subfolders = os.listdir(sub_systems_path)
+    subfolders = os.listdir(sub_systems_dir)
     for folder in subfolders:
-        folder_path = sub_systems_path + folder
-        header_xml_file = folder_path + "/header/metadata.xml"
-        data_path = folder_path + "/content/data/"
+        base_path = os.path.join(sub_systems_dir, folder)
+        header_xml_file = os.path.join(base_path, 'header', 'metadata.xml')
+        data_path = base_path + "/content/data/"
 
-        if os.path.isdir(os.path.join(os.path.abspath(sub_systems_path), folder)) \
-                and os.path.isfile(header_xml_file) and os.listdir(data_path):
-
-            documentation_folder = folder_path + "/documentation/"
+        if os.path.isfile(header_xml_file) and os.listdir(data_path):
+            documentation_folder = os.path.join(base_path, 'documentation')
             import_order_file = documentation_folder + 'import_order.txt'
             sqlite_db = "/tmp/" + folder + ".db"
 

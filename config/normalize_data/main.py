@@ -2,12 +2,13 @@ import os
 from pathlib import Path
 # from common.config import add_config_section
 from common.file import get_checksum
-from common.process_metadata_pre import test_data
+from common.process_metadata_pre import normalize_metadata
+from common.process_metadata_check import load_data
 from common.xml_settings import XMLSettings
 import tarfile
 # import xml.etree.ElementTree as ET
 from defs import (  # .defs.py
-    process_data
+    normalize_data
 )
 
 
@@ -55,8 +56,9 @@ def main():
             tar.extractall(path=project_dir)
 
     # TODO: Hent java path
-    process_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir)
-    test_data(project_dir, config_dir)
+    normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir)
+    normalize_metadata(project_dir, config_dir)
+    load_data(project_dir, config_dir)
 
     # TODO: Ny def her "test_data"
 

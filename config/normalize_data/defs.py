@@ -171,7 +171,7 @@ def dispose_tables(sub_systems_dir, sub_system, tables):
     tree.write(schema_file)
 
 
-def process_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir):
+def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir):
     sub_systems_dir = os.path.join(project_dir, 'content', 'sub_systems')
     tika_tmp_dir = os.path.join(tmp_dir, 'tika')
 
