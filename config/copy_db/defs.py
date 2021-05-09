@@ -24,6 +24,17 @@ from database.jdbc import Jdbc
 from common.jvm import init_jvm, wb_batch
 from common.print import print_and_exit
 from common.xml import indent
+from dataclasses import dataclass
+
+
+@dataclass
+class Connection:
+    """Class for database connection details """
+    db_name: str
+    schema_name: str
+    jdbc_url: str
+    db_user: str
+    db_password: str
 
 
 # TODO: Bytt ut print_and_exit og fjern så den (må sjekke at da avslutter hele med return heller)
@@ -50,12 +61,12 @@ def capture_files(bin_dir, source_path, target_path, exclude=None):
     def exclude_items(item):
         if exclude is None:
             return item
-        elif source_path + '/' + item.name not in exclude: # TODO: Endre til os separator auto
+        elif source_path + '/' + item.name not in exclude:  # TODO: Endre til os separator auto
             return item
 
     try:
         if archive_format == 'wim':
-            cmd = os.path.join(bin_dir, "vendor", "wimlib-imagex") + " capture "  + source_path + " " + target_path + " --no-acls --compress=none"
+            cmd = os.path.join(bin_dir, "vendor", "wimlib-imagex") + " capture " + source_path + " " + target_path + " --no-acls --compress=none"
             check_output(cmd, stderr=STDOUT, shell=True).decode()
         else:
             with tarfile.open(target_path, mode='w') as archive:
@@ -78,11 +89,12 @@ def get_tables(conn, schema):
 
 def export_schema(class_paths, max_java_heap, java_path, subsystem_dir, jdbc, db_tables):
     base_dir = os.path.join(subsystem_dir, 'header')
+    Path(base_dir).mkdir(parents=True, exist_ok=True)
 
-    if os.path.isfile(os.path.join(base_dir,'metadata.xml')):
+    if os.path.isfile(os.path.join(base_dir, 'metadata.xml')):
         return
 
-    init_jvm(class_paths, max_java_heap, java_path)  # Start Java virtual machine # TODO: Virker ikke å starte jvm med jpype før bruk av jaydebeapi
+    init_jvm(class_paths, max_java_heap)
     WbManager = jp.JPackage('workbench').WbManager
     WbManager.prepareForEmbedded()
     batch = jp.JPackage('workbench.sql').BatchRunner()
@@ -105,28 +117,32 @@ def get_java_path_sep():
 
 
 # TODO: Fjern duplisering av kode mellom denn og export_db_schema
-def test_db_connect(JDBC_URL, bin_dir, class_path,  java_path, MAX_JAVA_HEAP, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES):
+def test_db_connect(conn, bin_dir, class_path,  java_path, MAX_JAVA_HEAP, INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, new_schema=False):
 
-    url, driver_jar, driver_class = get_db_details(JDBC_URL, bin_dir)
+    url, driver_jar, driver_class = get_db_details(conn.jdbc_url, bin_dir)
     if driver_jar and driver_class:
         # Start Java virtual machine if not started already:
         class_paths = class_path + get_java_path_sep() + driver_jar
 
-        init_jvm(class_paths, MAX_JAVA_HEAP, java_path)  # TODO: Virker ikke å starte jvm med jpype før bruk av jaydebeapi
+        init_jvm(class_paths, MAX_JAVA_HEAP)
 
         try:
-            jdbc = Jdbc(url, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, driver_jar, driver_class, True, True)
+            jdbc = Jdbc(url, conn.db_user, conn.db_password, conn.db_name, conn.schema_name, driver_jar, driver_class, True, True)
             # TODO: Legg inn sjekk på at jdbc url er riktig, ikke bare på om db_name og skjema returnerer tabeller
             if jdbc:
-                # Get database metadata:
-                db_tables, table_columns = get_db_meta(jdbc)
-                if not db_tables:
-                    return "Database '" + DB_NAME + "', schema '" + DB_SCHEMA + "' returns no tables."
+                if new_schema:
+                    run_ddl(jdbc, 'CREATE SCHEMA IF NOT EXISTS "' + conn.schema_name.upper() + '"')
+                    # TODO: Ok med 'upper' for alle støttede databasetyper?
+                else:
+                    # Get database metadata:
+                    db_tables, table_columns = get_db_meta(jdbc)
+                    if not db_tables:
+                        return "Database '" + conn.db_name + "', schema '" + conn.schema_name + "' returns no tables."
 
-                export_tables, overwrite_tables = table_check(INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, db_tables)
+                    export_tables, overwrite_tables = table_check(INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, db_tables)
                 return 'ok'
 
-            if not export_tables:
+            if not export_tables and not new_schema:
                 return 'No table data to export. Exiting.'
 
         except Exception as e:
@@ -136,23 +152,23 @@ def test_db_connect(JDBC_URL, bin_dir, class_path,  java_path, MAX_JAVA_HEAP, DB
         return 'Not a supported jdbc url. Exiting'
 
 
-def export_db_schema(JDBC_URL, bin_dir, class_path, java_path, MAX_JAVA_HEAP, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, subsystem_dir, INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, DDL_GEN):
-    url, driver_jar, driver_class = get_db_details(JDBC_URL, bin_dir)
+def export_db_schema(source, target, bin_dir, class_path, java_path, MAX_JAVA_HEAP, subsystem_dir, INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, DDL_GEN):
+    url, driver_jar, driver_class = get_db_details(source.jdbc_url, bin_dir)
     if driver_jar and driver_class:
         # Start Java virtual machine if not started already:
         class_paths = class_path + get_java_path_sep() + driver_jar
-        init_jvm(class_paths, MAX_JAVA_HEAP, java_path)  # TODO: Virker ikke å starte jvm med jpype før bruk av jaydebeapi
+        init_jvm(class_paths, MAX_JAVA_HEAP)
         try:
-            jdbc = Jdbc(url, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, driver_jar, driver_class, True, True)
+            jdbc = Jdbc(url, source.db_user, source.db_password, source.db_name, source.schema_name, driver_jar, driver_class, True, True)
             if jdbc:
                 # Get database metadata:
                 db_tables, table_columns = get_db_meta(jdbc)
-                export_schema(class_paths, MAX_JAVA_HEAP, java_path, subsystem_dir, jdbc, db_tables) # TODO: Feiler her
+                export_schema(class_paths, MAX_JAVA_HEAP, java_path, subsystem_dir, jdbc, db_tables)
                 export_tables, overwrite_tables = table_check(INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, db_tables)
 
             if export_tables:
                 # Copy schema data:
-                copy_db_schema(subsystem_dir, jdbc, class_path, java_path, MAX_JAVA_HEAP, export_tables, bin_dir, table_columns, overwrite_tables, DDL_GEN)
+                copy_db_schema(subsystem_dir, jdbc, class_path, java_path, MAX_JAVA_HEAP, export_tables, bin_dir, table_columns, overwrite_tables, DDL_GEN, target)
                 return 'ok'
             else:
                 print('No table data to export. Exiting.')
@@ -364,7 +380,7 @@ def run_select(jdbc, sql):
     return result
 
 
-def gen_sync_table(table, columns, target_url, driver_jar, driver_class, source_query):
+def gen_sync_table(table, columns, target_url, driver_jar, driver_class, source_query, target_schema):
     print("Syncing table '" + table + "'...")
     source_query = source_query + ' WHERE ('
     target_query = 'SELECT '
@@ -376,7 +392,7 @@ def gen_sync_table(table, columns, target_url, driver_jar, driver_class, source_
     source_query = source_query[:-2]
     target_query = target_query[:-2] + ' FROM "' + table + '";'
 
-    t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)
+    t_jdbc = Jdbc(target_url, '', '', '', target_schema, driver_jar, driver_class, True, True)
     target_values = run_select(t_jdbc, target_query)
     if len(columns) > 1:  # Compound key
         source_query = source_query + ') NOT IN (' + ', '.join(map(str, target_values)) + ')'
@@ -397,12 +413,22 @@ def create_index(table, pk_dict, unique_dict, ddl):
     return ddl
 
 
-def copy_db_schema(subsystem_dir, s_jdbc, class_path, java_path, max_java_heap, export_tables, bin_dir, table_columns, overwrite_tables, DDL_GEN):
-    batch = wb_batch(class_path, max_java_heap, java_path)
-    Path(subsystem_dir + '/content/data/',).mkdir(parents=True, exist_ok=True)
-    target_url = 'jdbc:h2:' + subsystem_dir + '/content/data/' + s_jdbc.db_name + '_' + s_jdbc.db_schema + ';autocommit=off'
+def copy_db_schema(subsystem_dir, s_jdbc, class_path, java_path, max_java_heap, export_tables, bin_dir, table_columns, overwrite_tables, DDL_GEN, target):
+    batch = wb_batch(class_path, max_java_heap)
+
+    if target:
+        target_url = target.jdbc_url
+        schema = target.schema_name.upper()  # TODO: Ok for alle støttede databasetyper?
+    else:
+        Path(subsystem_dir + '/content/data/').mkdir(parents=True, exist_ok=True)
+        target_url = 'jdbc:h2:' + subsystem_dir + '/content/data/' + s_jdbc.db_name + '_' + s_jdbc.db_schema
+        schema = 'PUBLIC'
+
+    if 'autocommit=off' not in target_url:
+        target_url = target_url + ';autocommit=off'
+
     target_url, driver_jar, driver_class = get_db_details(target_url, bin_dir)
-    t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)
+    t_jdbc = Jdbc(target_url, '', '', '', schema, driver_jar, driver_class, True, True)
     target_tables = get_target_tables(t_jdbc)
     pk_dict = get_primary_keys(subsystem_dir, export_tables)
     unique_dict = get_unique_indexes(subsystem_dir, export_tables)
@@ -433,10 +459,10 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, java_path, max_java_heap, 
             elif t_row_count > row_count:
                 print_and_exit("Error. More data in target than in source. Table '" + table + "'. Exiting.")
             elif table in pk_dict:
-                source_query = gen_sync_table(table, pk_dict[table], target_url, driver_jar, driver_class, source_query)
+                source_query = gen_sync_table(table, pk_dict[table], target_url, driver_jar, driver_class, source_query, schema)
                 insert = False
             elif table in unique_dict:
-                source_query = gen_sync_table(table, unique_dict[table], target_url, driver_jar, driver_class, source_query)
+                source_query = gen_sync_table(table, unique_dict[table], target_url, driver_jar, driver_class, source_query, schema)
                 insert = False
 
         if insert:
@@ -444,8 +470,9 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, java_path, max_java_heap, 
             if DDL_GEN == 'SQL Workbench':
                 params = mode + std_params + ' -createTarget=true -dropTarget=true'
             elif DDL_GEN == 'Native':
-                t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)
-                ddl = '\nCREATE TABLE "' + table + '"\n(\n' + ddl_columns[table][:-1] + '\n);'
+                t_jdbc = Jdbc(target_url, '', '', '', schema, driver_jar, driver_class, True, True)
+                ddl = '\nCREATE TABLE "' + schema + '"."' + table + '"\n(\n' + ddl_columns[table][:-1] + '\n);'
+                # ddl = '\nCREATE TABLE "' + table + '"\n(\n' + ddl_columns[table][:-1] + '\n);'
                 ddl = create_index(table, pk_dict, unique_dict, ddl)
                 print(ddl)
                 sql = 'DROP TABLE IF EXISTS "' + table + '"; ' + ddl
@@ -453,14 +480,14 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, java_path, max_java_heap, 
 
             if table in blob_columns:
                 for column in blob_columns[table]:
-                    t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)
-                    sql = 'ALTER TABLE "' + table + '" ADD COLUMN ' + column.upper() + '_BLOB_LENGTH_PWCODE VARCHAR(255);'
+                    t_jdbc = Jdbc(target_url, '', '', '', schema, driver_jar, driver_class, True, True)
+                    sql = 'ALTER TABLE "' + schema + '"."' + table + '" ADD COLUMN ' + column.upper() + '_BLOB_LENGTH_PWCODE VARCHAR(255);'
                     run_ddl(t_jdbc, sql)
 
         batch.runScript("WbConnect -url='" + s_jdbc.url + "' -password=" + s_jdbc.pwd + ";")
         target_conn = '"username=,password=,url=' + target_url + '" ' + params
-        target_table = '"' + table + '"'
-        copy_data_str = "WbCopy -targetConnection=" + target_conn + " -targetSchema=PUBLIC -targetTable=" + target_table + " -sourceQuery=" + source_query + ";"
+        target_table = '"' + schema + '"."' + table + '"'
+        copy_data_str = "WbCopy -targetConnection=" + target_conn + " -targetSchema=" + schema + " -targetTable=" + target_table + " -sourceQuery=" + source_query + ";"
         result = batch.runScript(copy_data_str)
         batch.runScript("WbDisconnect;")
         jp.java.lang.System.gc()

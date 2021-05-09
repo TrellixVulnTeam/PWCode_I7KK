@@ -239,10 +239,11 @@ class HomeTab(ttk.Frame):
                 msg = 'Missing Schema Name in ' + conn_name
             elif len(jdbc_url) == 0:
                 msg = 'Missing JDBC Url in ' + conn_name
-            elif len(db_user) == 0:
-                msg = 'Missing User Name in ' + conn_name
-            elif len(db_pwd) == 0:
-                msg = 'Missing User Password in ' + conn_name
+            # TODO: Legg inn sjekk på user og pwd for bare visse dbtyper
+            # elif len(db_user) == 0:
+            #     msg = 'Missing User Name in ' + conn_name
+            # elif len(db_pwd) == 0:
+            #     msg = 'Missing User Password in ' + conn_name
 
             if msg:
                 self.msg_label.config(text=msg)
