@@ -145,9 +145,7 @@ def load_data(project_dir, config_dir):
                                 "ALTER SESSION SET NLS_LENGTH_SEMANTICS=CHAR;\n\n"
                             )
                             for line in file_r:
-                                file.write(
-                                    reduce(lambda a, kv: a.replace(*kv), repls,
-                                           line))
+                                file.write(reduce(lambda a, kv: a.replace(*kv), repls, line))
 
                 if db == 'mssql':  # WAIT: Kjør denne først ved test: sudo systemctl restart mssql-server
                     users[db] = 'sa'

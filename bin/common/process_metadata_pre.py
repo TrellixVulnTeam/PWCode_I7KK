@@ -21,8 +21,6 @@ import pathlib
 import sys
 if os.name == "posix":
     import xml.etree.ElementTree as ET
-
-# from configparser import SafeConfigParser
 import fileinput
 # from process_files_pre import mount_wim, quit
 from toposort import toposort_flatten
@@ -30,11 +28,8 @@ from tempfile import NamedTemporaryFile
 import shutil
 import csv
 import petl as etl
-# from common.gui import pwb_add_wim_file
-# from common.dialog import pwb_yes_no_prompt
-# from common.file import pwb_replace_in_file
-# from common.config import pwb_add_config_section
 from common.petl import pwb_lower_case_header
+from functools import reduce
 
 csv.field_size_limit(sys.maxsize)
 
@@ -146,7 +141,15 @@ def sort_dependent_tables(table_defs, base_path, empty_tables, illegal_tables):
 
 
 def normalize_name(name, illegal_dict):
-    norm_name = name
+    repls = (
+        ('æ', 'ae'),
+        ('ø', 'oe'),
+        ('å', 'aa'),
+        ('Æ', 'ae'),
+        ('Ø', 'oe'),
+        ('Å', 'aa'),
+    )
+    norm_name = reduce(lambda a, kv: a.replace(*kv), repls, name)
     if name in illegal_dict:
         norm_name = illegal_dict[name]
     return norm_name
@@ -214,30 +217,6 @@ def tsv_fix(base_path, new_file_name, pk_list, illegal_columns_lower_case, tsv_p
 def normalize_metadata(project_dir, config_dir):
     illegal_terms_file = os.path.join(config_dir, 'illegal_terms.txt')
     sub_systems_dir = os.path.join(project_dir, 'content', 'sub_systems')
-
-    # config = SafeConfigParser()
-    # pwb_dir = os.path.abspath(os.path.dirname(__file__))
-    # tmp_dir = os.path.abspath(os.path.join(pwb_dir, '..', 'tmp'))
-    # conf_file = tmp_dir + "/pwb.ini"
-    # config.read(conf_file)
-    # data_dir = os.path.abspath(os.path.join(tmp_dir, '../../', '_DATA'))
-    # sql_file = tmp_dir + "/meta_process.sql"
-
-    # filepath = pwb_add_wim_file(data_dir)
-
-    # if filepath:
-    #     pwb_add_config_section(config, 'ENV')
-    #     config.set('ENV', 'wim_path', filepath)
-    #     config.set('ENV', 'log_file', "system_process_metadata.log")
-    #     config.set('ENV', 'process', "meta")
-    #     with open(conf_file, "w+") as configfile:
-    #         config.write(configfile, space_around_delimiters=False)
-    # else:
-    #     quit(conf_file)
-
-    # sys_name = os.path.splitext(os.path.basename(filepath))[0]
-    # mount_dir = data_dir + "/" + sys_name + "_mount"
-
     empty_tables = []
     illegal_terms_set = set(map(str.strip, open(illegal_terms_file)))
     d = {s: s + '_' for s in illegal_terms_set}
@@ -290,12 +269,14 @@ def normalize_metadata(project_dir, config_dir):
                 # TODO: Menyvalg for dispose trenger bare fjerne tsv-fil
 
                 # Add tables names too long for oracle to 'illegal_tables'
-                if len(table_name.text) > 30:
+                if len(table_name.text) > 29:
                     t_count += 1
-                    illegal_tables[table_name.text] = table_name.text[:26] + "_" + str(t_count) + "_"
+                    table_name.text = table_name.text[:26] + "_" + str(t_count) + "_"
+                    illegal_tables[old_table_name.text] = table_name.text
 
+                table_name_norm = normalize_name(table_name.text, illegal_tables)
                 file_name = base_path + "/content/data/" + table_name.text + ".txt"
-                new_file_name = base_path + "/content/data/" + table_name.text.lower() + ".tsv"
+                new_file_name = base_path + "/content/data/" + table_name_norm.lower() + ".tsv"
 
                 tsv_process = False
                 if not os.path.isfile(tsv_done_file):
@@ -304,18 +285,19 @@ def normalize_metadata(project_dir, config_dir):
                 if os.path.isfile(file_name):
                     os.rename(file_name, new_file_name)
 
-                if table_name.text in illegal_tables:
-                    table_name.text = illegal_tables[table_name.text]
+                # if table_name.text in illegal_tables:
+                #     table_name.text = illegal_tables[table_name.text]
 
-                    # TODO: Bare slette fil direkte her heller?
-                    ill_new_file_name = os.path.splitext(file_name)[0] + '_.tsv'
-                    if os.path.isfile(new_file_name):
-                        os.rename(new_file_name, ill_new_file_name)
-                    new_file_name = ill_new_file_name
+                #     # TODO: Bare slette fil direkte her heller?
+                #     ill_new_file_name = os.path.splitext(file_name)[0] + '_.tsv'
+                #     if os.path.isfile(new_file_name):
+                #         os.rename(new_file_name, ill_new_file_name)
+                #     new_file_name = ill_new_file_name
 
-                table_name.text = table_name.text.lower()
+                table_name.text = table_name_norm.lower()
+                # table_name.text = table_name.text.lower()
                 table_def.insert(3, old_table_name)
-                table_def.set('name', table_name.text)
+                table_def.set('name', table_name_norm)
 
                 # unique_list = []
                 index_defs = table_def.findall("index-def")
@@ -338,12 +320,15 @@ def normalize_metadata(project_dir, config_dir):
                     column_name = column_def.find('column-name')
                     primary_key = column_def.find('primary-key')
 
-                    if len(column_name.text) > 30:
+                    if len(column_name.text) > 29:
                         c_count += 1
-                        illegal_columns[column_name.text] = column_name.text[:26] + "_" + str(c_count)
+                        column_name_short = column_name.text[:26] + "_" + str(c_count)
+                        illegal_columns[column_name.text] = column_name_short
+                        column_name.text = column_name_short
 
+                    # column_name_norm = normalize_name(column_name.text, illegal_columns)
                     if primary_key.text == 'true':
-                        pk_list.append(normalize_name(column_name.text, illegal_columns).lower())
+                        pk_list.append(column_name.text.lower())
 
                 pk_dict[table_name.text] = ', '.join(sorted(pk_list))
 
@@ -356,8 +341,7 @@ def normalize_metadata(project_dir, config_dir):
 
                 # TODO: Legg inn sjekk så ikke leser rader på nytt hvis gjort før -> tull med row_count da?
                 if os.path.exists(new_file_name):
-                    row_count = tsv_fix(base_path, new_file_name, pk_list,
-                                        illegal_columns_lower_case, tsv_process)
+                    row_count = tsv_fix(base_path, new_file_name, pk_list, illegal_columns_lower_case, tsv_process)
 
                     if row_count == 0:
                         os.remove(new_file_name)
@@ -379,6 +363,7 @@ def normalize_metadata(project_dir, config_dir):
             deps_list = sort_dependent_tables(table_defs, base_path, empty_tables, illegal_tables)
             with open(base_path + '/documentation/import_order.txt', 'w') as file:
                 for val in deps_list:
+                    val = normalize_name(val, illegal_tables)
                     file.write('%s\n' % val)
 
             self_dep_dict = {}
@@ -390,23 +375,24 @@ def normalize_metadata(project_dir, config_dir):
                 self_dep_set = set()
                 index = 0
 
-                ora_ctl_file = os.path.join(oracle_dir, table_name.text + '.ctl')
+                table_name_norm = normalize_name(table_name.text, illegal_tables)
+
+                ora_ctl_file = os.path.join(oracle_dir, table_name_norm + '.ctl')
                 ora_ctl_list = []
                 if disposed.text != "true":
                     ora_ctl = [
                         'LOAD DATA', 'CHARACTERSET UTF8 LENGTH SEMANTICS CHAR',
-                        'INFILE ' + table_name.text + '.tsv',
-                        'INSERT INTO TABLE ' + str(table_name.text).upper(),
+                        'INFILE ' + table_name_norm + '.tsv',
+                        'INSERT INTO TABLE ' + str(table_name_norm).upper(),
                         "FIELDS TERMINATED BY '\\t' TRAILING NULLCOLS", '(#'
                     ]
                     ora_ctl_list.append('\n'.join(ora_ctl))
 
-                if table_name.text in deps_list:
-                    index = int(deps_list.index(table_name.text))
+                if table_name_norm in deps_list:
+                    index = int(deps_list.index(table_name_norm))
 
                 dep_position.text = str(index + 1)
                 table_def.insert(6, dep_position)
-                i = 0
 
                 constraint_set = set()
                 foreign_keys = table_def.findall("foreign-keys/foreign-key")
@@ -611,9 +597,11 @@ def normalize_metadata(project_dir, config_dir):
 
             ddl = []
             for table in deps_list:
+                table_norm = normalize_name(table, illegal_tables)
                 pk_str = ''
-                if pk_dict[table]:
-                    pk_str = ',\nPRIMARY KEY (' + pk_dict[table] + ')'
+                if pk_dict[table_norm]:
+                    pk_str = ',\nPRIMARY KEY (' + pk_dict[table_norm] + ')'
+                    # TODO: Normalisert variant mangler i pk_dict
 
                 unique_str = ''
                 unique_constraints = {key: val for key, val in unique_dict.items() if key[0] == table}
@@ -629,6 +617,7 @@ def normalize_metadata(project_dir, config_dir):
                         ref_column_list = []
                         source_column_list = fk_columns_dict[constr]
                         for col in source_column_list:
+                            col = normalize_name(col, illegal_columns_lower_case)
                             ref_column_list.append(fk_ref_dict[table + ':' + col] + ':' + col)
 
                         ref_column_list = sorted(ref_column_list)
