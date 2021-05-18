@@ -77,21 +77,28 @@ def capture_files(bin_dir, source_path, target_path, exclude=None):
         elif os.path.join(source_path, item.name) not in exclude:
             return item
 
-    try:
-        if archive_format == 'wim':
-            # TODO: Hvorfor vises ikke output? Sammenlign med tidligere kode
-            # ---> Viser output riktig ved utpakking av wim på linux -> sjekk hvilken andre forskjeller enn OS
+    if archive_format == 'wim':
+        # TODO: Hvorfor vises ikke output? Sammenlign med tidligere kode
+        # ---> Viser output riktig ved utpakking av wim på linux -> sjekk hvilken andre forskjeller enn OS
+        # -> pga check_output?
+        try:
             wim_cmd = os.path.join(bin_dir, "vendor", "windows", "wimlib", "wimlib-imagex.exe")
             if os.name == "posix":
                 wim_cmd = 'wimlib-imagex'
 
             cmd = wim_cmd + " capture " + source_path + " " + target_path + " --no-acls --compress=none"
             check_output(cmd, stderr=STDOUT, shell=True).decode()
-        else:
-            with tarfile.open(target_path, mode='w') as archive:
-                archive.add(source_path, recursive=True, arcname='', filter=exclude_items)
-    except Exception as e:
-        return e
+        except Exception as e:
+            return e
+    else:
+        # with tarfile.open hides errors in som cases
+        archive = tarfile.open(target_path, mode='w')
+        try:
+            archive.add(source_path, recursive=True, arcname='', filter=exclude_items)
+        except Exception as e:
+            return e
+        finally:
+            archive.close()
 
     return 'ok'
 
@@ -113,10 +120,10 @@ def remove_illegal_characters(path):
         ('‘', 'æ'),
         ('›', 'ø'),
         ('†', 'å'),
-        ('\x27', ''), # TODO: Verifiser denne
-        ('\x06', ''), # TODO: Verifiser denne
+        ('\x27', ''),  # TODO: Verifiser denne
+        ('\x06', ''),  # TODO: Verifiser denne
         ('\x1b', ''),
-        ('', ''), # TODO: Verifiser denne
+        ('', ''),  # TODO: Verifiser denne
     )
 
     with open(path_w, "wb") as file_w:
@@ -565,6 +572,8 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
         if str(result) == 'Error':
             print_and_exit("Error on copying table '" + table + "'\nScroll up for details.")
 
+    # TODO: Sørg for at prosess som kopierer db helt sikkert avsluttet før pakker som tar
+    # --> se TODO i common.jvm.py
     if len(previous_export) == len(export_tables.keys()):
         print('All tables already exported.')
     elif not previous_export:
