@@ -1,20 +1,21 @@
-from defs import (  # .defs.py
-    export_db_schema,
-    capture_files,
-    test_db_connect,
-    Connection
-)
 import shutil
 import os
 import sys
 from pathlib import Path
 from common.xml_settings import XMLSettings
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-# TODO: Legg disse enkeltvis i defs under heller?
+if os.name != "posix":
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 
 
 def main():
+    from defs import (  # .defs.py
+        export_db_schema,
+        test_db_connect,
+        Connection
+    )
+
     bin_dir = os.environ["pwcode_bin_dir"]  # Get PWCode executable path
     java_path = os.environ['pwcode_java_path']  # Get Java home path
     class_path = os.environ['CLASSPATH']  # Get jar path
