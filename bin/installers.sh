@@ -12,7 +12,7 @@ JARS=$BINPATH/vendor/jars/sqlworkbench.jar
 
 install_python_runtime() {
     if [ ! -f $PYTHON_BIN ]; then
-        wget https://github.com/niess/python-appimage/releases/download/python3.8/python3.8.{9..0}-cp38-cp38-manylinux2014_x86_64.AppImage -O $BINPATH/vendor/linux/python.AppImage
+        wget https://github.com/niess/python-appimage/releases/download/python3.8/python3.8.{20..10}-cp38-cp38-manylinux2014_x86_64.AppImage -O $BINPATH/vendor/linux/python.AppImage
         chmod u+x $BINPATH/vendor/linux/python.AppImage;
         cd $BINPATH/vendor/linux && ./python.AppImage --appimage-extract > /dev/null && cd -;
         rm $BINPATH/vendor/linux/python.AppImage
