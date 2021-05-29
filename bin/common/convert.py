@@ -17,6 +17,7 @@
 import os
 import subprocess
 import shutil
+import filetype
 # import sys
 import signal
 import zipfile
@@ -52,14 +53,15 @@ mime_to_norm = {
     'application/vnd.wordperfect': (False, 'docbuilder2x', 'pdf'),  # TODO: Mulig denne må endres til libreoffice
     # 'application/xhtml+xml; charset=UTF-8': (False, 'wkhtmltopdf', 'pdf'),
     'application/xhtml+xml': (False, 'wkhtmltopdf', 'pdf'),
-    'application/xml': (False, 'file_copy', 'xml'),
+    # 'application/xml': (False, 'file_copy', 'xml'),
+    'application/xml': (False, 'x2utf8', 'xml'),
     'application/x-elf': (False, 'what?', None),  # executable on lin
     'application/x-msdownload': (False, 'what?', None),  # executable on win
     'application/x-ms-installer': (False, 'what?', None),  # Installer on win
     'application/x-tika-msoffice': (False, 'delete_file', None),  # TODO: Skriv funksjon ferdig
     'application/zip': (False, 'extract_nested_zip', 'zip'),  # TODO: Legg inn for denne
     'image/gif': (False, 'image2norm', 'pdf'),
-    'image/jpeg': (False, 'image2norm', 'pdf'),
+    # 'image/jpeg': (False, 'image2norm', 'pdf'),
     'image/jpeg': (False, 'file_copy', 'jpg'),
     'image/png': (False, 'file_copy', 'png'),
     'image/tiff': (False, 'image2norm', 'pdf'),
@@ -126,6 +128,7 @@ def x2utf8(args):
         ('‘', 'æ'),
         ('›', 'ø'),
         ('†', 'å'),
+        ('&#248;', 'ø'),
         ('=C2=A0', ' '),
         ('=C3=A6', 'æ'),
         ('=C3=B8', 'ø'),
@@ -562,7 +565,14 @@ def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_
 
         print(count_str + source_file_path + ' (' + mime_type + ')')
 
+        if not mime_type:
+            # kind = filetype.guess(source_file_path)
+            extension = os.path.splitext(source_file_path)[1][1:].lower()
+            if extension == 'xml':
+                mime_type = 'application/xml'
+
         if mime_type not in mime_to_norm.keys():
+            # print("|" + mime_type + "|")
             errors = True
             converted_now = True
             result = 'Conversion not supported'

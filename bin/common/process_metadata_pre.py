@@ -145,11 +145,8 @@ def normalize_name(name, illegal_dict):
         ('æ', 'ae'),
         ('ø', 'oe'),
         ('å', 'aa'),
-        ('Æ', 'ae'),
-        ('Ø', 'oe'),
-        ('Å', 'aa'),
     )
-    norm_name = reduce(lambda a, kv: a.replace(*kv), repls, name)
+    norm_name = reduce(lambda a, kv: a.replace(*kv), repls, name.lower())
     if name in illegal_dict:
         norm_name = illegal_dict[name]
     return norm_name
@@ -176,7 +173,7 @@ def get_table_deps(table_name, table_def, deps_dict, empty_tables,
     return table_deps
 
 
-def tsv_fix(base_path, new_file_name, pk_list, illegal_columns_lower_case, tsv_process):
+def tsv_fix(base_path, new_file_name, pk_list, illegal_columns, tsv_process):
     if tsv_process:
         pwb_replace_in_file(new_file_name, '\0', '')  # Remove null bytes
 
@@ -194,7 +191,7 @@ def tsv_fix(base_path, new_file_name, pk_list, illegal_columns_lower_case, tsv_p
         tempfile = NamedTemporaryFile(mode='w', dir=base_path + "/content/data/", delete=False)
 
         table = pwb_lower_case_header(table)
-        table = etl.rename(table, illegal_columns_lower_case, strict=False)
+        table = etl.rename(table, illegal_columns, strict=False)
 
         print(new_file_name)
         for pk in pk_list:
@@ -251,7 +248,7 @@ def normalize_metadata(project_dir, config_dir):
         if os.path.isfile(header_xml_file):
             tree = ET.parse(header_xml_file)
             tree_lookup = ET.parse(header_xml_file)
-            illegal_columns_lower_case = pwb_lower_dict(illegal_columns)  # TODO: Feil for kolonner som legges til illegal i etterkant?
+            # illegal_columns_lower_case = pwb_lower_dict(illegal_columns)  # TODO: Feil for kolonner som legges til illegal i etterkant?
 
             t_count = 0
             c_count = 0
@@ -294,7 +291,7 @@ def normalize_metadata(project_dir, config_dir):
                 #         os.rename(new_file_name, ill_new_file_name)
                 #     new_file_name = ill_new_file_name
 
-                table_name.text = table_name_norm.lower()
+                # table_name.text = table_name_norm.lower()
                 # table_name.text = table_name.text.lower()
                 table_def.insert(3, old_table_name)
                 table_def.set('name', table_name_norm)
@@ -312,7 +309,7 @@ def normalize_metadata(project_dir, config_dir):
                         for index_column_name in index_column_names:
                             unique_constraint_name = index_column_name.attrib['name'].lower()
                             unique_col_list.append(unique_constraint_name)
-                        unique_dict[(table_name.text, index_name.text.lower())] = sorted(unique_col_list)
+                        unique_dict[(table_name_norm, index_name.text.lower())] = sorted(unique_col_list)
 
                 pk_list = []
                 column_defs = table_def.findall("column-def")
@@ -328,9 +325,9 @@ def normalize_metadata(project_dir, config_dir):
 
                     # column_name_norm = normalize_name(column_name.text, illegal_columns)
                     if primary_key.text == 'true':
-                        pk_list.append(column_name.text.lower())
+                        pk_list.append(column_name.text)
 
-                pk_dict[table_name.text] = ', '.join(sorted(pk_list))
+                pk_dict[table_name_norm] = ', '.join(sorted(pk_list))
 
                 # Add row-count/disposed-info:
                 disposed = ET.Element("disposed")
@@ -341,7 +338,7 @@ def normalize_metadata(project_dir, config_dir):
 
                 # TODO: Legg inn sjekk så ikke leser rader på nytt hvis gjort før -> tull med row_count da?
                 if os.path.exists(new_file_name):
-                    row_count = tsv_fix(base_path, new_file_name, pk_list, illegal_columns_lower_case, tsv_process)
+                    row_count = tsv_fix(base_path, new_file_name, pk_list, illegal_columns, tsv_process)
 
                     if row_count == 0:
                         os.remove(new_file_name)
@@ -545,7 +542,7 @@ def normalize_metadata(project_dir, config_dir):
                 if len(self_dep_set) != 0:
                     self_dep_dict.update({table_name.text: self_dep_set})
 
-                ddl_columns[table_name.text.lower()] = '\n'.join(ddl_columns_list)
+                ddl_columns[table_name_norm] = '\n'.join(ddl_columns_list)
 
             root = tree.getroot()
             indent(root)
@@ -601,7 +598,6 @@ def normalize_metadata(project_dir, config_dir):
                 pk_str = ''
                 if pk_dict[table_norm]:
                     pk_str = ',\nPRIMARY KEY (' + pk_dict[table_norm] + ')'
-                    # TODO: Normalisert variant mangler i pk_dict
 
                 unique_str = ''
                 unique_constraints = {key: val for key, val in unique_dict.items() if key[0] == table}
@@ -617,7 +613,7 @@ def normalize_metadata(project_dir, config_dir):
                         ref_column_list = []
                         source_column_list = fk_columns_dict[constr]
                         for col in source_column_list:
-                            col = normalize_name(col, illegal_columns_lower_case)
+                            col = normalize_name(col, illegal_columns)
                             ref_column_list.append(fk_ref_dict[table + ':' + col] + ':' + col)
 
                         ref_column_list = sorted(ref_column_list)
@@ -632,7 +628,7 @@ def normalize_metadata(project_dir, config_dir):
 
                         fk_str = fk_str + ',\nCONSTRAINT ' + constr + '\nFOREIGN KEY (' + source_s + ')\nREFERENCES ' + ref_table + ' (' + ref_s + ')'
 
-                ddl.append('\nCREATE TABLE ' + table + '\n(\n' + ddl_columns[table][:-1] + pk_str + unique_str + fk_str + '\n);')
+                ddl.append('\nCREATE TABLE ' + table_norm + '\n(\n' + ddl_columns[table_norm][:-1] + pk_str + unique_str + fk_str + '\n);')
 
             with open(ddl_file, "w") as file:
                 file.write("\n".join(ddl))

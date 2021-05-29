@@ -102,7 +102,7 @@ def load_data(project_dir, config_dir):
                 if db in ('postgresql', 'sqlite', 'mssql'):
                     reset_files[db] = ' #Not needed for ' + db
                 else:
-                    reset_files[db] = os.path.join(documentation_folder, db + '_import, reset_' + db + '.sql')
+                    reset_files[db] = os.path.join(documentation_folder, db + '_import/reset_' + db + '.sql')
 
                 if db == 'postgresql':
                     users[db] = 'postgres'

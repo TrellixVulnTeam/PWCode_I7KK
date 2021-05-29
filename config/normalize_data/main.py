@@ -1,12 +1,10 @@
 import os
 from pathlib import Path
-# from common.config import add_config_section
 from common.file import get_checksum
 from common.process_metadata_pre import normalize_metadata
 from common.process_metadata_check import load_data
 from common.xml_settings import XMLSettings
 import tarfile
-# import xml.etree.ElementTree as ET
 from defs import (  # .defs.py
     normalize_data
 )
@@ -58,7 +56,8 @@ def main():
     # TODO: Hent java path
     normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir)
     normalize_metadata(project_dir, config_dir)
-    load_data(project_dir, config_dir)
+    # TODO: Kommentert ut linje foreløpig for raskere tester
+    # load_data(project_dir, config_dir)
 
     # TODO: Ny def her "test_data"
 

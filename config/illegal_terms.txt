@@ -1,18 +1,19 @@
-WINDOW
-TRANSACTION
-FUNCTION
-STORED
-SCHEMA
-SYSTEM
-NOTNULL
-COLUMN
-PERCENT
-DATE
-PUBLIC
-OVER
-SQL
-RANGE
-MEMBER
-INTERVAL
+window
+transaction
+function
+stored
+schema
+system
+notnull
+column
+percent
+date
+public
+over
+sql
+range
+member
+interval
+start
 
 
