@@ -194,9 +194,10 @@ def tsv_fix(base_path, new_file_name, pk_list, illegal_columns, tsv_process):
         table = etl.rename(table, illegal_columns, strict=False)
 
         print(new_file_name)
-        for pk in pk_list:
-            table = etl.convert(table, pk.lower(),
-                                lambda a: a if len(str(a)) > 0 else '-')
+        # TODO: Kode med pk under håndterte ikke kolonnenavn fra illegal terms
+        # for pk in pk_list:
+        #     table = etl.convert(table, pk.lower(),
+        #                         lambda a: a if len(str(a)) > 0 else '-')
 
         writer = csv.writer(
             tempfile,
@@ -207,6 +208,7 @@ def tsv_fix(base_path, new_file_name, pk_list, illegal_columns, tsv_process):
             lineterminator='\n')
         writer.writerows(table)
 
+        # TODO: Endre så temp-fil er i tmp-mappe så ikke blir liggende igjen hvis prosess feiler
         shutil.move(tempfile.name, new_file_name)
     return row_count
 
@@ -316,15 +318,28 @@ def normalize_metadata(project_dir, config_dir):
                 for column_def in column_defs:
                     column_name = column_def.find('column-name')
                     primary_key = column_def.find('primary-key')
+                    # column_name_short = None
 
                     if len(column_name.text) > 29:
                         c_count += 1
-                        column_name_short = column_name.text[:26] + "_" + str(c_count)
-                        illegal_columns[column_name.text] = column_name_short
+                        column_name_short = column_name.text[:26].lower() + "_" + str(c_count)
+                        # illegal_columns[column_name.text] = column_name_short
                         column_name.text = column_name_short
 
                     # column_name_norm = normalize_name(column_name.text, illegal_columns)
                     if primary_key.text == 'true':
+                        if column_name.text in illegal_columns:
+                            column_name.text = column_name.text.lower() + '_'
+
+
+                        # # tab_constraint_name.text = tab_constraint_name.text + '_'
+                        # if column_name_short:
+                        #     column_name_norm = column_name_short
+                        # else:
+                        #     column_name_norm = normalize_name(column_name.text, illegal_columns)                                                        
+
+                        # print(column_name_norm) # TODO: For test - fjern senere
+                        # # TODO: Feil at ikke er navn med underscore sist når illegal name her?
                         pk_list.append(column_name.text)
 
                 pk_dict[table_name_norm] = ', '.join(sorted(pk_list))
