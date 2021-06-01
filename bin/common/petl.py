@@ -15,21 +15,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from petl.util.base import Table
-from petl.compat import text_type
+# from petl.util.base import Table
+# from petl.compat import text_type
 
-def pwb_lower_case_header(table):
-    return LowerCaseHeaderView(table)
+# def pwb_lower_case_header(table):
+#     return LowerCaseHeaderView(table)
 
 
-class LowerCaseHeaderView(Table):
-    def __init__(self, table):
-        self.table = table
+# class LowerCaseHeaderView(Table):
+#     def __init__(self, table):
+#         self.table = table
 
-    def __iter__(self):
-        it = iter(self.table)
-        hdr = next(it)
-        outhdr = tuple((text_type(f.lower())) for f in hdr)
-        yield outhdr
-        for row in it:
-            yield row
+#     def __iter__(self):
+#         it = iter(self.table)
+#         hdr = next(it)
+#         outhdr = tuple((text_type(f.lower())) for f in hdr)
+#         yield outhdr
+#         for row in it:
+#             yield row

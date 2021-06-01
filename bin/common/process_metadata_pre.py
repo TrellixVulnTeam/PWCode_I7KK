@@ -22,16 +22,35 @@ import sys
 if os.name == "posix":
     import xml.etree.ElementTree as ET
 import fileinput
-# from process_files_pre import mount_wim, quit
 from toposort import toposort_flatten
 from tempfile import NamedTemporaryFile
 import shutil
 import csv
 import petl as etl
-from common.petl import pwb_lower_case_header
+from petl.util.base import Table
+from petl.compat import text_type
 from functools import reduce
 
 csv.field_size_limit(sys.maxsize)
+
+
+def pwb_lower_case_header(table, illegal_v):
+    return LowerCaseHeaderView(table, illegal_v)
+
+
+class LowerCaseHeaderView(Table):
+    def __init__(self, table, illegal_v):
+        self.table = table
+        self.illegal_v = illegal_v
+
+    def __iter__(self):
+        it = iter(self.table)
+        hdr = next(it)
+        outhdr = tuple((text_type(normalize_name(f, self.illegal_v))) for f in hdr)
+        yield outhdr
+        for row in it:
+            yield row
+
 
 # http://www.docjar.com/html/api/java/sql/Types.java.html
 # Mangler disse for alle i JDBC 4.0: ROWID=-8 og SQLXML=2009
@@ -48,8 +67,8 @@ jdbc_to_iso_data_type = {
     '-2': 'text',               # BINARY
     '-1': 'text',               # LONGVARCHAR
     '1': 'varchar()',          # CHAR
-    '2': 'numeric',            # NUMERIC  # TODO: Se xslt for ekstra nyanser på denne
-    '3': 'decimal',            # DECIMAL  # TODO: Se xslt for ekstra nyanser på denne
+    '2': 'numeric',            # NUMERIC  # WAIT: Se xslt for ekstra nyanser på denne
+    '3': 'decimal',            # DECIMAL  # WAIT: Se xslt for ekstra nyanser på denne
     '4': 'integer',            # INTEGER
     '5': 'integer',            # SMALLINT
     '6': 'float',              # FLOAT
@@ -188,16 +207,17 @@ def tsv_fix(base_path, new_file_name, pk_list, illegal_columns, tsv_process):
     row_count = etl.nrows(table)
 
     if tsv_process:
+        # TODO: Endre så temp-fil er i tmp-mappe så ikke blir liggende igjen hvis prosess feiler
         tempfile = NamedTemporaryFile(mode='w', dir=base_path + "/content/data/", delete=False)
 
-        table = pwb_lower_case_header(table)
+        table = pwb_lower_case_header(table, illegal_columns)
         table = etl.rename(table, illegal_columns, strict=False)
 
         print(new_file_name)
         # TODO: Kode med pk under håndterte ikke kolonnenavn fra illegal terms
-        # for pk in pk_list:
-        #     table = etl.convert(table, pk.lower(),
-        #                         lambda a: a if len(str(a)) > 0 else '-')
+        for pk in pk_list:
+            table = etl.convert(table, pk.lower(),
+                                lambda a: a if len(str(a)) > 0 else '-')
 
         writer = csv.writer(
             tempfile,
@@ -208,7 +228,6 @@ def tsv_fix(base_path, new_file_name, pk_list, illegal_columns, tsv_process):
             lineterminator='\n')
         writer.writerows(table)
 
-        # TODO: Endre så temp-fil er i tmp-mappe så ikke blir liggende igjen hvis prosess feiler
         shutil.move(tempfile.name, new_file_name)
     return row_count
 
@@ -318,29 +337,32 @@ def normalize_metadata(project_dir, config_dir):
                 for column_def in column_defs:
                     column_name = column_def.find('column-name')
                     primary_key = column_def.find('primary-key')
+                    column_name.text = normalize_name(column_name.text, illegal_columns)
                     # column_name_short = None
 
                     if len(column_name.text) > 29:
                         c_count += 1
-                        column_name_short = column_name.text[:26].lower() + "_" + str(c_count)
+                        column_name.text = column_name.text[:26] + "_" + str(c_count)
                         # illegal_columns[column_name.text] = column_name_short
-                        column_name.text = column_name_short
+                        # column_name.text = column_name_short
 
                     # column_name_norm = normalize_name(column_name.text, illegal_columns)
                     if primary_key.text == 'true':
-                        if column_name.text in illegal_columns:
-                            column_name.text = column_name.text.lower() + '_'
+                        pk_list.append(column_name.text)
+
+
+                        # if column_name.text in illegal_columns:
+                        #     column_name.text = column_name.text.lower() + '_'
 
 
                         # # tab_constraint_name.text = tab_constraint_name.text + '_'
                         # if column_name_short:
                         #     column_name_norm = column_name_short
                         # else:
-                        #     column_name_norm = normalize_name(column_name.text, illegal_columns)                                                        
+                        #     column_name_norm = normalize_name(column_name.text, illegal_columns)
 
                         # print(column_name_norm) # TODO: For test - fjern senere
                         # # TODO: Feil at ikke er navn med underscore sist når illegal name her?
-                        pk_list.append(column_name.text)
 
                 pk_dict[table_name_norm] = ', '.join(sorted(pk_list))
 

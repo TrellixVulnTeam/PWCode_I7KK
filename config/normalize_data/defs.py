@@ -213,7 +213,7 @@ def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir)
                     Path(mount_dir).mkdir(parents=True, exist_ok=True)
                     subprocess.run('wimapply ' + str(file) + ' ' + export_dir + ' 2>/dev/null', shell=True)
                     print('Scanning files for viruses...')
-                    # TODO: Egen funksjon for virus sjekk med return verdi
+                    # WAIT: Egen funksjon for virus sjekk med return verdi
                     subprocess.run('clamdscan -m -v ' + export_dir, shell=True)
                     subprocess.run('wimmount ' + str(file) + ' ' + mount_dir, shell=True)
                 else:

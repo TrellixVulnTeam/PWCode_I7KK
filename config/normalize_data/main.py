@@ -63,7 +63,7 @@ def main():
 
     # process_files(project_dir)
 
-    return 'hva her?'
+    return 'Juhuu :)'
 
 
 # TODO: Rekkefølge:
