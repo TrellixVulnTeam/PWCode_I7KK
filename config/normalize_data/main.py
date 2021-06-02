@@ -57,7 +57,7 @@ def main():
     normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir)
     normalize_metadata(project_dir, config_dir)
     # TODO: Kommentert ut linje foreløpig for raskere tester
-    # load_data(project_dir, config_dir)
+    load_data(project_dir, config_dir)
 
     # TODO: Ny def her "test_data"
 

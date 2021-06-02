@@ -262,7 +262,7 @@ def normalize_metadata(project_dir, config_dir):
         tsv_done_file = os.path.join(base_path, 'documentation', 'tsv_done')
         oracle_dir = os.path.join(base_path, 'documentation', 'oracle_import')
         header_xml_file = os.path.join(base_path, 'header', 'metadata.xml')
-        mod_xml_file = os.path.join(base_path, 'documentation', 'metadata_mod.xml')
+        # mod_xml_file = os.path.join(base_path, 'documentation', 'metadata_mod.xml')
 
         pathlib.Path(oracle_dir).mkdir(parents=True, exist_ok=True)
 
@@ -583,7 +583,7 @@ def normalize_metadata(project_dir, config_dir):
 
             root = tree.getroot()
             indent(root)
-            tree.write(mod_xml_file)
+            tree.write(header_xml_file, encoding='utf-8')
 
             # Sort lines in files with self constraints correctly:
             # TODO: Gjør om til funksjon

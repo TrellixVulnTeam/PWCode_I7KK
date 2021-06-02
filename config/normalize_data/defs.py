@@ -26,7 +26,7 @@ import jpype as jp
 import jpype.imports
 import xml.etree.ElementTree as ET
 from common.metadata import run_tika
-from common.convert import convert_folder
+from common.convert import convert_folder, file_convert
 
 
 def mount_wim(filepath, mount_dir):
@@ -149,13 +149,17 @@ def indent(elem, level=0):
             elem.tail = i
 
 
-def dispose_tables(sub_systems_dir, sub_system, tables):
+def dispose_tables(sub_systems_dir, sub_system, tables, tmp_dir):
     schema_file = os.path.join(sub_systems_dir, sub_system, 'header', 'metadata.xml')
     schema_file_raw = os.path.join(sub_systems_dir, sub_system, 'header', 'metadata_raw.xml')
 
-    shutil.copyfile(schema_file, schema_file_raw)
+    # Fix any encoding issues:
+    # WAIT: Mulig trengtes bare pga av tidligere 'tree.write' uten å spesifisere utf8
+    file_convert(schema_file, 'application/xml', 'x2utf8', tmp_dir, tmp_dir, schema_file_raw)
+    # os.remove(schema_file)  # WAIT: Linje under skulle overskrevet hvis fil finnes men gjør ikke det
+    shutil.move(schema_file_raw, schema_file)
 
-    tree = ET.parse(schema_file_raw)
+    tree = ET.parse(schema_file)
     table_defs = tree.findall("table-def")
     for table_def in table_defs:
         table_name = table_def.find("table-name")
@@ -168,7 +172,7 @@ def dispose_tables(sub_systems_dir, sub_system, tables):
 
     root = tree.getroot()
     indent(root)
-    tree.write(schema_file)
+    tree.write(schema_file, encoding='utf-8')
 
 
 def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir):
@@ -187,7 +191,7 @@ def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir)
 
             tables = export_db_schema(data_dir, sub_system, class_path, bin_dir, memory)
             if tables:
-                dispose_tables(sub_systems_dir, sub_system, tables)
+                dispose_tables(sub_systems_dir, sub_system, tables, tmp_dir)
                 shutil.rmtree(database_dir)
 
                 for data_file in glob.iglob(data_dir + os.path.sep + '*.data'):

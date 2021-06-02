@@ -383,13 +383,14 @@ def html2pdf(args):
     return ok
 
 
-def file_convert(source_file_path, mime_type, version, function, target_dir, keep_original, tmp_dir, norm_ext, count_str, ocr):
+def file_convert(source_file_path, mime_type, function, target_dir, tmp_dir, norm_file_path=None, norm_ext=None, version=None, ocr=False, keep_original=False):
     source_file_name = os.path.basename(source_file_path)
     base_file_name = os.path.splitext(source_file_name)[0] + '.'
     tmp_file_path = tmp_dir + '/' + base_file_name + 'tmp'
-    norm_file_path = target_dir + '/' + base_file_name
-    if norm_ext:
-        norm_file_path = norm_file_path + norm_ext
+    if norm_file_path is None:
+        norm_file_path = target_dir + '/' + base_file_name
+        if norm_ext:
+            norm_file_path = norm_file_path + norm_ext
 
     # TODO: Endre så returneres file paths som starter med prosjektmappe? Alltid, eller bare når genereres arkivpakke?
     normalized = {'result': None, 'norm_file_path': norm_file_path, 'error': None, 'original_file_copy': None}
@@ -402,7 +403,6 @@ def file_convert(source_file_path, mime_type, version, function, target_dir, kee
         elif function in converters:
             pathlib.Path(target_dir).mkdir(parents=True, exist_ok=True)
 
-            # print(count_str + source_file_path + ' (' + mime_type + ')')
             function_args = {'source_file_path': source_file_path,
                              'tmp_file_path': tmp_file_path,
                              'norm_file_path': norm_file_path,
@@ -410,7 +410,7 @@ def file_convert(source_file_path, mime_type, version, function, target_dir, kee
                              'tmp_dir': tmp_dir,
                              'mime_type': mime_type,
                              'version': version,
-                             'ocr': ocr,
+                            #  'ocr': ocr,
                              }
 
             ok = converters[function](function_args)
@@ -591,7 +591,7 @@ def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_
             # Ensure unique file names in dir hierarchy:
             norm_ext = (base64.b32encode(bytes(str(count), encoding='ascii'))).decode('utf8').replace('=', '').lower() + '.' + mime_to_norm[mime_type][2]
             target_dir = os.path.dirname(source_file_path.replace(base_source_dir, base_target_dir))
-            normalized = file_convert(source_file_path, mime_type, version, function, target_dir, keep_original, tmp_dir, norm_ext, count_str, ocr)
+            normalized = file_convert(source_file_path, mime_type, function, target_dir, tmp_dir, None, norm_ext, version, ocr, keep_original)
 
             if normalized['result'] == 0:
                 errors = True

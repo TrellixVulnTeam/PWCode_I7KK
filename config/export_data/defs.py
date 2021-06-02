@@ -296,7 +296,7 @@ def add_row_count_to_schema_file(subsystem_dir, db_tables):
 
     root = tree.getroot()
     indent(root)
-    tree.write(schema_file)
+    tree.write(schema_file, encoding='utf-8')
 
 
 def table_check(incl_tables, skip_tables, overwrite_tables, db_tables):
