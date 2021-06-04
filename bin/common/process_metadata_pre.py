@@ -211,7 +211,7 @@ def tsv_fix(base_path, new_file_name, pk_list, illegal_columns, tsv_process):
         tempfile = NamedTemporaryFile(mode='w', dir=base_path + "/content/data/", delete=False)
 
         table = pwb_lower_case_header(table, illegal_columns)
-        table = etl.rename(table, illegal_columns, strict=False)
+        # table = etl.rename(table, illegal_columns, strict=False)
 
         print(new_file_name)
         # TODO: Kode med pk under håndterte ikke kolonnenavn fra illegal terms
@@ -348,6 +348,7 @@ def normalize_metadata(project_dir, config_dir):
 
                     # column_name_norm = normalize_name(column_name.text, illegal_columns)
                     if primary_key.text == 'true':
+                        print(column_name.text)
                         pk_list.append(column_name.text)
 
 
