@@ -486,7 +486,7 @@ def normalize_metadata(project_dir, config_dir):
                             referenced_column_name.text = normalize_name(referenced_column_name.text, illegal_columns).lower()
                             referenced_column.insert(10, old_referenced_column_name)
 
-                constraint_dict[table_name.text] = ','.join(constraint_set).lower()
+                constraint_dict[table_name_norm] = ','.join(constraint_set).lower()
 
                 column_defs = table_def.findall("column-def")
                 column_defs[:] = sorted(
