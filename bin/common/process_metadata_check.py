@@ -167,8 +167,8 @@ def load_data(project_dir, config_dir):
                         (" timestamp", " datetime2"),
                         # (" varchar(", " nvarchar("),
                         # (" decimal", " numeric"),
-                        # (" text,", " varchar(max),"),
-                        # (" text)", " varchar(max))"),
+                        (" text,", " nvarchar(max),"),
+                        (" text)", " nvarchar(max))"),
                         #    (" boolean", " varchar(5)"),
                         #  (" bigint", " numeric"), #TODO: Ser ikke ut til at bigint kan ha desimaler i alle dbtyper
                     )

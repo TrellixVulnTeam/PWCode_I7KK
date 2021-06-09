@@ -34,11 +34,11 @@ from functools import reduce
 csv.field_size_limit(sys.maxsize)
 
 
-def pwb_lower_case_header(table, illegal_v):
-    return LowerCaseHeaderView(table, illegal_v)
+def normalize_header(table, illegal_v):
+    return NormalizedHeaderView(table, illegal_v)
 
 
-class LowerCaseHeaderView(Table):
+class NormalizedHeaderView(Table):
     def __init__(self, table, illegal_v):
         self.table = table
         self.illegal_v = illegal_v
@@ -158,16 +158,26 @@ def sort_dependent_tables(table_defs, base_path, empty_tables, illegal_tables):
 
     return deps_list
 
+            #    if len(table_name.text) > 29:
+            #        t_count += 1
+            #        table_name.text = table_name.text[:26] + "_" + str(t_count) + "_"
+            #        illegal_tables[old_table_name.text] = table_name.text
 
-def normalize_name(name, illegal_dict):
+def normalize_name(name, illegal_dict, t_count = 0):
     repls = (
         ('æ', 'ae'),
         ('ø', 'oe'),
         ('å', 'aa'),
     )
+
     norm_name = reduce(lambda a, kv: a.replace(*kv), repls, name.lower())
-    if name in illegal_dict:
-        norm_name = illegal_dict[name]
+    if norm_name in illegal_dict:
+        norm_name = illegal_dict[norm_name]
+
+    if len(norm_name) > 29:
+        t_count += 1
+        norm_name = norm_name[:26] + "_" + str(t_count) + "_"
+
     return norm_name
 
 
@@ -210,8 +220,7 @@ def tsv_fix(base_path, new_file_name, pk_list, illegal_columns, tsv_process):
         # TODO: Endre så temp-fil er i tmp-mappe så ikke blir liggende igjen hvis prosess feiler
         tempfile = NamedTemporaryFile(mode='w', dir=base_path + "/content/data/", delete=False)
 
-        table = pwb_lower_case_header(table, illegal_columns)
-        # table = etl.rename(table, illegal_columns, strict=False)
+        table = normalize_header(table, illegal_columns)
 
         print(new_file_name)
         # TODO: Kode med pk under håndterte ikke kolonnenavn fra illegal terms
@@ -262,14 +271,12 @@ def normalize_metadata(project_dir, config_dir):
         tsv_done_file = os.path.join(base_path, 'documentation', 'tsv_done')
         oracle_dir = os.path.join(base_path, 'documentation', 'oracle_import')
         header_xml_file = os.path.join(base_path, 'header', 'metadata.xml')
-        # mod_xml_file = os.path.join(base_path, 'documentation', 'metadata_mod.xml')
 
         pathlib.Path(oracle_dir).mkdir(parents=True, exist_ok=True)
 
         if os.path.isfile(header_xml_file):
             tree = ET.parse(header_xml_file)
             tree_lookup = ET.parse(header_xml_file)
-            # illegal_columns_lower_case = pwb_lower_dict(illegal_columns)  # TODO: Feil for kolonner som legges til illegal i etterkant?
 
             t_count = 0
             c_count = 0
@@ -284,15 +291,15 @@ def normalize_metadata(project_dir, config_dir):
                 old_table_name = ET.Element("original-table-name")
                 old_table_name.text = table_name.text
 
-                # TODO: Menyvalg for dispose trenger bare fjerne tsv-fil
 
                 # Add tables names too long for oracle to 'illegal_tables'
-                if len(table_name.text) > 29:
-                    t_count += 1
-                    table_name.text = table_name.text[:26] + "_" + str(t_count) + "_"
-                    illegal_tables[old_table_name.text] = table_name.text
+                # TODO: Bruk normalize funksjon heller her og inkorporer kode under i den heller
+                # if len(table_name.text) > 29:
+                #     t_count += 1
+                #     table_name.text = table_name.text[:26] + "_" + str(t_count) + "_"
+                #     illegal_tables[old_table_name.text] = table_name.text
 
-                table_name_norm = normalize_name(table_name.text, illegal_tables)
+                table_name_norm = normalize_name(table_name.text, illegal_tables, t_count)
                 file_name = base_path + "/content/data/" + table_name.text + ".txt"
                 new_file_name = base_path + "/content/data/" + table_name_norm.lower() + ".tsv"
 
@@ -348,7 +355,6 @@ def normalize_metadata(project_dir, config_dir):
 
                     # column_name_norm = normalize_name(column_name.text, illegal_columns)
                     if primary_key.text == 'true':
-                        print(column_name.text)
                         pk_list.append(column_name.text)
 
 
