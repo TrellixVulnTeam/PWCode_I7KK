@@ -567,7 +567,10 @@ def normalize_metadata(project_dir, config_dir):
 
                         iso_data_type = jdbc_to_iso_data_type[java_sql_type.text]
                         if '()' in iso_data_type:
-                            iso_data_type = iso_data_type.replace('()', '(' + dbms_data_size.text + ')')
+                            if dbms_data_size.text < 4001:
+                                iso_data_type = iso_data_type.replace('()', '(' + dbms_data_size.text + ')')
+                            else:
+                                iso_data_type = 'text'
 
                         ddl_columns_list.append(column_name.text + ' ' + iso_data_type + ',')
 
@@ -644,15 +647,16 @@ def normalize_metadata(project_dir, config_dir):
                         unique_str = unique_str + ',\nCONSTRAINT ' + key[1] + ' UNIQUE (' + ', '.join(value) + ')'
 
                 fk_str = ''
-                if constraint_dict[table]:
-                    for s in [x for x in constraint_dict[table].split(',')]:
+                if constraint_dict[table_norm]:
+                    for s in [x for x in constraint_dict[table_norm].split(',')]:
                         constr, ref_table = s.split(':')
+                        # TODO: Er ref_table normalisert?
 
                         ref_column_list = []
                         source_column_list = fk_columns_dict[constr]
                         for col in source_column_list:
                             col = normalize_name(col, illegal_columns)
-                            ref_column_list.append(fk_ref_dict[table + ':' + col] + ':' + col)
+                            ref_column_list.append(fk_ref_dict[table_norm + ':' + col] + ':' + col)
 
                         ref_column_list = sorted(ref_column_list)
                         ref_s = ''
