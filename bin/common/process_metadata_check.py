@@ -113,7 +113,7 @@ def load_data(project_dir, config_dir):
                     import_bins[db] = '/usr/bin/psql'
                     ddl_files[db] = os.path.join(documentation_folder, 'metadata.sql')
                     reset_before_statements[db] = 'PGOPTIONS="--client-min-messages=warning" $sql_bin "user=$user password=$password host=$host" -q -c "DROP SCHEMA IF EXISTS $schema CASCADE;"'
-                    reset_after_statements[db] = sql_bin[db] + ' "user=' + users[db] + ' password=' + passwords[db] + ' host=localhost" -q -c "DROP SCHEMA IF EXISTS pwb CASCADE;"'
+                    reset_after_statements[db] = sql_bin[db] + ' "user=' + users[db] + ' password=' + passwords[db] + ' host=localhost" -q -c "DROP SCHEMA IF EXISTS $schema CASCADE;" 2>/dev/null'
                     create_schema_statements[db] = '$sql_bin "user=$user password=$password host=$host" -q -c "CREATE SCHEMA $schema; SET search_path TO $schema;" -f $ddl_file'
                     import_statements[db] = '''$import_bin "user=$user password=$password host=$host" -v "ON_ERROR_STOP=1" -c "\copy \"$schema\".\"$table\" FROM \"$data_path\"\"$table\".tsv delimiter E'\\t' CSV HEADER QUOTE E'\\b' NULL AS ''"'''
 

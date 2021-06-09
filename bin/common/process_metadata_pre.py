@@ -567,7 +567,7 @@ def normalize_metadata(project_dir, config_dir):
 
                         iso_data_type = jdbc_to_iso_data_type[java_sql_type.text]
                         if '()' in iso_data_type:
-                            if dbms_data_size.text < 4001:
+                            if int(dbms_data_size.text) < 4001:
                                 iso_data_type = iso_data_type.replace('()', '(' + dbms_data_size.text + ')')
                             else:
                                 iso_data_type = 'text'
