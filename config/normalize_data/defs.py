@@ -113,10 +113,10 @@ def export_db_schema(data_dir, sub_system, class_path, bin_dir, memory):
                             "-decimal='.' ",
                             "-maxDigits=0 ",
                             "-lineEnding=lf ",
-                            "-clobAsFile=false ",
-                            # "-clobAsFile=true ",  # TODO: Endret som test for Profdoc
-                            # "-blobType=file ",
-                            "-blobType=base64 ",  # TODO: Test eksport på nytt av nygsys med denne
+                            # "-clobAsFile=false ",
+                            "-clobAsFile=true ",  # TODO: Endret som test for Profdoc
+                            "-blobType=file ",
+                            # "-blobType=base64 ",  # TODO: Test eksport på nytt av nygsys med denne
                             "-delimiter=\t ",
                             "-replaceExpression='(\n|\r\n|\r|\t|^$)' -replaceWith=' ' ",
                             "-nullString=' ' ",

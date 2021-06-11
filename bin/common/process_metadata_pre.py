@@ -561,7 +561,7 @@ def normalize_metadata(project_dir, config_dir):
                                 dbms_data_size.text = ref_column_data_size.text
 
                     if ref_col_ok:
-                        fk_ref_dict[table_name.text + ':' + column_name.text] = ref_column_name.text.lower()
+                        fk_ref_dict[table_name_norm + ':' + column_name.text] = ref_column_name.text
 
                     if disposed.text != "true":
                         ora_ctl_type = jdbc_to_ora_ctl_data_type[java_sql_type.text]
