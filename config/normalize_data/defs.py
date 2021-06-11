@@ -186,7 +186,7 @@ def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir)
         data_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'data')
         database_dir = os.path.join(data_dir, 'database')
         db_file = os.path.join(database_dir, sub_system + '.mv.db')
-        data_docs_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'data_documents')
+        data_docs_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'data_documents_tmp')
         if os.path.isfile(db_file):
             Path(data_docs_dir).mkdir(parents=True, exist_ok=True)
 
@@ -261,10 +261,13 @@ def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir)
         if os.path.exists(data_docs_dir):
             if len(os.listdir(data_docs_dir)) == 0:
                 os.rmdir(data_docs_dir)
-            # else:
-            #     # TODO: MÅ ha sjekk på om Tika kjørt allerede?
-            #     # --> Må legge til arg for eksisterende tsv-fil hvis finnes
-            #     result = convert_folder(project_dir, data_docs_dir, tmp_dir, java_path, tsv_source_path=)
+            else:
+                export_dir = data_docs_dir[:-4]
+                base_target_dir = data_docs_dir
+                # [:-1]
+                tsv_file = os.path.join(sub_systems_dir, sub_system, 'header', 'data_documents.tsv')
+                tsv_target_path = os.path.splitext(tsv_file)[0] + '_processed.tsv'
+                result = convert_folder(project_dir, export_dir, base_target_dir, tmp_dir, java_path, tsv_source_path=tsv_file, tsv_target_path=tsv_target_path)
 
         for file in files:
             mount_dir = os.path.splitext(file)[0] + '_mount'
