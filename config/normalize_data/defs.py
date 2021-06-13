@@ -242,32 +242,22 @@ def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir)
                 shutil.rmtree(export_dir)
                 shutil.move(base_target_dir, export_dir)
 
-        # TODO: Kjør konvertering mot export dir her (eller i loop over?)
-        # Kjør for data_docs_dir og docs_dir
-
         if os.path.exists(docs_dir):
             if len(os.listdir(docs_dir)) == 0:
                 os.rmdir(docs_dir)
-            # else:
-            #     dirs=[f.path for f in os.scandir(docs_dir) if f.is_dir()]
-            #     for dir in dirs:
-            #         # TODO: Finn path til tsv-fil her
-            #         convert_folder(project_dir, docs_dir, tmp_dir, java_path, tsv_source_path = False))
-
-                # TODO: Må sjekk data_docs_dir direkte + sjekke om docs_dir finnes og i så fall  gå gjennom undermapper i den
-                # dirs = get_files(('*.wim', '*.tar'), docs_dir)
-                # result = convert_folder(project_dir, docs_dir, tmp_dir, java_path, tsv_source_path=False))
 
         if os.path.exists(data_docs_dir):
             if len(os.listdir(data_docs_dir)) == 0:
                 os.rmdir(data_docs_dir)
             else:
-                export_dir = data_docs_dir[:-4]
-                base_target_dir = data_docs_dir
-                # [:-1]
+                export_dir = data_docs_dir
+                base_target_dir = data_docs_dir[:-4]
                 tsv_file = os.path.join(sub_systems_dir, sub_system, 'header', 'data_documents.tsv')
                 tsv_target_path = os.path.splitext(tsv_file)[0] + '_processed.tsv'
                 result = convert_folder(project_dir, export_dir, base_target_dir, tmp_dir, java_path, tsv_source_path=tsv_file, tsv_target_path=tsv_target_path)
+
+                if 'All files converted' in result:
+                    shutil.rmtree(export_dir)
 
         for file in files:
             mount_dir = os.path.splitext(file)[0] + '_mount'
