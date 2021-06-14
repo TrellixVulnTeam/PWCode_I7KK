@@ -140,16 +140,21 @@ def x2utf8(args):
         ('=C3=A5', 'å'),
     )
 
-    with open(args['norm_file_path'], "wb") as file:
-        with open(args['source_file_path'], 'rb') as file_r:
-            content = file_r.read()
-            data = content.decode(chardet.detect(content)['encoding'])
-            for k, v in repls:
-                data = re.sub(k, v, data, flags=re.MULTILINE)
-        file.write(data.encode('utf8'))
+    try:
+        with open(args['norm_file_path'], "wb") as file:
+            with open(args['source_file_path'], 'rb') as file_r:
+                content = file_r.read()
+                data = content.decode(chardet.detect(content)['encoding'])
+                for k, v in repls:
+                    data = re.sub(k, v, data, flags=re.MULTILINE)
+            file.write(data.encode('utf8'))
 
-    if os.path.exists(args['norm_file_path']):
-        ok = True
+        if os.path.exists(args['norm_file_path']):
+            ok = True
+
+    except Exception as e:
+        print(e)
+        return 'error'            
 
     return ok
 
@@ -487,7 +492,6 @@ def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_
 
     if not os.path.isfile(tsv_source_path):
         if tika:
-            # TODO: Må tilpasse tsv under for tilfelle tika. Bare testet med siegried så langt
             run_tika(tsv_source_path, base_source_dir, json_tmp_dir, java_path)
         else:
             run_siegfried(base_source_dir, project_dir, tsv_source_path)

@@ -198,11 +198,12 @@ def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir)
                 for data_file in glob.iglob(data_dir + os.path.sep + '*.data'):
                     shutil.move(data_file, data_docs_dir)
 
-                if len(os.listdir(data_docs_dir)) == 0:
-                    os.rmdir(data_docs_dir)
-                else:
-                    tsv_file = os.path.join(sub_systems_dir, sub_system, 'header', 'data_documents.tsv')
-                    run_tika(tsv_file, data_docs_dir, tika_tmp_dir, java_path)
+        if len(os.listdir(data_docs_dir)) == 0:
+            os.rmdir(data_docs_dir)
+        else:
+            tsv_file = os.path.join(sub_systems_dir, sub_system, 'header', 'data_documents.tsv')
+            if not os.path.isfile(tsv_file):
+                run_tika(tsv_file, data_docs_dir, tika_tmp_dir, java_path)
 
         # process files:
         docs_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'documents')
