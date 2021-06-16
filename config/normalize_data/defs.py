@@ -76,11 +76,34 @@ def get_tables(driver_class, jdbc_url, driver_jar):
 
 
 def get_java_path_sep():
-    path_sep = ';'
     if os.name == "posix":
-        path_sep = ':'
+        return ':'
+    return ';'
 
-    return path_sep
+
+def wb_export(txt_file, clob_as_file, blob_as_file, source_query, batch):
+    export_data_list = ["WbExport ",
+                        "-type=text ",
+                        "-file = " + txt_file + " ",
+                        "-continueOnError = false ",
+                        "-encoding=UTF8 ",
+                        "-header=true ",
+                        "-decimal='.' ",
+                        "-maxDigits=0 ",
+                        "-lineEnding=lf ",
+                        "-clobAsFile=true ",
+                        "-blobType=file ",
+                        "-delimiter=\t ",
+                        "-replaceExpression='(\n|\r\n|\r|\t|^$)' -replaceWith=' ' ",
+                        "-nullString=' ' ",
+                        "-showProgress=10000 ",
+                        ";" + source_query + ";"
+                        ]
+
+    result = batch.runScript(''.join(export_data_list))
+    batch.runScript("WbDisconnect;")
+    jp.java.lang.System.gc()
+    return result
 
 
 def export_db_schema(data_dir, sub_system, class_path, bin_dir, memory):
@@ -98,36 +121,11 @@ def export_db_schema(data_dir, sub_system, class_path, bin_dir, memory):
     for table in tables:
         batch.runScript("WbConnect -url='" + jdbc_url + "';")
         txt_file = os.path.join(data_dir, table + '.txt')
-        # TODO: Hvorfor ha med navn på kolonner i select under? Beholde det? -> ja -> sikrer at får eksportert kolonner med ellers ulovlige navn pga quotes
-        # --> TODO: har det som trengs for å hente kolonnenavn mm i koden under -> blir forenklet versjon av det
 
         source_query = 'SELECT "' + '","'.join(table_columns[table]) + '"  FROM PUBLIC."' + table + '"'
-
-        # TODO: Ha blobtype-valg pr tabell?
-        export_data_list = ["WbExport ",
-                            "-type=text ",
-                            "-file = " + txt_file + " ",
-                            "-continueOnError = false ",
-                            "-encoding=UTF8 ",
-                            "-header=true ",
-                            "-decimal='.' ",
-                            "-maxDigits=0 ",
-                            "-lineEnding=lf ",
-                            # "-clobAsFile=false ",
-                            "-clobAsFile=true ",  # TODO: Endret som test for Profdoc
-                            "-blobType=file ",
-                            # "-blobType=base64 ",  # TODO: Test eksport på nytt av nygsys med denne
-                            "-delimiter=\t ",
-                            "-replaceExpression='(\n|\r\n|\r|\t|^$)' -replaceWith=' ' ",
-                            "-nullString=' ' ",
-                            "-showProgress=10000 ",
-                            ";" + source_query + ";"
-                            ]
-
-        export_data_str = ''.join(export_data_list)
-        result = batch.runScript(export_data_str)
-        batch.runScript("WbDisconnect;")
-        jp.java.lang.System.gc()
+        clob_as_file = True
+        blob_as_file = True
+        result = wb_export(txt_file, clob_as_file, blob_as_file, source_query, batch)
         if str(result) == 'Error':
             print_and_exit("Error on exporting table '" + table + "'\nScroll up for details.")
 
@@ -235,6 +233,8 @@ def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir)
             base_target_dir = export_dir + '_normalized'
             tsv_target_path = os.path.splitext(tsv_file)[0] + '_processed.tsv'
             result = convert_folder(project_dir, export_dir, base_target_dir, tmp_dir, java_path, tsv_source_path=tsv_file, tsv_target_path=tsv_target_path)
+            print(result)
+            # TODO: Må hente ut denne og kobinere med resultat av konvertering av eksporterte lob'er under slik at vises samlet til slutt
 
             if 'All files converted' in result:
                 if os.path.isfile(file):
@@ -256,6 +256,7 @@ def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir)
                 tsv_file = os.path.join(sub_systems_dir, sub_system, 'header', 'data_documents.tsv')
                 tsv_target_path = os.path.splitext(tsv_file)[0] + '_processed.tsv'
                 result = convert_folder(project_dir, export_dir, base_target_dir, tmp_dir, java_path, tsv_source_path=tsv_file, tsv_target_path=tsv_target_path)
+                print(result)
 
                 if 'All files converted' in result:
                     shutil.rmtree(export_dir)

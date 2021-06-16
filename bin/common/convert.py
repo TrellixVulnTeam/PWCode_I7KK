@@ -122,7 +122,6 @@ def eml2pdf(args):
 @add_converter()
 def x2utf8(args):
     # TODO: Sjekk om beholder extension alltid (ikke endre csv, xml mm)
-    ok = False
 
     repls = (
         ('‘', 'æ'),
@@ -140,23 +139,27 @@ def x2utf8(args):
         ('=C3=A5', 'å'),
     )
 
-    try:
-        with open(args['norm_file_path'], "wb") as file:
-            with open(args['source_file_path'], 'rb') as file_r:
-                content = file_r.read()
-                data = content.decode(chardet.detect(content)['encoding'])
-                for k, v in repls:
-                    data = re.sub(k, v, data, flags=re.MULTILINE)
-            file.write(data.encode('utf8'))
+    with open(args['norm_file_path'], "wb") as file:
+        with open(args['source_file_path'], 'rb') as file_r:
+            content = file_r.read()
+            if content is None:
+                return False
+
+            char_enc = chardet.detect(content)['encoding']
+
+            try:
+                data = content.decode(char_enc)
+            except Exception:
+                return False
+
+            for k, v in repls:
+                data = re.sub(k, v, data, flags=re.MULTILINE)
+        file.write(data.encode('utf8'))
 
         if os.path.exists(args['norm_file_path']):
-            ok = True
+            return True
 
-    except Exception as e:
-        print(e)
-        return 'error'            
-
-    return ok
+    return False
 
 
 def extract_nested_zip(zippedFile, toFolder):
@@ -415,7 +418,7 @@ def file_convert(source_file_path, mime_type, function, target_dir, tmp_dir, nor
                              'tmp_dir': tmp_dir,
                              'mime_type': mime_type,
                              'version': version,
-                            #  'ocr': ocr,
+                             #  'ocr': ocr,
                              }
 
             ok = converters[function](function_args)
@@ -482,6 +485,8 @@ def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_
 
     if tsv_source_path is None:
         tsv_source_path = base_target_dir + '.tsv'
+    else:
+        txt_target_path = os.path.splitext(tsv_source_path)[1][1:] + '_result.txt'
 
     if tsv_target_path is None:
         tsv_target_path = base_target_dir + '_processed.tsv'
@@ -537,10 +542,10 @@ def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_
 
     # WAIT: Legg inn sjekk på filstørrelse før og etter konvertering
 
-    append_fields = ('norm_file_path', 'result', 'original_file_copy', 'id')
+    append_fields = ('version', 'norm_file_path', 'result', 'original_file_copy', 'id')
     table = add_fields(append_fields, table)
 
-    cut_fields = ('0', '1')
+    cut_fields = ('0', '1', 'X_TIKA_EXCEPTION_runtime')
     table = remove_fields(cut_fields, table)
 
     header = etl.header(table)
@@ -623,7 +628,9 @@ def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_
             elif normalized['result'] == 5:
                 result = 'Not a file'
 
-            row['norm_file_path'] = relpath(normalized['norm_file_path'], base_target_dir)
+            if normalized['norm_file_path']:
+                row['norm_file_path'] = relpath(normalized['norm_file_path'], base_target_dir)
+
             file_copy_path = normalized['original_file_copy']
             if file_copy_path:
                 file_copy_path = relpath(file_copy_path, base_target_dir)
