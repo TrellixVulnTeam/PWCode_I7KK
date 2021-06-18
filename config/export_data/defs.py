@@ -340,31 +340,6 @@ def get_target_tables(jdbc):
     return target_tables
 
 
-def get_blob_columns(subsystem_dir, export_tables):
-    blob_columns = {}
-    schema_file = subsystem_dir + '/header/metadata.xml'
-    tree = ET.parse(schema_file)
-
-    table_defs = tree.findall("table-def")
-    for table_def in table_defs:
-        table_name = table_def.find("table-name")
-        if table_name.text not in export_tables:
-            continue
-
-        columns = []
-        column_defs = table_def.findall("column-def")
-        for column_def in column_defs:
-            column_name = column_def.find('column-name')
-            java_sql_type = column_def.find('java-sql-type')
-            if int(java_sql_type.text) in (-4, -3, -2, 2004, 2005, 2011):
-                columns.append(column_name.text)
-
-        if columns:
-            blob_columns[table_name.text] = columns
-
-    return blob_columns
-
-
 def get_primary_keys(subsystem_dir, export_tables):
     pk_dict = {}
     schema_file = subsystem_dir + '/header/metadata.xml'
@@ -504,7 +479,6 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
     target_tables = get_target_tables(t_jdbc)
     pk_dict = get_primary_keys(subsystem_dir, export_tables)
     unique_dict = get_unique_indexes(subsystem_dir, export_tables)
-    # blob_columns = get_blob_columns(subsystem_dir, export_tables)
 
     if DDL_GEN == 'Native':
         ddl_columns = get_ddl_columns(subsystem_dir)

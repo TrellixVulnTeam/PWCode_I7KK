@@ -406,8 +406,7 @@ def file_convert(source_file_path, mime_type, function, target_dir, tmp_dir, nor
     if not os.path.isfile(norm_file_path):
         if os.path.islink(source_file_path):
             normalized['result'] = 5  # Not a file
-            normalized['norm_file_path'] = None  # TODO: Fikk verdi fra linje over i tsv heller enn tom -> hvorfor?
-            # TODO: Fikk også 'Conversion not supported' heller enn "not a file" -> hvorfor?
+            normalized['norm_file_path'] = None
         elif function in converters:
             pathlib.Path(target_dir).mkdir(parents=True, exist_ok=True)
 
@@ -444,7 +443,6 @@ def file_convert(source_file_path, mime_type, function, target_dir, tmp_dir, nor
                 normalized['result'] = 1  # Converted successfully
             else:
                 normalized['result'] = 1  # Converted successfully
-            #     os.remove(source_file_path) # WAIT: Bare når kjørt som generell behandling av arkivpakke
         else:
             if function:
                 normalized['result'] = 4
