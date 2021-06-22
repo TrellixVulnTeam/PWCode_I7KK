@@ -51,19 +51,46 @@ def get_java_path_sep():
     return ';'
 
 
-def export_table(data_dir, lobs_as_files, batch, jdbc_url, table, table_columns):
+def export_lob_columns(data_dir, batch, jdbc_url, table, table_columns):
+    txt_file = os.path.join(data_dir, table + '_lobs.txt')
+    clob = 'true'
+    blob = 'file'
+    for column in table_columns[table + '_lobs']:
+        file_name = "'" + table + "_" + column + "_" + "'" + " || rownum() || '.data'"
+        condition = f'''WHERE NULLIF("{column}", '') IS NOT NULL'''
+        source_query = 'SELECT "' + column + '",' + file_name + ' as fname FROM PUBLIC."' + table + '"' + condition
+
+        export_data_list = ["WbExport ",
+                            "-type=text ",
+                            "-file = " + txt_file + " ",
+                            "-continueOnError = false ",
+                            "-clobAsFile = " + clob + " ",
+                            "-blobtype = " + blob + " ",
+                            "-showProgress=10000 ",
+                            "-filenameColumn=fname ",
+                            ";" + source_query + ";"
+                            ]
+
+        batch.runScript("WbConnect -url='" + jdbc_url + "';")
+        result = batch.runScript(''.join(export_data_list))
+        batch.runScript("WbDisconnect;")
+        jp.java.lang.System.gc()
+
+    return str(result)
+
+
+def export_text_columns(data_dir, batch, jdbc_url, table, table_columns):
     batch.runScript("WbConnect -url='" + jdbc_url + "';")
     txt_file = os.path.join(data_dir, table + '.txt')
-    colums = table_columns[table]
+    columns = table_columns[table]
     clob = 'false'
     blob = 'base64'
-    if lobs_as_files:
-        txt_file = os.path.join(data_dir, table + '_lobs.txt')
-        table_columns[table + '_lobs']
-        clob = 'true'
-        blob = 'file'
 
-    source_query = 'SELECT "' + '","'.join(colums) + '"  FROM PUBLIC."' + table + '"'
+    for index, column in enumerate(columns):
+        if '|| ROWNUM() AS' not in column:
+            columns[index] = '"' + column + '"'
+
+    source_query = 'SELECT ' + ','.join(columns) + '  FROM PUBLIC."' + table + '"'
     export_data_list = ["WbExport ",
                         "-type=text ",
                         "-file = " + txt_file + " ",
@@ -85,38 +112,8 @@ def export_table(data_dir, lobs_as_files, batch, jdbc_url, table, table_columns)
     result = batch.runScript(''.join(export_data_list))
     batch.runScript("WbDisconnect;")
     jp.java.lang.System.gc()
-    return result
 
-
-# def get_tables(driver_class, jdbc_url, driver_jar):
-#     conn = jaydebeapi.connect(driver_class, jdbc_url, ['', ''], driver_jar)
-#     tables = []
-#     table_columns = {}
-#     try:
-#         curs = conn.cursor()
-#         curs.execute("SHOW TABLES;")
-#         data = curs.fetchall()
-#         tables = [str(x[0]) for x in data]
-
-#         for table in tables:
-#             # Get column names of table:
-#             # TODO: Finnes db-uavhengig måte å begrense til kun en linje hentet ut?
-#             get_columns = 'SELECT * from "' + table + '";'
-#             print(get_columns)
-#             curs.execute(get_columns)
-#             table_columns[table] = [str(desc[0]) for desc in curs.description]
-
-#     except Exception as e:
-#         print(e)
-#         return 'error'
-
-#     finally:
-#         if curs is not None:
-#             curs.close()
-#         if conn is not None:
-#             conn.close()
-
-#     return tables, table_columns
+    return str(result)
 
 
 def get_tables(sub_systems_dir, sub_system):
@@ -130,7 +127,8 @@ def get_tables(sub_systems_dir, sub_system):
     for table_def in table_defs:
         # TODO: Sjekk om disposed lagt til mm i metadata.xml før denne kjører
         disposed = table_def.find('disposed')
-        if disposed == 'true':
+
+        if disposed.text == 'true':
             continue
 
         table_name = table_def.find('table-name')
@@ -143,10 +141,16 @@ def get_tables(sub_systems_dir, sub_system):
         for column_def in column_defs:
             column_name = column_def.find('column-name')
             java_sql_type = column_def.find('java-sql-type')
-            if int(java_sql_type.text) == -16 and db_type == 'Microsoft SQL Server':
-                file_columns.append(column_name.text)
-            else:
-                text_columns.append(column_name.text)
+            # TODO: Sjekk på lengde på denne om den skal eskporteres eller ikke?
+            # -> hva er originalt navn på felttypen. Kan en bruke det direkte heller?
+            # TODO: -> ingen av de sjekkene er god nok-> en må finne maks reell lengde pr kolonne
+            column_name_fixed = column_name.text
+            if int(java_sql_type.text) == -16 and db_type.text == 'Microsoft SQL Server':
+                file_columns.append(column_name_fixed)
+                file_name_stem = "'" + table_name.text + "_" + column_name_fixed + "_" + "'"
+                column_name_fixed = file_name_stem + ' || ROWNUM() AS "' + column_name_fixed + '"'
+
+            text_columns.append(column_name_fixed)
 
         if text_columns:
             table_columns[table_name.text] = text_columns
@@ -160,7 +164,6 @@ def get_tables(sub_systems_dir, sub_system):
 def export_db_schema(data_dir, sub_system, class_path, bin_dir, memory, sub_systems_dir):
     database_dir = os.path.join(data_dir, 'database')
     jdbc_url = 'jdbc:h2:' + database_dir + os.path.sep + sub_system + ';LAZY_QUERY_EXECUTION=1;TRACE_LEVEL_FILE=0'
-    # driver_class = 'org.h2.Driver'
     driver_jar = os.path.join(bin_dir, 'vendor', 'jars', 'h2.jar')
     class_paths = class_path + get_java_path_sep() + driver_jar
     batch = wb_batch(class_paths, memory)
@@ -170,12 +173,14 @@ def export_db_schema(data_dir, sub_system, class_path, bin_dir, memory, sub_syst
 
     for table in tables:
         if table in table_columns:
-            lobs_as_files = False
-            export_table(data_dir, lobs_as_files, batch, jdbc_url, table, table_columns)
+            result = export_text_columns(data_dir, batch, jdbc_url, table, table_columns)
+            if result == 'Error':
+                return result
 
         if table + '_lobs' in table_columns:
-            lobs_as_files = True
-            export_table(data_dir, lobs_as_files, batch, jdbc_url, table, table_columns)
+            result = export_lob_columns(data_dir, batch, jdbc_url, table, table_columns)
+            if result == 'Error':
+                return result
 
     return tables
 
@@ -237,12 +242,20 @@ def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir)
             Path(data_docs_dir).mkdir(parents=True, exist_ok=True)
 
             tables = export_db_schema(data_dir, sub_system, class_path, bin_dir, memory, sub_systems_dir)
+            if tables == 'Error':
+                return tables
+
             if tables:
                 dispose_tables(sub_systems_dir, sub_system, tables, tmp_dir)
                 shutil.rmtree(database_dir)
 
                 for data_file in glob.iglob(data_dir + os.path.sep + '*.data'):
                     shutil.move(data_file, data_docs_dir)
+
+                for text_file in glob.iglob(data_dir + os.path.sep + '*_lobs.txt'):
+                    os.remove(text_file)
+
+        return  # TODO: For test. Fjern etterpå
 
         if len(os.listdir(data_docs_dir)) == 0:
             os.rmdir(data_docs_dir)

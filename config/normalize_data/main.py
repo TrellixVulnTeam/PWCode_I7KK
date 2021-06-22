@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 from common.file import get_checksum
 from common.process_metadata_pre import normalize_metadata
@@ -54,12 +55,13 @@ def main():
             tar.extractall(path=project_dir)
 
     # TODO: Hent java path
-    normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir)
-    normalize_metadata(project_dir, config_dir)
+    result = normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir)
+    if result == 'Error':
+        return result
+
+    result = normalize_metadata(project_dir, config_dir)
     # TODO: Kommentert ut linje foreløpig for raskere tester
     # load_data(project_dir, config_dir)
-
-    # TODO: Ny def her "test_data"
 
     # process_files(project_dir)
 
@@ -97,5 +99,8 @@ def main():
 
 
 if __name__ == '__main__':
-    msg = main()
-    print(msg)
+    result = main()
+    if result == 'Error':
+        print(result, file=sys.stderr)
+    else:
+        print(result)
