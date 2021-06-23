@@ -130,6 +130,7 @@ def load_data(project_dir, config_dir):
                     reset_after_statements[db] = sql_bin[db] + ' -S ' + users[db] + '/' + passwords[db] + '@localhost < ' + reset_files[db]
                     create_schema_statements[db] = '$sql_bin -S $user/$password@$host < $ddl_file'
                     import_statements[db] = '$import_bin $user/$password@$host errors=0 skip=1 bindsize=20000000 readsize=20000000 direct=true control="$table".ctl data="$data_path""$table".tsv'
+                    # TODO: Kan en kutte utskifting under helt når nå har kode for å eksportere som fil alt over 4000 tegn?
                     repls = (
                         (" text,", " clob,"),
                         (" text)", " clob)"),

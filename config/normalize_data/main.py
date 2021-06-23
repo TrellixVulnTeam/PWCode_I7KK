@@ -77,25 +77,7 @@ def main():
 # -- Clean up
 # WbSysExec -ifNotEmpty=wim_path -program='python3' -argument='"$[pwb_path]/cleanup.py"' -env="PATH=$[py_path]";
 
-    # for dir in os.listdir(sub_systems_dir):
-    #     docs_dir = sub_systems_dir + "/" + dir + "/content/documents"
-
-    # tree = ET.parse(config_path)
-    # subsystems = list(tree.find('subsystems'))
-    # for subsystem in subsystems:
-    #     folders_tag = subsystem.find('folders')
-    #     if folders_tag:
-    #         docs_dir = sub_systems_dir + subsystem.tag + "/content/documents/"
-    #         Path(docs_dir).mkdir(parents=True, exist_ok=True)
-
-    #     data_dir = sub_systems_dir + "/" + subsystem.tag + "/content/data/"
-    #     data_docs_dir = sub_systems_dir + "/" + subsystem.tag + "/content/data_documents/"
-    #     h2_file = data_dir + subsystem.tag + ".mv.db"
-    #     if os.path.isfile(h2_file):
-    #         for dir in [data_docs_dir, data_dir]:
-    #             Path(dir).mkdir(parents=True, exist_ok=True)
-
-    # TODO: Legg inn sjekk på om finnes upakket mappestruktur hvis ikke tar. Ha i config om pakket eller ikke? Ja -> sjekksum henger jo sammen med den
+# TODO: Legg inn sjekk på om finnes upakket mappestruktur hvis ikke tar. Ha i config om pakket eller ikke? Ja -> sjekksum henger jo sammen med den
 
 
 if __name__ == '__main__':

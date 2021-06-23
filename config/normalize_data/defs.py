@@ -26,6 +26,8 @@ import jpype as jp
 import jpype.imports
 import xml.etree.ElementTree as ET
 from common.metadata import run_tika
+from common.database import run_select
+from database.jdbc import Jdbc
 from common.convert import convert_folder, file_convert
 
 
@@ -114,16 +116,14 @@ def export_text_columns(data_dir, batch, jdbc_url, table, table_columns):
     return str(result)
 
 
-def get_tables(sub_systems_dir, sub_system):
+def get_tables(sub_systems_dir, sub_system, jdbc_url, driver_jar):
     tables = []
     table_columns = {}
     schema_file = os.path.join(sub_systems_dir, sub_system, 'header', 'metadata.xml')
     tree = ET.parse(schema_file)
-    db_type = tree.find('database-product-name')
 
     table_defs = tree.findall('table-def')
     for table_def in table_defs:
-        # TODO: Sjekk om disposed lagt til mm i metadata.xml før denne kjører
         disposed = table_def.find('disposed')
 
         if disposed.text == 'true':
@@ -139,14 +139,23 @@ def get_tables(sub_systems_dir, sub_system):
         for column_def in column_defs:
             column_name = column_def.find('column-name')
             java_sql_type = column_def.find('java-sql-type')
-            # TODO: Sjekk på lengde på denne om den skal eskporteres eller ikke?
-            # -> hva er originalt navn på felttypen. Kan en bruke det direkte heller?
-            # TODO: -> ingen av de sjekkene er god nok-> en må finne maks reell lengde pr kolonne
+            dbms_data_size = column_def.find('dbms-data-size')
             column_name_fixed = column_name.text
-            if int(java_sql_type.text) == -16 and db_type.text == 'Microsoft SQL Server':
-                file_columns.append(column_name_fixed)
-                file_name_stem = "'" + table_name.text + "_" + column_name_fixed + "_" + "'"
-                column_name_fixed = file_name_stem + ' || ROWNUM() AS "' + column_name_fixed + '"'
+
+            if int(java_sql_type.text) in (-4, -3, -2, 2004, 2005, 2011, -16):
+                if int(dbms_data_size.text) > 4000:  # TODO: Sikkert ikke riktig for alle datatyper over
+                    jdbc = Jdbc(jdbc_url, '', '', '', 'PUBLIC', driver_jar, 'org.h2.Driver', True, True)
+                    length_query = f'''SELECT MAX(LENGTH("{column_name_fixed}")) FROM "{table_name.text}"'''
+                    result = run_select(jdbc, length_query)
+                    max_length = [x[0] for x in result][0]
+                    if max_length is None:
+                        # TODO: Fjerner tom kolonne fra uttrekk. Legg inn tilsvarende for andre her med count?
+                        continue
+
+                    if max_length > 4000:
+                        file_columns.append(column_name_fixed)
+                        file_name_stem = "'" + table_name.text + "_" + column_name_fixed + "_" + "'"
+                        column_name_fixed = file_name_stem + ' || ROWNUM() AS "' + column_name_fixed + '"'
 
             text_columns.append(column_name_fixed)
 
@@ -167,7 +176,7 @@ def export_db_schema(data_dir, sub_system, class_path, bin_dir, memory, sub_syst
     batch = wb_batch(class_paths, memory)
 
     # tables, table_columns = get_tables(driver_class, jdbc_url, driver_jar)
-    tables, table_columns = get_tables(sub_systems_dir, sub_system)
+    tables, table_columns = get_tables(sub_systems_dir, sub_system, jdbc_url, driver_jar)
 
     for table in tables:
         if table in table_columns:
@@ -255,8 +264,6 @@ def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir)
 
                 for text_file in glob.iglob(data_dir + os.path.sep + '*_lobs.txt'):
                     os.remove(text_file)
-
-        return  # TODO: For test. Fjern etterpå
 
         if len(os.listdir(data_docs_dir)) == 0:
             os.rmdir(data_docs_dir)

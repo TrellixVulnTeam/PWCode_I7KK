@@ -24,6 +24,7 @@ from database.jdbc import Jdbc
 from common.jvm import init_jvm, wb_batch
 from common.print import print_and_exit
 from common.xml import indent
+from common.database import run_select
 import re
 import shutil
 
@@ -408,16 +409,6 @@ def run_ddl(jdbc, sql):
 
     if result != 'Success':
         print_and_exit(result)
-
-
-def run_select(jdbc, sql):
-    conn = jdbc.connection
-    cursor = conn.cursor()
-    cursor.execute(sql)
-    result = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return result
 
 
 def gen_sync_table(table, columns, target_url, driver_jar, driver_class, source_query):
