@@ -53,19 +53,19 @@ def get_java_path_sep():
 
 def export_lob_columns(data_dir, batch, jdbc_url, table, table_columns):
     txt_file = os.path.join(data_dir, table + '_lobs.txt')
-    clob = 'true'
-    blob = 'file'
     for column in table_columns[table + '_lobs']:
         file_name = "'" + table + "_" + column + "_" + "'" + " || rownum() || '.data'"
-        condition = f'''WHERE NULLIF("{column}", '') IS NOT NULL'''
-        source_query = 'SELECT "' + column + '",' + file_name + ' as fname FROM PUBLIC."' + table + '"' + condition
+        # condition = f'''WHERE NULLIF("{column}", '') IS NOT NULL'''
+        source_query = 'SELECT "' + column + '",' + file_name + ' as fname FROM PUBLIC."' + table + '"' # + condition
+        # TODO: Må legge inn oppdatering av felt i tsv-fil slik at referanse til filnavn ikke finnes for de feltene som ikke har fil på disk
+        # --> gjøre det ifm oppdatering av felt etter normalisering av filer?
 
         export_data_list = ["WbExport ",
                             "-type=text ",
                             "-file = " + txt_file + " ",
-                            "-continueOnError = false ",
-                            "-clobAsFile = " + clob + " ",
-                            "-blobtype = " + blob + " ",
+                            "-continueOnError=false ",
+                            "-clobAsFile=true ",
+                            "-blobtype=file ",
                             "-showProgress=10000 ",
                             "-filenameColumn=fname ",
                             ";" + source_query + ";"
@@ -83,8 +83,6 @@ def export_text_columns(data_dir, batch, jdbc_url, table, table_columns):
     batch.runScript("WbConnect -url='" + jdbc_url + "';")
     txt_file = os.path.join(data_dir, table + '.txt')
     columns = table_columns[table]
-    clob = 'false'
-    blob = 'base64'
 
     for index, column in enumerate(columns):
         if '|| ROWNUM() AS' not in column:
@@ -93,15 +91,15 @@ def export_text_columns(data_dir, batch, jdbc_url, table, table_columns):
     source_query = 'SELECT ' + ','.join(columns) + '  FROM PUBLIC."' + table + '"'
     export_data_list = ["WbExport ",
                         "-type=text ",
-                        "-file = " + txt_file + " ",
-                        "-continueOnError = false ",
+                        "-file=" + txt_file + " ",
+                        "-continueOnError=false ",
                         "-encoding=UTF8 ",
                         "-header=true ",
                         "-decimal='.' ",
                         "-maxDigits=0 ",
                         "-lineEnding=lf ",
-                        "-clobAsFile = " + clob + " ",
-                        "-blobtype = " + blob + " ",
+                        "-clobAsFile=false ",
+                        "-blobtype=base64 ",
                         "-delimiter=\t ",
                         "-replaceExpression='(\n|\r\n|\r|\t|^$)' -replaceWith=' ' ",
                         "-nullString=' ' ",
@@ -250,7 +248,10 @@ def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir)
                 shutil.rmtree(database_dir)
 
                 for data_file in glob.iglob(data_dir + os.path.sep + '*.data'):
-                    shutil.move(data_file, data_docs_dir)
+                    if os.path.getsize(data_file) == 0:
+                        os.remove(data_file)
+                    else:
+                        shutil.move(data_file, data_docs_dir)
 
                 for text_file in glob.iglob(data_dir + os.path.sep + '*_lobs.txt'):
                     os.remove(text_file)

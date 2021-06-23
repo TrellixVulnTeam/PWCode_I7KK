@@ -122,6 +122,7 @@ def eml2pdf(args):
 @add_converter()
 def x2utf8(args):
     # TODO: Sjekk om beholder extension alltid (ikke endre csv, xml mm)
+    # TODO: Test å bruke denne heller enn/i tillegg til replace under: https://ftfy.readthedocs.io/en/latest/
 
     repls = (
         ('‘', 'æ'),
