@@ -62,19 +62,7 @@ def main():
     result = normalize_metadata(project_dir, config_dir)
     load_data(project_dir, config_dir)
 
-    # process_files(project_dir)
-
     return 'Juhuu :)'
-
-
-# TODO: Rekkefølge:
-# Gjort så langt
-# -- Test data import
-# WbSysExec -ifNotEmpty=wim_path -program='python3' -argument='"$[pwb_path]/process_metadata_check.py"' -env="PATH=$[py_path]";
-# -- Save log/unmount wim image
-# WbSysExec -ifNotEmpty=wim_path -program='python3' -argument='"$[pwb_path]/wim_umount.py"' -env="PATH=$[py_path]";
-# -- Clean up
-# WbSysExec -ifNotEmpty=wim_path -program='python3' -argument='"$[pwb_path]/cleanup.py"' -env="PATH=$[py_path]";
 
 # TODO: Legg inn sjekk på om finnes upakket mappestruktur hvis ikke tar. Ha i config om pakket eller ikke? Ja -> sjekksum henger jo sammen med den
 
