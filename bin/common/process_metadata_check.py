@@ -26,6 +26,7 @@ from functools import reduce
 
 def load_data(project_dir, config_dir):
     sub_systems_dir = os.path.join(project_dir, 'content', 'sub_systems')
+    python_path = os.environ['pwcode_python_path']
     # config = SafeConfigParser()
     # tmp_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'tmp'))
     ora_reset_script = os.path.abspath(os.path.join(os.path.dirname(__file__), 'sql/oracle_reset.sql'))
@@ -195,7 +196,8 @@ def load_data(project_dir, config_dir):
                     schemas[db] = ' #Not needed for sqlite'
                     db_names[db] = '/tmp/pwb.db #Name and path of created db-file. Deleted first on rerun'
                     sql_bin[db] = '/usr/bin/sqlite3'
-                    import_bins[db] = '"python3 tsv2sqlite.py"'
+                    import_bins[db] = '"' + python_path + ' tsv2sqlite.py"'
+                    # import_bins[db] = '"python3 tsv2sqlite.py"'
                     ddl_files[db] = os.path.join(documentation_folder, 'metadata.sql')
                     reset_before_statements[db] = 'rm "$db_name" 2> /dev/null'
                     reset_after_statements[db] = 'echo "*********************************** \n All databases imported successfully"'
@@ -226,5 +228,12 @@ def load_data(project_dir, config_dir):
                             reset_after_statements[db],
                             shell=True,
                             cwd=os.path.join(documentation_folder, db + '_import'))
+
+                        if db == 'sqlite':
+                            with open(import_sql_files[db]) as f:
+                                new_text = f.read().replace(python_path, 'python3')
+
+                            with open(import_sql_files[db], 'w') as f:
+                                f.write(new_text)
 
                     sys.stdout.flush()

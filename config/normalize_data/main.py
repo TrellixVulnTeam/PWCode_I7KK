@@ -60,8 +60,7 @@ def main():
         return result
 
     result = normalize_metadata(project_dir, config_dir)
-    # TODO: Kommentert ut linje foreløpig for raskere tester
-    # load_data(project_dir, config_dir)
+    load_data(project_dir, config_dir)
 
     # process_files(project_dir)
 

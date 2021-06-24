@@ -126,6 +126,7 @@ if __name__ == "__main__":
         os.environ['pwcode_java_path'] = os.path.join(bin_dir, 'vendor', 'linux', 'jre', 'bin', 'java')
         os.environ['JAVA_HOME'] = os.path.join(bin_dir, 'vendor', 'linux')
         python_path = os.path.join(bin_dir, 'vendor', 'linux', 'python', 'usr', 'bin', 'python')
+        os.environ['pwcode_python_path'] = python_path
         fix_desktop_file(bin_dir, pwcode_icon_file, 'PWCode.desktop')
         fix_desktop_file(bin_dir, sqlwb_icon_file, 'SQLWB.desktop')
         fix_desktop_file(bin_dir, python_icon_file, 'Python.desktop')

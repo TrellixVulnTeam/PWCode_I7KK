@@ -53,6 +53,10 @@ class NormalizedHeaderView(Table):
 
 
 # http://www.docjar.com/html/api/java/sql/Types.java.html
+# TODO: Test for XML:
+# The only way to retrieve and update XMLType columns using SQL Workbench/J is to cast the columns to a CLOB
+# value e.g. CAST(xml_column AS CLOB) or to_clob(xml_column)
+#
 # Mangler disse for alle i JDBC 4.0: ROWID=-8 og SQLXML=2009
 #                        jdbc-id  iso-name               jdbc-name
 jdbc_to_iso_data_type = {
@@ -158,12 +162,8 @@ def sort_dependent_tables(table_defs, base_path, empty_tables, illegal_tables):
 
     return deps_list
 
-            #    if len(table_name.text) > 29:
-            #        t_count += 1
-            #        table_name.text = table_name.text[:26] + "_" + str(t_count) + "_"
-            #        illegal_tables[old_table_name.text] = table_name.text
 
-def normalize_name(name, illegal_dict, t_count = 0):
+def normalize_name(name, illegal_dict, t_count=0):
     repls = (
         ('æ', 'ae'),
         ('ø', 'oe'),
@@ -495,9 +495,7 @@ def normalize_metadata(project_dir, config_dir):
                 constraint_dict[table_name_norm] = ','.join(constraint_set).lower()
 
                 column_defs = table_def.findall("column-def")
-                column_defs[:] = sorted(
-                    column_defs,
-                    key=lambda elem: int(elem.findtext('dbms-position')))
+                column_defs[:] = sorted(column_defs, key=lambda elem: int(elem.findtext('dbms-position')))
                 # WAIT: Sortering virker men blir ikke lagret til xml-fil. Fiks senere når lage siard/datapackage-versjoner
 
                 ddl_columns_list = []
