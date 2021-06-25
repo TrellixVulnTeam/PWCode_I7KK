@@ -55,9 +55,9 @@ mime_to_norm = {
     'application/xhtml+xml': (False, 'wkhtmltopdf', 'pdf'),
     # 'application/xml': (False, 'file_copy', 'xml'),
     'application/xml': (False, 'x2utf8', 'xml'),
-    'application/x-elf': (False, 'what?', None),  # executable on lin
-    'application/x-msdownload': (False, 'what?', None),  # executable on win
-    'application/x-ms-installer': (False, 'what?', None),  # Installer on win
+    # 'application/x-elf': (False, 'what?', None),  # executable on lin
+    # 'application/x-msdownload': (False, 'what?', None),  # executable on win
+    # 'application/x-ms-installer': (False, 'what?', None),  # Installer on win
     'application/x-tika-msoffice': (False, 'delete_file', None),  # TODO: Skriv funksjon ferdig
     'application/zip': (False, 'extract_nested_zip', 'zip'),  # TODO: Legg inn for denne
     'image/gif': (False, 'image2norm', 'pdf'),
