@@ -15,6 +15,7 @@
 
 import jpype as jp
 import jpype.imports
+import jpype.config
 
 
 # TODO: Fjern java path som arg når testet nok først. Eller enklere med den på win?
@@ -23,15 +24,13 @@ def init_jvm(class_paths, max_heap_size):
     if jp.isJVMStarted():
         return
 
-    # TODO: Fiks at prosess henger mot db-fil før pakking av tar-fil
-    # ---> Må oppgradere til 1.3 når den blir tilgjengelig -> så kan bruke nytt valg for å avslutte java-prosess
-    # -> sannsynlig pga denne: https://github.com/jpype-project/jpype/issues/936
-    # -> Må få inn denne etter oppdatering av jpype: jpype.config.destroy_jvm = False (tilgjengelig i 1.3)
+    jp.config.destroy_jvm = False
     jp.startJVM(jp.getDefaultJVMPath(),  # java_path,
                 '-Djava.class.path=%s' % class_paths,
                 '-Dfile.encoding=UTF8',
                 '-ea', max_heap_size,
                 )
+
 
 
 def wb_batch(class_paths, max_java_heap):

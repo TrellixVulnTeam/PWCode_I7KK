@@ -24,7 +24,6 @@ install_python_runtime() {
     fi
 }
 
-# WAIT: Endre senere så både windows og linux bruker samme versjon av jpype (når bugs fikset der og i jaydebeapi)
 # WAIT: Endre så mindre blir installert når ikke installert på PWLinux?
 install_python_packages() {
     if [ -e $PYTHON_BIN ]; then
