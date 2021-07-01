@@ -460,12 +460,11 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
     batch = wb_batch(class_path, max_java_heap)
     Path(os.path.join(subsystem_dir, 'content', 'data', 'database')).mkdir(parents=True, exist_ok=True)
     target_url = 'jdbc:h2:' + os.path.join(subsystem_dir, 'content', 'data', 'database', s_jdbc.db_name + '_' + s_jdbc.db_schema) + ';autocommit=off'
-    # target_url = 'jdbc:hsqldb:' + os.path.join(subsystem_dir, 'content', 'data', 'database', s_jdbc.db_name + '_' + s_jdbc.db_schema) + ';autocommit=false;hsqldb.log_data=false;sql.syntax_pgs=true'
+
+    # TODO: Må ha separate taget og source table names?
+    # table = s_jdbc.db_schema + '_' + table
 
     target_url, driver_jar, driver_class = get_db_details(target_url, bin_dir)
-    print(target_url)
-    print(driver_jar)
-    print(driver_class)
     t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)
     target_tables = get_target_tables(t_jdbc)
     pk_dict = get_primary_keys(subsystem_dir, export_tables)
@@ -511,8 +510,6 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
                 params = mode + std_params + ' -createTarget=true -dropTarget=true'
             elif DDL_GEN == 'Native':
                 t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)
-                # table_name = ddl_columns[table][:-1]
-                # print(table_name)
                 ddl = '\nCREATE TABLE "' + table + '"\n(\n' + ddl_columns[table][:-1] + '\n);'
                 ddl = create_index(table, pk_dict, unique_dict, ddl, t_count)
                 print(ddl)

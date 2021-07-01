@@ -470,6 +470,9 @@ class HomeTab(ttk.Frame):
                 msg = 'Duplicate subsystem name'
             else:
                 subsystem_name = db_name + '_' + db_schema
+                if ',' in db_schema:
+                    subsystem_name = db_name + '_' + db_schema.split(",")[0].strip()
+
                 if len(jdbc_url) == 0:
                     msg = "Missing jdbc connection url for '" + subsystem_name + "'"
                 elif (len(db_user) == 0 or len(db_pwd) == 0):
