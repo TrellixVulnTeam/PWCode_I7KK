@@ -137,7 +137,7 @@ def remove_illegal_characters(path):
     shutil.move(path_w, path)
 
 
-def export_schema(class_paths, max_java_heap, subsystem_dir, jdbc, db_tables):
+def export_schema(class_paths, max_java_heap, subsystem_dir, jdbc, schema_names):
     base_dir = os.path.join(subsystem_dir, 'header')
     schema_file = os.path.join(subsystem_dir, 'header', 'metadata.xml')
 
@@ -155,11 +155,10 @@ def export_schema(class_paths, max_java_heap, subsystem_dir, jdbc, db_tables):
     # TODO: Fjernet foreløpig SYNONYM, fra types under
     # --> Hvorfor ble ikke SYNONYM håndtert -> sjekk i senere kode. Var dette evt tilfelle hvor synonym ikke er annet navn på table
     # men annen type dataobjekt?
-    gen_report_str = "WbSchemaReport -file=metadata.xml -schemas=" + jdbc.db_schema + " -types=TABLE,VIEW -includeProcedures=true \
+    gen_report_str = "WbSchemaReport -file=metadata.xml -schemas=" + schema_names + " -types=TABLE,VIEW -includeProcedures=true \
                             -includeTriggers=true -writeFullSource=true;"
     batch.runScript(gen_report_str)
     remove_illegal_characters(schema_file)
-    add_row_count_to_schema_file(subsystem_dir, db_tables)
 
 
 def get_java_path_sep():
@@ -206,7 +205,7 @@ def test_db_connect(JDBC_URL, bin_dir, class_path,  java_path, MAX_JAVA_HEAP, DB
         return 'Not a supported jdbc url. Exiting'
 
 
-def export_db_schema(JDBC_URL, bin_dir, class_path, java_path, MAX_JAVA_HEAP, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, subsystem_dir, INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, DDL_GEN):
+def export_db_schema(JDBC_URL, bin_dir, class_path, java_path, MAX_JAVA_HEAP, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA, subsystem_dir, INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, DDL_GEN, schema_names):
     url, driver_jar, driver_class = get_db_details(JDBC_URL, bin_dir)
     if driver_jar and driver_class:
         # Start Java virtual machine if not started already:
@@ -217,7 +216,8 @@ def export_db_schema(JDBC_URL, bin_dir, class_path, java_path, MAX_JAVA_HEAP, DB
             if jdbc:
                 # Get database metadata:
                 db_tables, table_columns = get_db_meta(jdbc)  # WAIT: Fiks så ikke henter to ganger (også i test)
-                export_schema(class_paths, MAX_JAVA_HEAP, subsystem_dir, jdbc, db_tables)
+                export_schema(class_paths, MAX_JAVA_HEAP, subsystem_dir, jdbc, schema_names)
+                add_row_count_to_schema_file(subsystem_dir, db_tables)
                 export_tables, overwrite_tables = table_check(INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, db_tables)
 
             if export_tables:
@@ -250,11 +250,7 @@ def get_db_meta(jdbc):
 
     # Get row count per table:
     for table in tables:
-        # TODO: Endre så ikke viser select når testet med alle støttede db-typer
-        # get_count = 'SELECT COUNT(*) from ' + jdbc.db_schema + '.' + table + ';'
         get_count = 'SELECT COUNT(*) from "' + jdbc.db_schema + '"."' + table + '"'
-        # get_count = 'SELECT COUNT(*) from "' + table + '";'
-        print(get_count)
         cursor.execute(get_count)
         (row_count,) = cursor.fetchone()
         db_tables[table] = row_count
@@ -262,7 +258,7 @@ def get_db_meta(jdbc):
         # Get column names of table:
         # TODO: Finnes db-uavhengig måte å begrense til kun en linje hentet ut?
         get_columns = 'SELECT * from "' + jdbc.db_schema + '"."' + table + '"'
-        print(get_columns)
+        # print(get_columns)
         cursor.execute(get_columns)
         table_columns[table] = [str(desc[0]) for desc in cursor.description]
 
@@ -459,7 +455,8 @@ def create_index(table, pk_dict, unique_dict, ddl, t_count):
 def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tables, bin_dir, table_columns, overwrite_tables, DDL_GEN):
     batch = wb_batch(class_path, max_java_heap)
     Path(os.path.join(subsystem_dir, 'content', 'data', 'database')).mkdir(parents=True, exist_ok=True)
-    target_url = 'jdbc:h2:' + os.path.join(subsystem_dir, 'content', 'data', 'database', s_jdbc.db_name + '_' + s_jdbc.db_schema) + ';autocommit=off'
+    # target_url = 'jdbc:h2:' + os.path.join(subsystem_dir, 'content', 'data', 'database', s_jdbc.db_name + '_' + s_jdbc.db_schema) + ';autocommit=off'
+    target_url = 'jdbc:h2:' + os.path.join(subsystem_dir, 'content', 'data', 'database', s_jdbc.db_name) + ';autocommit=off'
 
     # TODO: Må ha separate taget og source table names?
     # table = s_jdbc.db_schema + '_' + table

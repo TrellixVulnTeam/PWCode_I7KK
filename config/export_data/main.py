@@ -177,7 +177,8 @@ def main():
                 include_tables,
                 exclude_tables,
                 overwrite_tables,
-                ddl
+                ddl,
+                schema_names
             )
 
             if db_result != 'ok':
@@ -199,7 +200,6 @@ def main():
     # TODO: Fortsatt wim for eksporterte mapper på win -> fiks installer slik at win programvare installeres
     # TODO: Sjekk om ext på 'archive' under blir feilaktig win når på windows -> ser ut til å skulle være tar for win også
     if package:
-        print(archive)  # TODO: For test
         capture_files(bin_dir, project_dir, archive, exclude)
         for sub_dir_path in [f.path for f in os.scandir(project_dir) if f.is_dir()]:
             if sub_dir_path != os.path.join(project_dir, '.pwcode'):
