@@ -26,7 +26,6 @@ import socket
 import fileinput
 from pathlib import Path
 from app import App
-from blake3 import blake3, KEY_LEN, OUT_LEN
 
 
 def find_free_port():
