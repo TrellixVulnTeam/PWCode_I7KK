@@ -17,6 +17,7 @@ import os
 import subprocess
 from pathlib import Path
 import glob
+import fnmatch
 import tarfile
 import jaydebeapi
 import shutil
@@ -117,7 +118,7 @@ def export_text_columns(data_dir, batch, jdbc_url, table, table_columns):
     return str(result)
 
 
-def get_tables(sub_systems_dir, sub_system, jdbc_url, driver_jar):
+def get_tables(sub_systems_dir, sub_system, jdbc_url, driver_jar, schema):
     tables = []
     table_columns = {}
     schema_file = os.path.join(sub_systems_dir, sub_system, 'header', 'metadata.xml')
@@ -125,8 +126,13 @@ def get_tables(sub_systems_dir, sub_system, jdbc_url, driver_jar):
 
     table_defs = tree.findall('table-def')
     for table_def in table_defs:
-        disposed = table_def.find('disposed')
 
+        # TODO: Endre så kode under brukes igjen etter IST
+        # table_schema = table_def.find('table-schema')
+        # if table_schema.text != schema:
+        #     continue
+
+        disposed = table_def.find('disposed')
         if disposed.text == 'true':
             continue
 
@@ -150,8 +156,11 @@ def get_tables(sub_systems_dir, sub_system, jdbc_url, driver_jar):
             # Test om får eksportert til fil ved å bruke dette: CAST("fldØnsker" AS CLOB)
             if int(java_sql_type.text) in (-4, -3, -2, 2004, 2005, 2011, -16):
                 if int(dbms_data_size.text) > 4000:  # TODO: Sikkert ikke riktig for alle datatyper over
-                    jdbc = Jdbc(jdbc_url, '', '', '', 'PUBLIC', driver_jar, 'org.h2.Driver', True, True)
-                    length_query = f'''SELECT MAX(LENGTH("{column_name_fixed}")) FROM "{table_name.text}"'''
+
+                    # # TODO: Endre linje under når ferdig med IST filkonvertering -> eller skulle
+                    # schema = 'PUBLIC'
+                    jdbc = Jdbc(jdbc_url, '', '', '', schema, driver_jar, 'org.h2.Driver', True, True)
+                    length_query = f'''SELECT MAX(LENGTH("{column_name_fixed}")) FROM "{schema}"."{table_name.text}"'''
                     result = run_select(jdbc, length_query)
                     max_length = [x[0] for x in result][0]
                     # TODO: Endre senere her slik at tomme felt ikke skrives til text_columns så fjernes i tsv
@@ -173,15 +182,28 @@ def get_tables(sub_systems_dir, sub_system, jdbc_url, driver_jar):
     return tables, table_columns
 
 
-def export_db_schema(data_dir, sub_system, class_path, bin_dir, memory, sub_systems_dir):
-    database_dir = os.path.join(data_dir, 'database')
-    jdbc_url = 'jdbc:h2:' + database_dir + os.path.sep + sub_system + ';LAZY_QUERY_EXECUTION=1;TRACE_LEVEL_FILE=0'
+def get_schemas(sub_systems_dir, sub_system):
+    schemas = []
+    schema_file = os.path.join(sub_systems_dir, sub_system, 'header', 'metadata.xml')
+    tree = ET.parse(schema_file)
+
+    table_defs = tree.findall('table-def')
+    for table_def in table_defs:
+        table_schema = table_def.find('table-schema')
+        if table_schema.text not in schemas:
+            schemas.append(table_schema.text)
+
+    return schemas
+
+
+def export_db_schema(data_dir, sub_system, class_path, bin_dir, memory, sub_systems_dir, schema, db_file):
+    # database_dir = os.path.join(data_dir, 'database')
+    # jdbc_url = 'jdbc:h2:' + database_dir + os.path.sep + sub_system + ';LAZY_QUERY_EXECUTION=1;TRACE_LEVEL_FILE=0'
+    jdbc_url = 'jdbc:h2:' + db_file[:-6] + ';LAZY_QUERY_EXECUTION=1;TRACE_LEVEL_FILE=0'
     driver_jar = os.path.join(bin_dir, 'vendor', 'jars', 'h2.jar')
     class_paths = class_path + get_java_path_sep() + driver_jar
     batch = wb_batch(class_paths, memory)
-
-    # tables, table_columns = get_tables(driver_class, jdbc_url, driver_jar)
-    tables, table_columns = get_tables(sub_systems_dir, sub_system, jdbc_url, driver_jar)
+    tables, table_columns = get_tables(sub_systems_dir, sub_system, jdbc_url, driver_jar, schema)
 
     for table in tables:
         if table in table_columns:
@@ -239,6 +261,13 @@ def dispose_tables(sub_systems_dir, sub_system, tables, tmp_dir):
     tree.write(schema_file, encoding='utf-8')
 
 
+def get_db_file(database_dir, db_path):
+    for file_name in os.listdir(database_dir):
+        file_path = os.path.join(database_dir, file_name)
+        if fnmatch.fnmatch(file_path, db_path):
+            return file_path
+
+
 def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir):
     sub_systems_dir = os.path.join(project_dir, 'content', 'sub_systems')
     tika_tmp_dir = os.path.join(tmp_dir, 'tika')
@@ -248,17 +277,25 @@ def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir)
         # process db's:
         data_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'data')
         database_dir = os.path.join(data_dir, 'database')
-        db_file = os.path.join(database_dir, sub_system + '.mv.db')
         data_docs_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'data_documents_tmp')
-        if os.path.isfile(db_file):
+        db_path = os.path.join(database_dir, '*.mv.db')
+        db_file = get_db_file(database_dir, db_path)
+
+        if db_file:
             Path(data_docs_dir).mkdir(parents=True, exist_ok=True)
 
-            tables = export_db_schema(data_dir, sub_system, class_path, bin_dir, memory, sub_systems_dir)
+            # schemas = get_schemas(sub_systems_dir, sub_system)
+            # for schema in schemas:
+
+            # TODO: Endre tilbake til variant som henter schemas etter ferdig med IST
+            schema = 'PUBLIC'
+            tables = export_db_schema(data_dir, sub_system, class_path, bin_dir, memory, sub_systems_dir, schema, db_file)
             if tables == 'Error':
                 return tables
 
             if tables:
                 dispose_tables(sub_systems_dir, sub_system, tables, tmp_dir)
+                # TODO: Blir feil under i tilfellet flere skjema i kode over?
                 shutil.rmtree(database_dir)
 
                 for data_file in glob.iglob(data_dir + os.path.sep + '*.data'):
@@ -269,9 +306,6 @@ def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir)
 
                 for text_file in glob.iglob(data_dir + os.path.sep + '*_lobs.txt'):
                     os.remove(text_file)
-
-        # TODO: Return under for raskere test
-        # return
 
         if os.path.isdir(data_docs_dir):
             if len(os.listdir(data_docs_dir)) == 0:
