@@ -19,10 +19,8 @@ from pathlib import Path
 import glob
 import fnmatch
 import tarfile
-import jaydebeapi
 import shutil
 from common.jvm import wb_batch
-from common.print import print_and_exit
 import jpype as jp
 import jpype.imports
 import xml.etree.ElementTree as ET
