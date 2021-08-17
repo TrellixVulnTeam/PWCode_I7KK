@@ -247,12 +247,15 @@ def dispose_tables(sub_systems_dir, sub_system, tables, tmp_dir):
     table_defs = tree.findall("table-def")
     for table_def in table_defs:
         table_name = table_def.find("table-name")
-        disposed = ET.Element("disposed")
+
+        disposed = table_def.find("disposed")
+        if disposed is None:
+            disposed = ET.Element("disposed")
+            table_def.insert(5, disposed)
+
         disposed.text = "false"
         if table_name.text not in tables:
             disposed.text = "true"
-
-        table_def.insert(5, disposed)
 
     root = tree.getroot()
     indent(root)

@@ -31,7 +31,7 @@ def load_data(project_dir, config_dir):
     # tmp_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'tmp'))
     ora_reset_script = os.path.abspath(os.path.join(os.path.dirname(__file__), 'sql/oracle_reset.sql'))
     tsv2sqlite_script = os.path.abspath(os.path.join(os.path.dirname(__file__), 'tsv2sqlite.py'))
-    tsv2mssql_script = os.path.abspath(os.path.join(os.path.dirname(__file__), 'tsv2mssql.py'))
+    # tsv2mssql_script = os.path.abspath(os.path.join(os.path.dirname(__file__), 'tsv2mssql.py'))
     # conf_file = tmp_dir + "/pwb.ini"
     # config.read(conf_file)
     # data_dir = os.path.abspath(os.path.join(tmp_dir, '../../', '_DATA'))
