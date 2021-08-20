@@ -1,4 +1,4 @@
-# Copyright (C) 2020 Morten Eek
+# Copyright (C) 2021 Morten Eek
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -55,7 +55,7 @@ def get_java_path_sep():
 def export_lob_columns(data_dir, batch, jdbc_url, table, table_columns):
     txt_file = os.path.join(data_dir, table + '_lobs.txt')
     for column in table_columns[table + '_lobs']:
-        file_name = "'" + table + "_" + column + "_" + "'" + " || rownum() || '.data'"
+        file_name = "'" + table.lower() + "_" + column.lower() + "_" + "'" + " || rownum() || '.data'"
         # condition = f'''WHERE NULLIF("{column}", '') IS NOT NULL'''
         source_query = 'SELECT "' + column + '",' + file_name + ' as fname FROM PUBLIC."' + table + '"' # + condition
         # TODO: Må legge inn oppdatering av felt i tsv-fil slik at referanse til filnavn ikke finnes for de feltene som ikke har fil på disk

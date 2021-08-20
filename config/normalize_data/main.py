@@ -24,6 +24,7 @@ def main():
     project_name = config.get('name')
     package = config.get('options/create_package')
     convert = config.get('options/convert_files')
+    upload = config.get('options/upload')
     memory = '-Xmx' + config.get('options/memory').split(' ')[0] + 'g'
     archive = os.path.join(project_dir, project_name + '.tar')
 
@@ -62,7 +63,8 @@ def main():
 
     result = normalize_metadata(project_dir, config_dir)
     # TODO: Legg inn sjekk her på om databaseservicer startet og start hvis ikke
-    load_data(project_dir, config_dir)
+    if upload == 'Yes':
+        load_data(project_dir, config_dir)
 
     return 'Juhuu :)'
 

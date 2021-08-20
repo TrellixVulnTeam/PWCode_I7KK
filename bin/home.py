@@ -441,6 +441,7 @@ class HomeTab(ttk.Frame):
         config.put('options/ddl', self.project_frame.ddl_option.get())
         config.put('options/create_package', self.project_frame.package_option.get())
         config.put('options/convert_files', 'Yes')
+        config.put('options/upload', 'Yes')
 
         i = 0
         subsystem_names = []
