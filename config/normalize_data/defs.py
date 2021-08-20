@@ -269,7 +269,7 @@ def get_db_file(database_dir, db_path):
             return file_path
 
 
-def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir):
+def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir, convert):
     sub_systems_dir = os.path.join(project_dir, 'content', 'sub_systems')
     tika_tmp_dir = os.path.join(tmp_dir, 'tika')
 
@@ -343,18 +343,19 @@ def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir)
                 subprocess.run('wimunmount --force ' + mount_dir + ' 2>/dev/null', shell=True)
 
             # TODO: Hva er riktig mappe å konvertere til? Sjekk PWB-kode
-            base_target_dir = export_dir + '_normalized'
-            tsv_target_path = os.path.splitext(tsv_file)[0] + '_processed.tsv'
-            result = convert_folder(project_dir, export_dir, base_target_dir, tmp_dir, java_path, tsv_source_path=tsv_file, tsv_target_path=tsv_target_path)
-            print(result)
-            # TODO: Må hente ut denne og kobinere med resultat av konvertering av eksporterte lob'er under slik at vises samlet til slutt
+            if convert == 'Yes':
+                base_target_dir = export_dir + '_normalized'
+                tsv_target_path = os.path.splitext(tsv_file)[0] + '_processed.tsv'
+                result = convert_folder(project_dir, export_dir, base_target_dir, tmp_dir, java_path, tsv_source_path=tsv_file, tsv_target_path=tsv_target_path)
+                print(result)
+                # TODO: Må hente ut denne og kobinere med resultat av konvertering av eksporterte lob'er under slik at vises samlet til slutt
 
-            if 'All files converted' in result:
-                if os.path.isfile(file):
-                    os.remove(file)
+                if 'All files converted' in result:
+                    if os.path.isfile(file):
+                        os.remove(file)
 
-                shutil.rmtree(export_dir)
-                shutil.move(base_target_dir, export_dir)
+                    shutil.rmtree(export_dir)
+                    shutil.move(base_target_dir, export_dir)
 
         if os.path.exists(docs_dir):
             if len(os.listdir(docs_dir)) == 0:
@@ -364,15 +365,16 @@ def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir)
             if len(os.listdir(data_docs_dir)) == 0:
                 os.rmdir(data_docs_dir)
             else:
-                export_dir = data_docs_dir
-                base_target_dir = data_docs_dir[:-4]
-                tsv_file = os.path.join(sub_systems_dir, sub_system, 'header', 'data_documents.tsv')
-                tsv_target_path = os.path.splitext(tsv_file)[0] + '_processed.tsv'
-                result = convert_folder(project_dir, export_dir, base_target_dir, tmp_dir, java_path, tsv_source_path=tsv_file, tsv_target_path=tsv_target_path)
-                print(result)
+                if convert == 'Yes':
+                    export_dir = data_docs_dir
+                    base_target_dir = data_docs_dir[:-4]
+                    tsv_file = os.path.join(sub_systems_dir, sub_system, 'header', 'data_documents.tsv')
+                    tsv_target_path = os.path.splitext(tsv_file)[0] + '_processed.tsv'
+                    result = convert_folder(project_dir, export_dir, base_target_dir, tmp_dir, java_path, tsv_source_path=tsv_file, tsv_target_path=tsv_target_path, make_unique=False)
+                    print(result)
 
-                if 'All files converted' in result:
-                    shutil.rmtree(export_dir)
+                    if 'All files converted' in result:
+                        shutil.rmtree(export_dir)
 
         for file in files:
             mount_dir = os.path.splitext(file)[0] + '_mount'

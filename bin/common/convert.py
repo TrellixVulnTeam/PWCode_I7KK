@@ -475,7 +475,7 @@ def add_fields(fields, table):
     return table
 
 
-def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_path, tika=False, ocr=False, merge=False, tsv_source_path=None, tsv_target_path=None):
+def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_path, tika=False, ocr=False, merge=False, tsv_source_path=None, tsv_target_path=None, make_unique=True):
     # TODO: Legg inn i gui at kan velge om skal ocr-behandles
     txt_target_path = base_target_dir + '_result.txt'
     json_tmp_dir = base_target_dir + '_tmp'
@@ -598,7 +598,9 @@ def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_
             function = mime_to_norm[mime_type][1]
 
             # Ensure unique file names in dir hierarchy:
-            norm_ext = (base64.b32encode(bytes(str(count), encoding='ascii'))).decode('utf8').replace('=', '').lower() + '.' + mime_to_norm[mime_type][2]
+            norm_ext = mime_to_norm[mime_type][2]
+            if make_unique:
+                norm_ext = (base64.b32encode(bytes(str(count), encoding='ascii'))).decode('utf8').replace('=', '').lower() + '.' + mime_to_norm[mime_type][2]
             target_dir = os.path.dirname(source_file_path.replace(base_source_dir, base_target_dir))
             normalized = file_convert(source_file_path, mime_type, function, target_dir, tmp_dir, None, norm_ext, version, ocr, keep_original)
 

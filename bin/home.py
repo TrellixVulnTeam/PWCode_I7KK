@@ -440,6 +440,7 @@ class HomeTab(ttk.Frame):
         config.put('options/memory', self.project_frame.memory_option.get())
         config.put('options/ddl', self.project_frame.ddl_option.get())
         config.put('options/create_package', self.project_frame.package_option.get())
+        config.put('options/convert_files', 'Yes')
 
         i = 0
         subsystem_names = []

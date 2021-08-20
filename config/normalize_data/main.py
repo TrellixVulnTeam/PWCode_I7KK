@@ -23,6 +23,7 @@ def main():
     config = XMLSettings(config_path)
     project_name = config.get('name')
     package = config.get('options/create_package')
+    convert = config.get('options/convert_files')
     memory = '-Xmx' + config.get('options/memory').split(' ')[0] + 'g'
     archive = os.path.join(project_dir, project_name + '.tar')
 
@@ -55,7 +56,7 @@ def main():
             tar.extractall(path=project_dir)
 
     # TODO: Hent java path
-    result = normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir)
+    result = normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir, convert)
     if result == 'Error':
         return result
 
