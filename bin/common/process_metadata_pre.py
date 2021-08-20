@@ -674,7 +674,7 @@ def normalize_metadata(project_dir, config_dir):
 
                         fk_str = fk_str + ',\nCONSTRAINT ' + constr + '\nFOREIGN KEY (' + source_s + ')\nREFERENCES ' + ref_table + ' (' + ref_s + ')'
 
-                ddl.append('\nCREATE TABLE ' + table_norm + '\n(\n' + ddl_columns[table_norm][:-1] + pk_str + unique_str + fk_str + '\n);')
+                ddl.append('\nCREATE TABLE ' + table_norm + '(\n' + ddl_columns[table_norm][:-1] + pk_str + unique_str + fk_str + ');')
 
             with open(ddl_file, "w") as file:
                 file.write("\n".join(ddl))

@@ -166,7 +166,8 @@ def get_tables(sub_systems_dir, sub_system, jdbc_url, driver_jar, schema):
                     if max_length is not None:
                         if max_length > 4000:
                             file_columns.append(column_name_fixed)
-                            file_name_stem = "'" + table_name.text + "_" + column_name_fixed + "_" + "'"
+                            # TODO: Mulig å endre til normalisert filnavn direkte her?
+                            file_name_stem = "'" + str(table_name.text).lower() + "_" + str(column_name_fixed).lower() + "_" + "'"
                             column_name_fixed = file_name_stem + ' || ROWNUM() AS "' + column_name_fixed + '"'
 
             text_columns.append(column_name_fixed)
@@ -263,10 +264,11 @@ def dispose_tables(sub_systems_dir, sub_system, tables, tmp_dir):
 
 
 def get_db_file(database_dir, db_path):
-    for file_name in os.listdir(database_dir):
-        file_path = os.path.join(database_dir, file_name)
-        if fnmatch.fnmatch(file_path, db_path):
-            return file_path
+    if os.path.isdir(database_dir):
+        for file_name in os.listdir(database_dir):
+            file_path = os.path.join(database_dir, file_name)
+            if fnmatch.fnmatch(file_path, db_path):
+                return file_path
 
 
 def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir, convert):
