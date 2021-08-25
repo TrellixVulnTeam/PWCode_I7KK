@@ -79,7 +79,7 @@ def main():
             continue
 
         for schema_name in schema_names.split(','):
-            db_check = test_db_connect(jdbc_url, bin_dir, class_path, java_path, memory, db_user, db_password, db_name, schema_name, include_tables, exclude_tables, overwrite_tables)
+            db_check = test_db_connect(jdbc_url, bin_dir, class_path, java_path, memory, db_user, db_password, db_name, schema_name.strip(), include_tables, exclude_tables, overwrite_tables)
 
             if not db_check == 'ok':
                 return db_check

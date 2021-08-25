@@ -125,10 +125,9 @@ def get_tables(sub_systems_dir, sub_system, jdbc_url, driver_jar, schema):
     table_defs = tree.findall('table-def')
     for table_def in table_defs:
 
-        # TODO: Endre så kode under brukes igjen etter IST
-        # table_schema = table_def.find('table-schema')
-        # if table_schema.text != schema:
-        #     continue
+        table_schema = table_def.find('table-schema')
+        if table_schema.text != schema:
+            continue
 
         disposed = table_def.find('disposed')
         if disposed.text == 'true':

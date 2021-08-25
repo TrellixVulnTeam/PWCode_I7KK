@@ -217,7 +217,7 @@ def export_db_schema(JDBC_URL, bin_dir, class_path, java_path, MAX_JAVA_HEAP, DB
                 # Get database metadata:
                 db_tables, table_columns = get_db_meta(jdbc)  # WAIT: Fiks så ikke henter to ganger (også i test)
                 export_schema(class_paths, MAX_JAVA_HEAP, subsystem_dir, jdbc, schema_names)
-                add_row_count_to_schema_file(subsystem_dir, db_tables)
+                add_row_count_to_schema_file(subsystem_dir, db_tables, DB_SCHEMA)
                 export_tables, overwrite_tables = table_check(INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, db_tables)
 
             if export_tables:
@@ -267,29 +267,31 @@ def get_db_meta(jdbc):
     return db_tables, table_columns
 
 
-def add_row_count_to_schema_file(subsystem_dir, db_tables):
+def add_row_count_to_schema_file(subsystem_dir, db_tables, schema):
     schema_file = os.path.join(subsystem_dir, 'header', 'metadata.xml')
     tree = ET.parse(schema_file)
 
     table_defs = tree.findall("table-def")
     for table_def in table_defs:
-        table_name = table_def.find("table-name")
+        table_schema = table_def.find('table-schema')
+        if table_schema.text == schema:
+            table_name = table_def.find("table-name")
 
-        disposed = ET.Element("disposed")
-        disposed.text = "false"
-        disposal_comment = ET.Element("disposal_comment")
-        disposal_comment.text = " "
-        rows = ET.Element("rows")
+            disposed = ET.Element("disposed")
+            disposed.text = "false"
+            disposal_comment = ET.Element("disposal_comment")
+            disposal_comment.text = " "
+            rows = ET.Element("rows")
 
-        row_count = db_tables[table_name.text]
-        if row_count == 0:
-            disposed.text = "true"
-            disposal_comment.text = "Empty table"
-        rows.text = str(row_count)
+            row_count = db_tables[table_name.text]
+            if row_count == 0:
+                disposed.text = "true"
+                disposal_comment.text = "Empty table"
+            rows.text = str(row_count)
 
-        table_def.insert(5, rows)
-        table_def.insert(6, disposed)
-        table_def.insert(7, disposal_comment)
+            table_def.insert(5, rows)
+            table_def.insert(6, disposed)
+            table_def.insert(7, disposal_comment)
 
     root = tree.getroot()
     indent(root)
@@ -462,13 +464,15 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
     # table = s_jdbc.db_schema + '_' + table
 
     target_url, driver_jar, driver_class = get_db_details(target_url, bin_dir)
-    t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)
+    # TODO: Feil at public under
+    t_jdbc = Jdbc(target_url, '', '', '', s_jdbc.db_schema, driver_jar, driver_class, True, True)
     target_tables = get_target_tables(t_jdbc)
     pk_dict = get_primary_keys(subsystem_dir, export_tables)
     unique_dict = get_unique_indexes(subsystem_dir, export_tables)
+    print('1')
 
     if DDL_GEN == 'Native':
-        ddl_columns = get_ddl_columns(subsystem_dir)
+        ddl_columns = get_ddl_columns(subsystem_dir, s_jdbc.db_schema)
 
     mode = '-mode=INSERT'
     std_params = ' -ignoreIdentityColumns=false -removeDefaults=true -commitEvery=1000 '
@@ -579,13 +583,17 @@ jdbc_to_iso_data_type = {
 # -> https://blog.jooq.org/tag/long-raw/
 
 
-def get_ddl_columns(subsystem_dir):
+def get_ddl_columns(subsystem_dir, schema):
     ddl_columns = {}
     schema_file = os.path.join(subsystem_dir, 'header', 'metadata.xml')
     tree = ET.parse(schema_file)
 
     table_defs = tree.findall("table-def")
     for table_def in table_defs:
+        table_schema = table_def.find('table-schema')
+        if table_schema.text != schema:
+            continue
+
         table_name = table_def.find("table-name")
         disposed = table_def.find("disposed")
 
