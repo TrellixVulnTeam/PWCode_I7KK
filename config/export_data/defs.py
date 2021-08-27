@@ -326,6 +326,8 @@ def get_target_tables(jdbc):
     target_tables = {}
     conn = jdbc.connection
     cursor = conn.cursor()
+    sql = 'CREATE SCHEMA IF NOT EXISTS "' + jdbc.db_schema + '"'
+    cursor.execute(sql)
     tables = get_tables(conn, jdbc.db_name, jdbc.db_schema)
 
     # Get row count per table:
@@ -409,7 +411,7 @@ def run_ddl(jdbc, sql):
         print_and_exit(result)
 
 
-def gen_sync_table(table, columns, target_url, driver_jar, driver_class, source_query):
+def gen_sync_table(table, columns, target_url, driver_jar, driver_class, source_query, schema):
     print("Syncing table '" + table + "'...")
     source_query = source_query + ' WHERE ('
     target_query = 'SELECT '
@@ -421,7 +423,7 @@ def gen_sync_table(table, columns, target_url, driver_jar, driver_class, source_
     source_query = source_query[:-2]
     target_query = target_query[:-2] + ' FROM "' + table + '";'
 
-    t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)
+    t_jdbc = Jdbc(target_url, '', '', '', schema, driver_jar, driver_class, True, True)
     target_values = run_select(t_jdbc, target_query)
     if len(columns) > 1:  # Compound key
         source_query = source_query + ') NOT IN (' + ', '.join(map(str, target_values)) + ')'
@@ -460,16 +462,12 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
     # target_url = 'jdbc:h2:' + os.path.join(subsystem_dir, 'content', 'data', 'database', s_jdbc.db_name + '_' + s_jdbc.db_schema) + ';autocommit=off'
     target_url = 'jdbc:h2:' + os.path.join(subsystem_dir, 'content', 'data', 'database', s_jdbc.db_name) + ';autocommit=off'
 
-    # TODO: Må ha separate taget og source table names?
-    # table = s_jdbc.db_schema + '_' + table
-
     target_url, driver_jar, driver_class = get_db_details(target_url, bin_dir)
-    # TODO: Feil at public under
     t_jdbc = Jdbc(target_url, '', '', '', s_jdbc.db_schema, driver_jar, driver_class, True, True)
+
     target_tables = get_target_tables(t_jdbc)
     pk_dict = get_primary_keys(subsystem_dir, export_tables)
     unique_dict = get_unique_indexes(subsystem_dir, export_tables)
-    print('1')
 
     if DDL_GEN == 'Native':
         ddl_columns = get_ddl_columns(subsystem_dir, s_jdbc.db_schema)
@@ -499,22 +497,24 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
             elif t_row_count > row_count:
                 print_and_exit("Error. More data in target than in source. Table '" + table + "'. Exiting.")
             elif table in pk_dict:
-                source_query = gen_sync_table(table, pk_dict[table], target_url, driver_jar, driver_class, source_query)
+                source_query = gen_sync_table(table, pk_dict[table], target_url, driver_jar, driver_class, source_query, s_jdbc.db_name)
                 insert = False
             elif table in unique_dict:
-                source_query = gen_sync_table(table, unique_dict[table], target_url, driver_jar, driver_class, source_query)
+                source_query = gen_sync_table(table, unique_dict[table], target_url, driver_jar, driver_class, source_query, s_jdbc.db_name)
                 insert = False
 
+        target_table = s_jdbc.db_schema + '"."' + table
         if insert:
             print("Copying table '" + table + "':")
             if DDL_GEN == 'SQL Workbench':
                 params = mode + std_params + ' -createTarget=true -dropTarget=true'
             elif DDL_GEN == 'Native':
+                # t_jdbc = Jdbc(target_url, '', '', '', s_jdbc.db_schema, driver_jar, driver_class, True, True)
                 t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)
-                ddl = '\nCREATE TABLE "' + table + '"\n(\n' + ddl_columns[table][:-1] + '\n);'
+                ddl = '\nCREATE TABLE "' + target_table + '"\n(\n' + ddl_columns[table][:-1] + '\n);'
                 ddl = create_index(table, pk_dict, unique_dict, ddl, t_count)
                 print(ddl)
-                sql = 'DROP TABLE IF EXISTS "' + table + '"; ' + ddl
+                sql = 'DROP TABLE IF EXISTS "' + target_table + '"; ' + ddl
                 run_ddl(t_jdbc, sql)
 
             # WAIT: Endre kode på blob length så virker også på mssql mm senere
@@ -524,11 +524,11 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
             #         sql = 'ALTER TABLE "' + table + '" ADD COLUMN ' + column.upper() + '_BLOB_LENGTH_PWCODE VARCHAR(255);'
             #         run_ddl(t_jdbc, sql)
 
+        target_table = '"' + target_table + '"'
         batch.runScript("WbConnect -url='" + s_jdbc.url + "' -username='" + s_jdbc.usr + "' -password=" + s_jdbc.pwd + ";")
         target_conn = '"username=,password=,url=' + target_url + '" ' + params
-        target_table = 'PUBLIC."' + table + '"'
         copy_data_str = "WbCopy -targetConnection=" + target_conn + " -targetTable=" + target_table + " -sourceQuery=" + source_query + ";"
-        # print(copy_data_str)
+        print(copy_data_str)
         result = batch.runScript(copy_data_str)
         batch.runScript("WbDisconnect;")
         jp.java.lang.System.gc()

@@ -52,12 +52,12 @@ def get_java_path_sep():
     return ';'
 
 
-def export_lob_columns(data_dir, batch, jdbc_url, table, table_columns):
-    txt_file = os.path.join(data_dir, table + '_lobs.txt')
+def export_lob_columns(data_dir, batch, jdbc_url, table, table_columns, schema):
+    txt_file = os.path.join(data_dir, schema, table + '_lobs.txt')
     for column in table_columns[table + '_lobs']:
         file_name = "'" + table.lower() + "_" + column.lower() + "_" + "'" + " || rownum() || '.data'"
         # condition = f'''WHERE NULLIF("{column}", '') IS NOT NULL'''
-        source_query = 'SELECT "' + column + '",' + file_name + ' as fname FROM PUBLIC."' + table + '"' # + condition
+        source_query = 'SELECT "' + column + '",' + file_name + ' as fname FROM "' + schema + '"."' + table + '"'  # + condition
         # TODO: Må legge inn oppdatering av felt i tsv-fil slik at referanse til filnavn ikke finnes for de feltene som ikke har fil på disk
         # --> gjøre det ifm oppdatering av felt etter normalisering av filer?
 
@@ -81,16 +81,16 @@ def export_lob_columns(data_dir, batch, jdbc_url, table, table_columns):
     return str(result)
 
 
-def export_text_columns(data_dir, batch, jdbc_url, table, table_columns):
+def export_text_columns(data_dir, batch, jdbc_url, table, table_columns, schema):
     batch.runScript("WbConnect -url='" + jdbc_url + "';")
-    txt_file = os.path.join(data_dir, table + '.txt')
+    txt_file = os.path.join(data_dir, schema, table + '.txt')
     columns = table_columns[table]
 
     for index, column in enumerate(columns):
         if '|| ROWNUM() AS' not in column:
             columns[index] = '"' + column + '"'
 
-    source_query = 'SELECT ' + ','.join(columns) + '  FROM PUBLIC."' + table + '"'
+    source_query = 'SELECT ' + ','.join(columns) + ' FROM "' + schema + '"."' + table + '"'
     export_data_list = ["WbExport ",
                         "-type=text ",
                         "-file=" + txt_file + " ",
@@ -134,6 +134,7 @@ def get_tables(sub_systems_dir, sub_system, jdbc_url, driver_jar, schema):
             continue
 
         table_name = table_def.find('table-name')
+        print(table_name.text)
         tables.append(table_name.text)
 
         text_columns = []
@@ -203,9 +204,11 @@ def export_db_schema(data_dir, sub_system, class_path, bin_dir, memory, sub_syst
     batch = wb_batch(class_paths, memory)
     tables, table_columns = get_tables(sub_systems_dir, sub_system, jdbc_url, driver_jar, schema)
 
+    Path(os.path.join(data_dir, schema)).mkdir(parents=True, exist_ok=True)
+
     for table in tables:
         if table in table_columns:
-            result = export_text_columns(data_dir, batch, jdbc_url, table, table_columns)
+            result = export_text_columns(data_dir, batch, jdbc_url, table, table_columns, schema)
             if result == 'Error':
                 return result
 
@@ -279,43 +282,43 @@ def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir,
         # process db's:
         data_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'data')
         database_dir = os.path.join(data_dir, 'database')
+        # TODO: Må endre så blir data_docs_dir pr skjema under?-> hva med bruk lenger nede da?
         data_docs_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'data_documents_tmp')
         db_path = os.path.join(database_dir, '*.mv.db')
         db_file = get_db_file(database_dir, db_path)
 
         if db_file:
+            schemas = get_schemas(sub_systems_dir, sub_system)
             Path(data_docs_dir).mkdir(parents=True, exist_ok=True)
 
-            # schemas = get_schemas(sub_systems_dir, sub_system)
-            # for schema in schemas:
+            for schema in schemas:
+                print("Exporting schema: '" + schema + "' to disk...")
 
-            # TODO: Endre tilbake til variant som henter schemas etter ferdig med IST
-            schema = 'PUBLIC'
-            tables = export_db_schema(data_dir, sub_system, class_path, bin_dir, memory, sub_systems_dir, schema, db_file)
-            if tables == 'Error':
-                return tables
+                tables = export_db_schema(data_dir, sub_system, class_path, bin_dir, memory, sub_systems_dir, schema, db_file)
+                if tables == 'Error':
+                    return tables
 
-            if tables:
-                dispose_tables(sub_systems_dir, sub_system, tables, tmp_dir)
-                # TODO: Blir feil under i tilfellet flere skjema i kode over?
-                shutil.rmtree(database_dir)
+                if tables:
+                    dispose_tables(sub_systems_dir, sub_system, tables, tmp_dir)
 
-                for data_file in glob.iglob(data_dir + os.path.sep + '*.data'):
-                    if os.path.getsize(data_file) == 0:
-                        os.remove(data_file)
-                    else:
-                        shutil.move(data_file, data_docs_dir)
+            # shutil.rmtree(database_dir) # TODO: Fjern kommentering når ferdig testet
 
-                for text_file in glob.iglob(data_dir + os.path.sep + '*_lobs.txt'):
-                    os.remove(text_file)
+            for data_file in glob.iglob(data_dir + os.path.sep + '*.data'):
+                if os.path.getsize(data_file) == 0:
+                    os.remove(data_file)
+                else:
+                    shutil.move(data_file, data_docs_dir)
 
-        if os.path.isdir(data_docs_dir):
-            if len(os.listdir(data_docs_dir)) == 0:
-                os.rmdir(data_docs_dir)
-            else:
-                tsv_file = os.path.join(sub_systems_dir, sub_system, 'header', 'data_documents.tsv')
-                if not os.path.isfile(tsv_file):
-                    run_tika(tsv_file, data_docs_dir, tika_tmp_dir, java_path)
+            for text_file in glob.iglob(data_dir + os.path.sep + '*_lobs.txt'):
+                os.remove(text_file)
+
+            if os.path.isdir(data_docs_dir):
+                if len(os.listdir(data_docs_dir)) == 0:
+                    os.rmdir(data_docs_dir)
+                else:
+                    tsv_file = os.path.join(sub_systems_dir, sub_system, 'header', 'data_documents.tsv')
+                    if not os.path.isfile(tsv_file):
+                        run_tika(tsv_file, data_docs_dir, tika_tmp_dir, java_path)
 
         # process files:
         docs_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'documents')
