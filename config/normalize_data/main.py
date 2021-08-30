@@ -5,6 +5,7 @@ from common.file import get_checksum
 from common.process_metadata_pre import normalize_metadata
 from common.process_metadata_check import load_data
 from common.xml_settings import XMLSettings
+import xml.etree.ElementTree as ET
 import tarfile
 from defs import (  # .defs.py
     normalize_data
@@ -56,15 +57,22 @@ def main():
         with tarfile.open(archive) as tar:
             tar.extractall(path=project_dir)
 
-    # TODO: Hent java path
     result = normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir, convert)
     if result == 'Error':
         return result
 
     result = normalize_metadata(project_dir, config_dir)
     # TODO: Legg inn sjekk her på om databaseservicer startet og start hvis ikke
-    # if upload == 'Yes':
-    #     load_data(project_dir, config_dir)
+
+    tree = ET.parse(config_path)
+    subsystems = list(tree.find('subsystems'))
+
+    if upload == 'Yes':
+        for subsystem in subsystems:
+            subsystem_name = subsystem.tag
+            schemas = config.get('subsystems/' + subsystem_name + '/db/schemas')
+            for schema in schemas.split(','):
+                load_data(project_dir, config_dir, schema.strip().lower())
 
     return 'Juhuu :)'
 

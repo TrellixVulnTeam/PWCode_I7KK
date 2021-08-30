@@ -274,6 +274,7 @@ def normalize_metadata(project_dir, config_dir):
             table_defs = tree.findall("table-def")
             for table_def in table_defs:
                 table_schema = table_def.find('table-schema')
+                schema = table_schema.text.lower()
                 table_name = table_def.find("table-name")
                 old_table_name = ET.Element("original-table-name")
                 old_table_name.text = table_name.text
@@ -288,8 +289,8 @@ def normalize_metadata(project_dir, config_dir):
                 #     illegal_tables[old_table_name.text] = table_name.text
 
                 table_name_norm = normalize_name(table_name.text, illegal_tables, t_count)
-                file_name = os.path.join(base_path, 'content', 'data', table_schema.text.lower(), table_name.text + '.txt')
-                new_file_name = os.path.join(base_path, 'content', 'data', table_schema.text.lower(), table_name_norm.lower() + '.tsv')
+                file_name = os.path.join(base_path, 'content', 'data', schema, table_name.text + '.txt')
+                new_file_name = os.path.join(base_path, 'content', 'data', schema, table_name_norm.lower() + '.tsv')
 
                 tsv_process = False
                 if not os.path.isfile(tsv_done_file):
@@ -366,7 +367,10 @@ def normalize_metadata(project_dir, config_dir):
 
             # Sort tables in dependent order:
             deps_list = sort_dependent_tables(table_defs, base_path, empty_tables, illegal_tables)
-            with open(base_path + '/documentation/import_order.txt', 'w') as file:
+            # TODO: Endre så sort_dependent_tables kjøres en gang for hvert skjema og skriver til to filer
+
+            import_order_file = os.path.join(base_path, 'documentation', schema + '_tables.txt')
+            with open(import_order_file, 'w') as file:
                 for val in deps_list:
                     val = normalize_name(val, illegal_tables)
                     file.write('%s\n' % val)

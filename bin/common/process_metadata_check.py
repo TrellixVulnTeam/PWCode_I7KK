@@ -53,7 +53,7 @@ def load_data(project_dir, config_dir, schema):
             'password=' + passwords[db], 'host=localhost',
             'schema=' + schemas[db], 'db_name=' + db_names[db],
             'sql_bin=' + sql_bin[db], 'import_bin=' + import_bins[db],
-            'import_order_file=' + import_order_file, 'data_path=' + data_path,
+            'import_order_file=' + import_order_file, 'data_path=' + data_path + '/',
             'reset_file=' + reset_files[db],
             'ddl_file=' + ddl_files[db] + '\n', '# -- Code --',
             reset_before_statements[db], create_schema_statements[db],
@@ -68,11 +68,11 @@ def load_data(project_dir, config_dir, schema):
     for folder in subfolders:
         base_path = os.path.join(sub_systems_dir, folder)
         header_xml_file = os.path.join(base_path, 'header', 'metadata.xml')
-        data_path = base_path + "/content/data/"
+        data_path = os.path.join(base_path, 'content', 'data', schema)
 
         if os.path.isfile(header_xml_file) and os.listdir(data_path):
             documentation_folder = os.path.join(base_path, 'documentation')
-            import_order_file = os.path.join(documentation_folder, 'import_order.txt')
+            import_order_file = os.path.join(documentation_folder, schema + '_tables.txt')
             sqlite_db = os.path.join('tmp', folder + '.db')
 
             order_list = []
@@ -98,7 +98,7 @@ def load_data(project_dir, config_dir, schema):
             for db in db_list:
                 pathlib.Path(os.path.join(documentation_folder, db + '_import')).mkdir(parents=True, exist_ok=True)
                 done_files[db] = os.path.join(documentation_folder, db + '_done')
-                import_sql_files[db] = os.path.join(documentation_folder, db + '_import', 'import.sh')
+                import_sql_files[db] = os.path.join(documentation_folder, db + '_import',  schema + '_import.sh')
 
                 if db in ('postgresql', 'sqlite', 'mssql'):
                     reset_files[db] = ' #Not needed for ' + db
@@ -108,7 +108,8 @@ def load_data(project_dir, config_dir, schema):
                 if db == 'postgresql':
                     users[db] = 'postgres'
                     passwords[db] = 'P@ssw0rd'
-                    schemas[db] = 'pwb #Any existing tables in schema will be deleted by first line in code'
+                    # schemas[db] = 'pwb #Any existing tables in schema will be deleted by first line in code'
+                    schemas[db] = schema + ' # Any existing tables in schema will be deleted by first line in code'
                     db_names[db] = ' #Not needed for postgresql'
                     sql_bin[db] = '/usr/bin/psql'
                     import_bins[db] = '/usr/bin/psql'
