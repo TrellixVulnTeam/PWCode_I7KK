@@ -63,8 +63,8 @@ def main():
 
     result = normalize_metadata(project_dir, config_dir)
     # TODO: Legg inn sjekk her på om databaseservicer startet og start hvis ikke
-    if upload == 'Yes':
-        load_data(project_dir, config_dir)
+    # if upload == 'Yes':
+    #     load_data(project_dir, config_dir)
 
     return 'Juhuu :)'
 

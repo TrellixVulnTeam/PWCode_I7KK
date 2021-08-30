@@ -214,7 +214,7 @@ def tsv_fix(base_path, new_file_name, pk_list, illegal_columns, tsv_process):
         quotechar='',
         escapechar='')
 
-    row_count = etl.nrows(table)
+    # row_count = etl.nrows(table)
 
     if tsv_process:
         # TODO: Endre så temp-fil er i tmp-mappe så ikke blir liggende igjen hvis prosess feiler
@@ -238,7 +238,7 @@ def tsv_fix(base_path, new_file_name, pk_list, illegal_columns, tsv_process):
         writer.writerows(table)
 
         shutil.move(tempfile.name, new_file_name)
-    return row_count
+    # return row_count
 
 
 def normalize_metadata(project_dir, config_dir):
@@ -249,20 +249,6 @@ def normalize_metadata(project_dir, config_dir):
     d = {s: s + '_' for s in illegal_terms_set}
     illegal_tables = d.copy()
     illegal_columns = d.copy()
-
-    # TODO: Feil at sletter logg i tilfelle reruns? Endre så en logg pr subsystem heller
-    # open(tmp_dir + "/PWB.log", 'w').close()  # Clear log file
-    # mount_wim(filepath, mount_dir)
-
-    # TODO: Er linje under riktig etter endring til native test av import når flere sub_systems ?
-    # open(sql_file, 'w').close()  # Blank out between runs
-
-    # sub_systems_path = mount_dir + "/content/sub_systems/"
-    # proceed = pwb_yes_no_prompt("Remove manually any disposable data from \n'"
-    #                             + sub_systems_path + "'.\n\n Proceed?")
-
-    # if not proceed:
-    #     sys.exit()
 
     subfolders = os.listdir(sub_systems_dir)
     for folder in subfolders:
@@ -287,9 +273,11 @@ def normalize_metadata(project_dir, config_dir):
             unique_dict = {}
             table_defs = tree.findall("table-def")
             for table_def in table_defs:
+                table_schema = table_def.find('table-schema')
                 table_name = table_def.find("table-name")
                 old_table_name = ET.Element("original-table-name")
                 old_table_name.text = table_name.text
+                # TODO: Hent ut schema name og bruk i new_file_name
 
 
                 # Add tables names too long for oracle to 'illegal_tables'
@@ -300,8 +288,8 @@ def normalize_metadata(project_dir, config_dir):
                 #     illegal_tables[old_table_name.text] = table_name.text
 
                 table_name_norm = normalize_name(table_name.text, illegal_tables, t_count)
-                file_name = base_path + "/content/data/" + table_name.text + ".txt"
-                new_file_name = base_path + "/content/data/" + table_name_norm.lower() + ".tsv"
+                file_name = os.path.join(base_path, 'content', 'data', table_schema.text.lower(), table_name.text + '.txt')
+                new_file_name = os.path.join(base_path, 'content', 'data', table_schema.text.lower(), table_name_norm.lower() + '.tsv')
 
                 tsv_process = False
                 if not os.path.isfile(tsv_done_file):
@@ -373,32 +361,8 @@ def normalize_metadata(project_dir, config_dir):
 
                 pk_dict[table_name_norm] = ', '.join(sorted(pk_list))
 
-                # Add row-count/disposed-info:
-                disposed = ET.Element("disposed")
-                disposed.text = "false"
-                disposal_comment = ET.Element("disposal_comment")
-                disposal_comment.text = " "
-                rows = ET.Element("rows")
-
-                # TODO: Legg inn sjekk så ikke leser rader på nytt hvis gjort før -> tull med row_count da?
                 if os.path.exists(new_file_name):
-                    row_count = tsv_fix(base_path, new_file_name, pk_list, illegal_columns, tsv_process)
-
-                    if row_count == 0:
-                        os.remove(new_file_name)
-                        disposed.text = "true"
-                        disposal_comment.text = "Empty table"
-                        empty_tables.append(table_name.text)
-                    rows.text = str(row_count)
-                else:
-                    disposed.text = "true"
-                    disposal_comment.text = "No archival value"
-                    empty_tables.append(table_name.text)
-                    rows.text = "n/a"
-
-                table_def.insert(5, rows)
-                table_def.insert(6, disposed)
-                table_def.insert(7, disposal_comment)
+                    tsv_fix(base_path, new_file_name, pk_list, illegal_columns, tsv_process)
 
             # Sort tables in dependent order:
             deps_list = sort_dependent_tables(table_defs, base_path, empty_tables, illegal_tables)
@@ -407,10 +371,11 @@ def normalize_metadata(project_dir, config_dir):
                     val = normalize_name(val, illegal_tables)
                     file.write('%s\n' % val)
 
-            self_dep_dict = {}
+            # self_dep_dict = {}
             ddl_columns = {}
             for table_def in table_defs:
                 table_name = table_def.find("table-name")
+                table_schema = table_def.find('table-schema')
                 dep_position = ET.Element("dep-position")
                 disposed = table_def.find("disposed")
                 self_dep_set = set()
@@ -585,55 +550,13 @@ def normalize_metadata(project_dir, config_dir):
                             '#,', '') + ' TERMINATED BY WHITESPACE \n)')
 
                 if len(self_dep_set) != 0:
-                    self_dep_dict.update({table_name.text: self_dep_set})
+                    order_by_constraint(base_path, table_name.text, table_schema.text, self_dep_set)
 
                 ddl_columns[table_name_norm] = '\n'.join(ddl_columns_list)
 
             root = tree.getroot()
             indent(root)
             tree.write(header_xml_file, encoding='utf-8')
-
-            # Sort lines in files with self constraints correctly:
-            # TODO: Gjør om til funksjon
-            if not os.path.isfile(tsv_done_file):
-                for key, value in self_dep_dict.items():
-                    file_name = base_path + "/content/data/" + key + ".tsv"
-                    tempfile = NamedTemporaryFile(
-                        mode='w', dir=base_path + "/content/data/", delete=False)
-                    table = etl.fromcsv(
-                        file_name,
-                        delimiter='\t',
-                        skipinitialspace=True,
-                        quoting=csv.QUOTE_NONE,
-                        quotechar='',
-                        escapechar='')
-                    key_dep_dict = {}
-
-                    print(file_name)
-                    for constraint in value:
-                        child_dep, parent_dep = constraint.split(':')
-                        data = etl.values(table, child_dep, parent_dep)
-                        for d in data:
-                            key_dep_set = {d[1]}
-                            key_dep_dict.update({d[0]: key_dep_set})
-
-                    key_dep_list = toposort_flatten(key_dep_dict)
-                    table = etl.addfield(
-                        table, 'pwb_index',
-                        lambda rec: int(key_dep_list.index(rec[child_dep])))
-                    table = etl.sort(table, 'pwb_index')
-                    table = etl.cutout(table, 'pwb_index')
-
-                    writer = csv.writer(
-                        tempfile,
-                        delimiter='\t',
-                        quoting=csv.QUOTE_NONE,
-                        quotechar='',
-                        lineterminator='\n',
-                        escapechar='')
-
-                    writer.writerows(table)
-                    shutil.move(tempfile.name, file_name)
 
             open(tsv_done_file, 'a').close()
 
@@ -690,3 +613,43 @@ def normalize_metadata(project_dir, config_dir):
             #     constraint u_constrainte4 unique (id_t),
             #     constraint u_constrainte5 unique (id_A, id_B, id_C)
             # );
+
+
+def order_by_constraint(base_path, table, schema, self_dep_set):
+    file_name = base_path + "/content/data/" + table + ".tsv"
+    tempfile = NamedTemporaryFile(mode='w', dir=base_path + "/content/data/", delete=False)
+    table = etl.fromcsv(
+            file_name,
+            delimiter='\t',
+            skipinitialspace=True,
+            quoting=csv.QUOTE_NONE,
+            quotechar='',
+            escapechar='')
+
+    key_dep_dict = {}
+
+    print(file_name)
+    for constraint in self_dep_set:
+        child_dep, parent_dep = constraint.split(':')
+        data = etl.values(table, child_dep, parent_dep)
+        for d in data:
+            key_dep_set = {d[1]}
+            key_dep_dict.update({d[0]: key_dep_set})
+
+    key_dep_list = toposort_flatten(key_dep_dict)
+    table = etl.addfield(
+        table, 'pwb_index',
+        lambda rec: int(key_dep_list.index(rec[child_dep])))
+    table = etl.sort(table, 'pwb_index')
+    table = etl.cutout(table, 'pwb_index')
+
+    writer = csv.writer(
+        tempfile,
+        delimiter='\t',
+        quoting=csv.QUOTE_NONE,
+        quotechar='',
+        lineterminator='\n',
+        escapechar='')
+
+    writer.writerows(table)
+    shutil.move(tempfile.name, file_name)

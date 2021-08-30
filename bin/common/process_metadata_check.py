@@ -24,7 +24,7 @@ from functools import reduce
 # from configparser import SafeConfigParser
 
 
-def load_data(project_dir, config_dir):
+def load_data(project_dir, config_dir, schema):
     sub_systems_dir = os.path.join(project_dir, 'content', 'sub_systems')
     python_path = os.environ['pwcode_python_path']
     # config = SafeConfigParser()
@@ -73,7 +73,7 @@ def load_data(project_dir, config_dir):
         if os.path.isfile(header_xml_file) and os.listdir(data_path):
             documentation_folder = os.path.join(base_path, 'documentation')
             import_order_file = os.path.join(documentation_folder, 'import_order.txt')
-            sqlite_db = "/tmp/" + folder + ".db"
+            sqlite_db = os.path.join('tmp', folder + '.db')
 
             order_list = []
             with open(import_order_file) as file:

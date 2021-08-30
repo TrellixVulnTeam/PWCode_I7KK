@@ -53,7 +53,7 @@ def get_java_path_sep():
 
 
 def export_lob_columns(data_dir, batch, jdbc_url, table, table_columns, schema):
-    txt_file = os.path.join(data_dir, schema, table + '_lobs.txt')
+    txt_file = os.path.join(data_dir, schema.lower(), table + '_lobs.txt')
     for column in table_columns[table + '_lobs']:
         file_name = "'" + table.lower() + "_" + column.lower() + "_" + "'" + " || rownum() || '.data'"
         # condition = f'''WHERE NULLIF("{column}", '') IS NOT NULL'''
@@ -83,7 +83,7 @@ def export_lob_columns(data_dir, batch, jdbc_url, table, table_columns, schema):
 
 def export_text_columns(data_dir, batch, jdbc_url, table, table_columns, schema):
     batch.runScript("WbConnect -url='" + jdbc_url + "';")
-    txt_file = os.path.join(data_dir, schema, table + '.txt')
+    txt_file = os.path.join(data_dir, schema.lower(), table + '.txt')
     columns = table_columns[table]
 
     for index, column in enumerate(columns):
@@ -204,7 +204,7 @@ def export_db_schema(data_dir, sub_system, class_path, bin_dir, memory, sub_syst
     batch = wb_batch(class_paths, memory)
     tables, table_columns = get_tables(sub_systems_dir, sub_system, jdbc_url, driver_jar, schema)
 
-    Path(os.path.join(data_dir, schema)).mkdir(parents=True, exist_ok=True)
+    Path(os.path.join(data_dir, schema.lower())).mkdir(parents=True, exist_ok=True)
 
     for table in tables:
         if table in table_columns:
@@ -298,10 +298,7 @@ def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir,
                 if tables == 'Error':
                     return tables
 
-                if tables:
-                    dispose_tables(sub_systems_dir, sub_system, tables, tmp_dir)
-
-            # shutil.rmtree(database_dir) # TODO: Fjern kommentering når ferdig testet
+            shutil.rmtree(database_dir)
 
             for data_file in glob.iglob(data_dir + os.path.sep + '*.data'):
                 if os.path.getsize(data_file) == 0:

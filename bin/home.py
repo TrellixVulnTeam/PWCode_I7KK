@@ -253,7 +253,7 @@ class HomeTab(ttk.Frame):
 
             conn_name = conn_name.replace("'", "").lower()
             config.put(conn_name + '/name', db_name)
-            config.put(conn_name + '/schema_name', db_schema)
+            config.put(conn_name + '/schemas', db_schema)
             config.put(conn_name + '/jdbc_url', jdbc_url)
             config.put(conn_name + '/user', db_user)
             config.put(conn_name + '/password', db_pwd)
@@ -472,9 +472,7 @@ class HomeTab(ttk.Frame):
                 msg = 'Duplicate subsystem name'
             else:
                 subsystem_name = 'db' + str(i)
-                # subsystem_name = db_name + '_' + db_schema
-                # if ',' in db_schema:
-                #     subsystem_name = db_name + '_' + db_schema.split(",")[0].strip()
+                i += 1
 
                 if len(jdbc_url) == 0:
                     msg = "Missing jdbc connection url for '" + subsystem_name + "'"
@@ -493,7 +491,7 @@ class HomeTab(ttk.Frame):
             subsystem.configure(text=' ' + subsystem_name + ' ')
 
             config.put('subsystems/' + subsystem_name + '/db/name', db_name)
-            config.put('subsystems/' + subsystem_name + '/db/schema_name', db_schema)
+            config.put('subsystems/' + subsystem_name + '/db/schemas', db_schema)
             config.put('subsystems/' + subsystem_name + '/db/jdbc_url', jdbc_url)
             config.put('subsystems/' + subsystem_name + '/db/user', db_user)
             config.put('subsystems/' + subsystem_name + '/db/password', db_pwd)

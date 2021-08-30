@@ -64,7 +64,7 @@ def main():
         subsystem_name = subsystem.tag
         db_status = config.get('subsystems/' + subsystem_name + '/db/status')
         db_name = config.get('subsystems/' + subsystem_name + '/db/name')
-        schema_names = config.get('subsystems/' + subsystem_name + '/db/schema_name')
+        schemas = config.get('subsystems/' + subsystem_name + '/db/schemas')
         jdbc_url = config.get('subsystems/' + subsystem_name + '/db/jdbc_url')
         db_user = config.get('subsystems/' + subsystem_name + '/db/user')
         db_password = config.get('subsystems/' + subsystem_name + '/db/password')
@@ -78,8 +78,8 @@ def main():
         if not jdbc_url or db_status == 'exported':
             continue
 
-        for schema_name in schema_names.split(','):
-            db_check = test_db_connect(jdbc_url, bin_dir, class_path, java_path, memory, db_user, db_password, db_name, schema_name.strip(), include_tables, exclude_tables, overwrite_tables)
+        for schema in schemas.split(','):
+            db_check = test_db_connect(jdbc_url, bin_dir, class_path, java_path, memory, db_user, db_password, db_name, schema.strip(), include_tables, exclude_tables, overwrite_tables)
 
             if not db_check == 'ok':
                 return db_check
@@ -148,7 +148,7 @@ def main():
         db_user = config.get('subsystems/' + subsystem_name + '/db/user')
         db_password = config.get('subsystems/' + subsystem_name + '/db/password')
         db_name = config.get('subsystems/' + subsystem_name + '/db/name')
-        schema_names = config.get('subsystems/' + subsystem_name + '/db/schema_name')
+        schemas = config.get('subsystems/' + subsystem_name + '/db/schemas')
         jdbc_url = config.get('subsystems/' + subsystem_name + '/db/jdbc_url')
         exclude_tables = config.get('subsystems/' + subsystem_name + '/db/exclude_tables')
         include_tables = config.get('subsystems/' + subsystem_name + '/db/include_tables')
@@ -162,7 +162,7 @@ def main():
             print("Database in subsystem '" + subsystem_name + "' already exported.")
             continue
 
-        for schema_name in schema_names.split(','):
+        for schema in schemas.split(','):
             db_result = export_db_schema(
                 jdbc_url,
                 bin_dir,
@@ -172,13 +172,13 @@ def main():
                 db_user,
                 db_password,
                 db_name,
-                schema_name.strip(),
+                schema.strip(),
                 subsystem_dir,
                 include_tables,
                 exclude_tables,
                 overwrite_tables,
                 ddl,
-                schema_names
+                schemas
             )
 
             if db_result != 'ok':
