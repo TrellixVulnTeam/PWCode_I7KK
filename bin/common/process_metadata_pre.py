@@ -147,9 +147,13 @@ def indent(elem, level=0):
             elem.tail = i
 
 
-def sort_dependent_tables(table_defs, base_path, empty_tables, illegal_tables):
+def sort_dependent_tables(table_defs, base_path, empty_tables, illegal_tables, schema):
     deps_dict = {}
     for table_def in table_defs:
+        table_schema = table_def.find('table-schema')
+        if table_schema.text.lower() != schema:
+            continue
+
         table_name = table_def.find("table-name")
         disposed = table_def.find("disposed")
         if disposed.text != "true":
@@ -241,132 +245,125 @@ def tsv_fix(base_path, new_file_name, pk_list, illegal_columns, tsv_process):
     # return row_count
 
 
-def normalize_metadata(project_dir, config_dir):
-    illegal_terms_file = os.path.join(config_dir, 'illegal_terms.txt')
-    sub_systems_dir = os.path.join(project_dir, 'content', 'sub_systems')
+def normalize_metadata(base_path, illegal_terms_file, schemas):
     empty_tables = []
     illegal_terms_set = set(map(str.strip, open(illegal_terms_file)))
     d = {s: s + '_' for s in illegal_terms_set}
     illegal_tables = d.copy()
     illegal_columns = d.copy()
+    tsv_done_file = os.path.join(base_path, 'documentation', 'tsv_done')
+    header_xml_file = os.path.join(base_path, 'header', 'metadata.xml')
 
-    subfolders = os.listdir(sub_systems_dir)
-    for folder in subfolders:
-        base_path = os.path.join(sub_systems_dir, folder)
-        ddl_file = os.path.join(base_path, 'documentation', 'metadata.sql')
-        tsv_done_file = os.path.join(base_path, 'documentation', 'tsv_done')
-        oracle_dir = os.path.join(base_path, 'documentation', 'oracle_import')
-        header_xml_file = os.path.join(base_path, 'header', 'metadata.xml')
+    if os.path.isfile(header_xml_file):
+        tree = ET.parse(header_xml_file)
+        tree_lookup = ET.parse(header_xml_file)
 
-        pathlib.Path(oracle_dir).mkdir(parents=True, exist_ok=True)
+        t_count = 0
+        c_count = 0
+        pk_dict = {}
+        constraint_dict = {}
+        fk_columns_dict = {}
+        fk_ref_dict = {}
+        unique_dict = {}
+        table_defs = tree.findall("table-def")
+        for table_def in table_defs:
+            table_schema = table_def.find('table-schema')
+            schema = table_schema.text.lower()
+            table_name = table_def.find("table-name")
+            old_table_name = ET.Element("original-table-name")
+            old_table_name.text = table_name.text
 
-        if os.path.isfile(header_xml_file):
-            tree = ET.parse(header_xml_file)
-            tree_lookup = ET.parse(header_xml_file)
+            # Add tables names too long for oracle to 'illegal_tables'
+            # TODO: Bruk normalize funksjon heller her og inkorporer kode under i den heller
+            # if len(table_name.text) > 29:
+            #     t_count += 1
+            #     table_name.text = table_name.text[:26] + "_" + str(t_count) + "_"
+            #     illegal_tables[old_table_name.text] = table_name.text
 
-            t_count = 0
-            c_count = 0
-            pk_dict = {}
-            constraint_dict = {}
-            fk_columns_dict = {}
-            fk_ref_dict = {}
-            unique_dict = {}
-            table_defs = tree.findall("table-def")
-            for table_def in table_defs:
-                table_schema = table_def.find('table-schema')
-                schema = table_schema.text.lower()
-                table_name = table_def.find("table-name")
-                old_table_name = ET.Element("original-table-name")
-                old_table_name.text = table_name.text
-                # TODO: Hent ut schema name og bruk i new_file_name
+            table_name_norm = normalize_name(table_name.text, illegal_tables, t_count)
+            file_name = os.path.join(base_path, 'content', 'data', schema, table_name.text + '.txt')
+            new_file_name = os.path.join(base_path, 'content', 'data', schema, table_name_norm.lower() + '.tsv')
 
+            tsv_process = False
+            if not os.path.isfile(tsv_done_file):
+                tsv_process = True
 
-                # Add tables names too long for oracle to 'illegal_tables'
-                # TODO: Bruk normalize funksjon heller her og inkorporer kode under i den heller
-                # if len(table_name.text) > 29:
-                #     t_count += 1
-                #     table_name.text = table_name.text[:26] + "_" + str(t_count) + "_"
-                #     illegal_tables[old_table_name.text] = table_name.text
+            if os.path.isfile(file_name):
+                os.rename(file_name, new_file_name)
 
-                table_name_norm = normalize_name(table_name.text, illegal_tables, t_count)
-                file_name = os.path.join(base_path, 'content', 'data', schema, table_name.text + '.txt')
-                new_file_name = os.path.join(base_path, 'content', 'data', schema, table_name_norm.lower() + '.tsv')
+            # if table_name.text in illegal_tables:
+            #     table_name.text = illegal_tables[table_name.text]
 
-                tsv_process = False
-                if not os.path.isfile(tsv_done_file):
-                    tsv_process = True
+            #     # TODO: Bare slette fil direkte her heller?
+            #     ill_new_file_name = os.path.splitext(file_name)[0] + '_.tsv'
+            #     if os.path.isfile(new_file_name):
+            #         os.rename(new_file_name, ill_new_file_name)
+            #     new_file_name = ill_new_file_name
 
-                if os.path.isfile(file_name):
-                    os.rename(file_name, new_file_name)
+            # table_name.text = table_name_norm.lower()
+            # table_name.text = table_name.text.lower()
+            table_def.insert(3, old_table_name)
+            table_def.set('name', table_name_norm)
 
-                # if table_name.text in illegal_tables:
-                #     table_name.text = illegal_tables[table_name.text]
+            # unique_list = []
+            index_defs = table_def.findall("index-def")
+            for index_def in index_defs:
+                unique = index_def.find('unique')
+                primary_key = index_def.find('primary-key')
+                index_name = index_def.find('name')
 
-                #     # TODO: Bare slette fil direkte her heller?
-                #     ill_new_file_name = os.path.splitext(file_name)[0] + '_.tsv'
-                #     if os.path.isfile(new_file_name):
-                #         os.rename(new_file_name, ill_new_file_name)
-                #     new_file_name = ill_new_file_name
+                unique_col_list = []
+                if unique.text == 'true' and primary_key.text == 'false':
+                    index_column_names = index_def.findall("column-list/column")
+                    for index_column_name in index_column_names:
+                        unique_constraint_name = index_column_name.attrib['name'].lower()
+                        unique_col_list.append(unique_constraint_name)
+                    unique_dict[(table_name_norm, index_name.text.lower())] = sorted(unique_col_list)
 
-                # table_name.text = table_name_norm.lower()
-                # table_name.text = table_name.text.lower()
-                table_def.insert(3, old_table_name)
-                table_def.set('name', table_name_norm)
+            pk_list = []
+            column_defs = table_def.findall("column-def")
+            for column_def in column_defs:
+                column_name = column_def.find('column-name')
+                primary_key = column_def.find('primary-key')
+                column_name.text = normalize_name(column_name.text, illegal_columns)
+                # column_name_short = None
 
-                # unique_list = []
-                index_defs = table_def.findall("index-def")
-                for index_def in index_defs:
-                    unique = index_def.find('unique')
-                    primary_key = index_def.find('primary-key')
-                    index_name = index_def.find('name')
+                if len(column_name.text) > 29:
+                    c_count += 1
+                    column_name.text = column_name.text[:26] + "_" + str(c_count)
+                    # illegal_columns[column_name.text] = column_name_short
+                    # column_name.text = column_name_short
 
-                    unique_col_list = []
-                    if unique.text == 'true' and primary_key.text == 'false':
-                        index_column_names = index_def.findall("column-list/column")
-                        for index_column_name in index_column_names:
-                            unique_constraint_name = index_column_name.attrib['name'].lower()
-                            unique_col_list.append(unique_constraint_name)
-                        unique_dict[(table_name_norm, index_name.text.lower())] = sorted(unique_col_list)
-
-                pk_list = []
-                column_defs = table_def.findall("column-def")
-                for column_def in column_defs:
-                    column_name = column_def.find('column-name')
-                    primary_key = column_def.find('primary-key')
-                    column_name.text = normalize_name(column_name.text, illegal_columns)
-                    # column_name_short = None
-
-                    if len(column_name.text) > 29:
-                        c_count += 1
-                        column_name.text = column_name.text[:26] + "_" + str(c_count)
-                        # illegal_columns[column_name.text] = column_name_short
-                        # column_name.text = column_name_short
-
-                    # column_name_norm = normalize_name(column_name.text, illegal_columns)
-                    if primary_key.text == 'true':
-                        pk_list.append(column_name.text)
+                # column_name_norm = normalize_name(column_name.text, illegal_columns)
+                if primary_key.text == 'true':
+                    pk_list.append(column_name.text)
 
 
-                        # if column_name.text in illegal_columns:
-                        #     column_name.text = column_name.text.lower() + '_'
+                    # if column_name.text in illegal_columns:
+                    #     column_name.text = column_name.text.lower() + '_'
 
 
-                        # # tab_constraint_name.text = tab_constraint_name.text + '_'
-                        # if column_name_short:
-                        #     column_name_norm = column_name_short
-                        # else:
-                        #     column_name_norm = normalize_name(column_name.text, illegal_columns)
+                    # # tab_constraint_name.text = tab_constraint_name.text + '_'
+                    # if column_name_short:
+                    #     column_name_norm = column_name_short
+                    # else:
+                    #     column_name_norm = normalize_name(column_name.text, illegal_columns)
 
-                        # print(column_name_norm) # TODO: For test - fjern senere
-                        # # TODO: Feil at ikke er navn med underscore sist når illegal name her?
+                    # # TODO: Feil at ikke er navn med underscore sist når illegal name her?
 
-                pk_dict[table_name_norm] = ', '.join(sorted(pk_list))
+            pk_dict[table_name_norm] = ', '.join(sorted(pk_list))
 
-                if os.path.exists(new_file_name):
-                    tsv_fix(base_path, new_file_name, pk_list, illegal_columns, tsv_process)
+            if os.path.exists(new_file_name):
+                tsv_fix(base_path, new_file_name, pk_list, illegal_columns, tsv_process)
 
-            # Sort tables in dependent order:
-            deps_list = sort_dependent_tables(table_defs, base_path, empty_tables, illegal_tables)
+        # Sort tables in dependent order:
+        for schema in schemas:
+            ddl_file = os.path.join(base_path, 'documentation', schema + '_ddl.sql')
+
+            oracle_dir = os.path.join(base_path, 'documentation', 'oracle_import')
+            pathlib.Path(os.path.join(oracle_dir, schema)).mkdir(parents=True, exist_ok=True)
+
+            deps_list = sort_dependent_tables(table_defs, base_path, empty_tables, illegal_tables, schema)
             # TODO: Endre så sort_dependent_tables kjøres en gang for hvert skjema og skriver til to filer
 
             import_order_file = os.path.join(base_path, 'documentation', schema + '_tables.txt')
@@ -375,11 +372,10 @@ def normalize_metadata(project_dir, config_dir):
                     val = normalize_name(val, illegal_tables)
                     file.write('%s\n' % val)
 
-            # self_dep_dict = {}
             ddl_columns = {}
             for table_def in table_defs:
-                table_name = table_def.find("table-name")
                 table_schema = table_def.find('table-schema')
+                table_name = table_def.find("table-name")
                 dep_position = ET.Element("dep-position")
                 disposed = table_def.find("disposed")
                 self_dep_set = set()
@@ -387,16 +383,17 @@ def normalize_metadata(project_dir, config_dir):
 
                 table_name_norm = normalize_name(table_name.text, illegal_tables)
 
-                ora_ctl_file = os.path.join(oracle_dir, table_name_norm + '.ctl')
-                ora_ctl_list = []
-                if disposed.text != "true":
-                    ora_ctl = [
-                        'LOAD DATA', 'CHARACTERSET UTF8 LENGTH SEMANTICS CHAR',
-                        'INFILE ' + table_name_norm + '.tsv',
-                        'INSERT INTO TABLE ' + str(table_name_norm).upper(),
-                        "FIELDS TERMINATED BY '\\t' TRAILING NULLCOLS", '(#'
-                    ]
-                    ora_ctl_list.append('\n'.join(ora_ctl))
+                if table_schema.text.lower() == schema:
+                    ora_ctl_file = os.path.join(oracle_dir, schema, table_name_norm + '.ctl')
+                    ora_ctl_list = []
+                    if disposed.text != "true":
+                        ora_ctl = [
+                            'LOAD DATA', 'CHARACTERSET UTF8 LENGTH SEMANTICS CHAR',
+                            'INFILE ' + table_name_norm + '.tsv',
+                            'INSERT INTO TABLE ' + str(table_name_norm).upper(),
+                            "FIELDS TERMINATED BY '\\t' TRAILING NULLCOLS", '(#'
+                        ]
+                        ora_ctl_list.append('\n'.join(ora_ctl))
 
                 if table_name_norm in deps_list:
                     index = int(deps_list.index(table_name_norm))
@@ -515,8 +512,7 @@ def normalize_metadata(project_dir, config_dir):
                         if col_ref_table_name.text.lower(
                         ) == table_name.text and col_ref_table_name.text.lower(
                         ) not in empty_tables:
-                            self_dep_set.add(ref_column_name.text.lower() +
-                                             ':' + column_name.text.lower())
+                            self_dep_set.add(ref_column_name.text.lower() + ':' + column_name.text.lower())
 
                         xpath_str = "table-def[table-name='" + col_ref_table_name.text + "']/column-def[column-name='" + old_ref_column_name.text + "']"
                         ref_column = tree_lookup.find(xpath_str)
@@ -562,7 +558,6 @@ def normalize_metadata(project_dir, config_dir):
             indent(root)
             tree.write(header_xml_file, encoding='utf-8')
 
-            open(tsv_done_file, 'a').close()
 
             ddl = []
             for table in deps_list:
@@ -606,17 +601,19 @@ def normalize_metadata(project_dir, config_dir):
             with open(ddl_file, "w") as file:
                 file.write("\n".join(ddl))
 
-            # TODO: Denne syntaksen er støttet av alle
-            # create table newish_table (
-            #     id   int not null,
-            #     id_A int not null,
-            #     id_B int not null,
-            #     id_C int null,
-            #     id_t int,
-            #     constraint pk_newish_table primary key (id),
-            #     constraint u_constrainte4 unique (id_t),
-            #     constraint u_constrainte5 unique (id_A, id_B, id_C)
-            # );
+        open(tsv_done_file, 'a').close()
+
+        # TODO: Denne syntaksen er støttet av alle
+        # create table newish_table (
+        #     id   int not null,
+        #     id_A int not null,
+        #     id_B int not null,
+        #     id_C int null,
+        #     id_t int,
+        #     constraint pk_newish_table primary key (id),
+        #     constraint u_constrainte4 unique (id_t),
+        #     constraint u_constrainte5 unique (id_A, id_B, id_C)
+        # );
 
 
 def order_by_constraint(base_path, table, schema, self_dep_set):

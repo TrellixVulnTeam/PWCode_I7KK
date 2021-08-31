@@ -61,18 +61,26 @@ def main():
     if result == 'Error':
         return result
 
-    result = normalize_metadata(project_dir, config_dir)
     # TODO: Legg inn sjekk her på om databaseservicer startet og start hvis ikke
 
     tree = ET.parse(config_path)
     subsystems = list(tree.find('subsystems'))
+    illegal_terms_file = os.path.join(config_dir, 'illegal_terms.txt')
 
-    if upload == 'Yes':
-        for subsystem in subsystems:
-            subsystem_name = subsystem.tag
-            schemas = config.get('subsystems/' + subsystem_name + '/db/schemas')
-            for schema in schemas.split(','):
-                load_data(project_dir, config_dir, schema.strip().lower())
+    for subsystem in subsystems:
+        subsystem_name = subsystem.tag
+        schemas = config.get('subsystems/' + subsystem_name + '/db/schemas')
+        schemas = [x.strip().lower() for x in schemas.split(',')]
+        base_path = os.path.join(project_dir, 'content', 'sub_systems', subsystem_name)
+        result = normalize_metadata(base_path, illegal_terms_file, schemas)
+
+    for subsystem in subsystems:
+        subsystem_name = subsystem.tag
+        schemas = config.get('subsystems/' + subsystem_name + '/db/schemas')
+        schemas = [x.strip().lower() for x in schemas.split(',')]
+        for schema in schemas:
+            if upload == 'Yes':
+                load_data(project_dir, config_dir, schema)
 
     return 'Juhuu :)'
 

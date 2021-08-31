@@ -113,7 +113,7 @@ def load_data(project_dir, config_dir, schema):
                     db_names[db] = ' #Not needed for postgresql'
                     sql_bin[db] = '/usr/bin/psql'
                     import_bins[db] = '/usr/bin/psql'
-                    ddl_files[db] = os.path.join(documentation_folder, 'metadata.sql')
+                    ddl_files[db] = os.path.join(documentation_folder, schema + '_ddl.sql')
                     reset_before_statements[db] = 'PGOPTIONS="--client-min-messages=warning" $sql_bin "user=$user password=$password host=$host" -q -c "DROP SCHEMA IF EXISTS $schema CASCADE;"'
                     reset_after_statements[db] = sql_bin[db] + ' "user=' + users[db] + ' password=' + passwords[db] + ' host=localhost" -q -c "DROP SCHEMA IF EXISTS $schema CASCADE;" 2>/dev/null'
                     create_schema_statements[db] = '$sql_bin "user=$user password=$password host=$host" -q -c "CREATE SCHEMA $schema; SET search_path TO $schema;" -f $ddl_file'
@@ -123,15 +123,15 @@ def load_data(project_dir, config_dir, schema):
                     shutil.copyfile(ora_reset_script, os.path.join(documentation_folder, db + '_import', 'reset_oracle.sql'))
                     users[db] = 'oracle'
                     passwords[db] = 'pwb'
-                    schemas[db] = 'oracle #Any existing tables in schema will be deleted by first line in code'
+                    schemas[db] = schema + ' # Any existing tables in schema will be deleted by first line in code'
                     db_names[db] = ' #Not needed for oracle'
                     sql_bin[db] = '/u01/app/oracle/product/11.2.0/xe/bin/sqlplus'
                     import_bins[db] = '/u01/app/oracle/product/11.2.0/xe/bin/sqlldr'
-                    ddl_files[db] = os.path.join(documentation_folder, db + '_import', 'metadata_' + db + '.sql')
+                    ddl_files[db] = os.path.join(documentation_folder, db + '_import', schema + '_ddl.sql')
                     reset_before_statements[db] = '$sql_bin -S $user/$password@$host < $reset_file'
                     reset_after_statements[db] = sql_bin[db] + ' -S ' + users[db] + '/' + passwords[db] + '@localhost < ' + reset_files[db]
                     create_schema_statements[db] = '$sql_bin -S $user/$password@$host < $ddl_file'
-                    import_statements[db] = '$import_bin $user/$password@$host errors=0 skip=1 bindsize=20000000 readsize=20000000 direct=true control="$table".ctl data="$data_path""$table".tsv'
+                    import_statements[db] = '$import_bin $user/$password@$host errors=0 skip=1 bindsize=20000000 readsize=20000000 direct=true control="$schema"/"$table".ctl data="$data_path""$table".tsv'
                     # TODO: Kan en kutte utskifting under helt når nå har kode for å eksportere som fil alt over 4000 tegn?
                     repls = (
                         (" text,", " clob,"),
@@ -153,12 +153,12 @@ def load_data(project_dir, config_dir, schema):
                 if db == 'mssql':  # WAIT: Kjør denne først ved test: sudo systemctl restart mssql-server
                     users[db] = 'sa'
                     passwords[db] = 'P@ssw0rd'
-                    schemas[db] = ' #Default schema of user on mssql'
+                    schemas[db] = schema + ' # Any existing tables in schema will be deleted by first line in code'
                     db_names[db] = 'pwb #Any existing tables in database will be deleted by first line in code'
                     sql_bin[db] = '/opt/mssql-tools/bin/sqlcmd'
                     # import_bins[db] = '/opt/mssql-tools/bin/bcp'
                     import_bins[db] = 'freebcp'
-                    ddl_files[db] = os.path.join(documentation_folder, db + '_import', 'metadata_' + db + '.sql')
+                    ddl_files[db] = os.path.join(documentation_folder, db + '_import', schema + '_ddl.sql')
                     reset_before_statements[db] = '$sql_bin -b -U $user -P $password -H $host -d master -Q \"DROP DATABASE IF EXISTS $db_name; CREATE DATABASE $db_name\"'
                     reset_after_statements[db] = sql_bin[db] + ' -b -U ' + users[db] + ' -P ' + passwords[db] + ' -H localhost -d master -Q "DROP DATABASE IF EXISTS pwb;"'
                     create_schema_statements[db] = '$sql_bin -b -U $user -P $password -H $host -d $db_name -i $ddl_file'
@@ -190,6 +190,7 @@ def load_data(project_dir, config_dir, schema):
                                     reduce(lambda a, kv: a.replace(*kv), repls,
                                            line))
 
+                # TODO: Legg inn at sqlite ignoreres hvis mer enn ett skjema
                 if db == 'sqlite':
                     shutil.copyfile(tsv2sqlite_script, os.path.join(documentation_folder, db + '_import', 'tsv2sqlite.py'))
                     users[db] = ' #Not needed for sqlite'
@@ -199,7 +200,7 @@ def load_data(project_dir, config_dir, schema):
                     sql_bin[db] = '/usr/bin/sqlite3'
                     import_bins[db] = '"' + python_path + ' tsv2sqlite.py"'
                     # import_bins[db] = '"python3 tsv2sqlite.py"'
-                    ddl_files[db] = os.path.join(documentation_folder, 'metadata.sql')
+                    ddl_files[db] = os.path.join(documentation_folder, schema + '_ddl.sql')
                     reset_before_statements[db] = 'rm "$db_name" 2> /dev/null'
                     reset_after_statements[db] = 'echo "*********************************** \n All databases imported successfully"'
                     create_schema_statements[db] = '$sql_bin "$db_name" < $ddl_file'
