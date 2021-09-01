@@ -213,7 +213,7 @@ def export_db_schema(data_dir, sub_system, class_path, bin_dir, memory, sub_syst
                 return result
 
         if table + '_lobs' in table_columns:
-            result = export_lob_columns(data_dir, batch, jdbc_url, table, table_columns)
+            result = export_lob_columns(data_dir, batch, jdbc_url, table, table_columns, schema)
             if result == 'Error':
                 return result
 

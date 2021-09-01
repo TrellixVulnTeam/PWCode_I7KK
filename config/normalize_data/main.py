@@ -75,12 +75,16 @@ def main():
         base_path = os.path.join(project_dir, 'content', 'sub_systems', subsystem_name)
         result = normalize_metadata(base_path, illegal_terms_file, schemas)
 
-    for subsystem in subsystems:
-        subsystem_name = subsystem.tag
-        schemas = config.get('subsystems/' + subsystem_name + '/schemas')
-        schemas = [x.strip().lower() for x in schemas.split(',')]
-        for schema in schemas:
-            if upload == 'Yes':
+    if upload == 'Yes':
+        for subsystem in subsystems:
+            subsystem_name = subsystem.tag
+            if subsystem_name.startswith('doc'):
+                # WAIT: Senere ha opplasting til db basert på tsv-filer med fildata
+                continue
+
+            schemas = config.get('subsystems/' + subsystem_name + '/schemas')
+            schemas = [x.strip().lower() for x in schemas.split(',')]
+            for schema in schemas:
                 load_data(project_dir, config_dir, schema, multi_schema)
 
     return 'Juhuu :)'
