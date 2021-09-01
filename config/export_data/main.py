@@ -62,15 +62,15 @@ def main():
     all_exported = True
     for subsystem in subsystems:
         subsystem_name = subsystem.tag
-        db_status = config.get('subsystems/' + subsystem_name + '/db/status')
-        db_name = config.get('subsystems/' + subsystem_name + '/db/name')
-        schemas = config.get('subsystems/' + subsystem_name + '/db/schemas')
-        jdbc_url = config.get('subsystems/' + subsystem_name + '/db/jdbc_url')
-        db_user = config.get('subsystems/' + subsystem_name + '/db/user')
-        db_password = config.get('subsystems/' + subsystem_name + '/db/password')
-        exclude_tables = config.get('subsystems/' + subsystem_name + '/db/exclude_tables')
-        include_tables = config.get('subsystems/' + subsystem_name + '/db/include_tables')
-        overwrite_tables = config.get('subsystems/' + subsystem_name + '/db/overwrite_tables')
+        db_status = config.get('subsystems/' + subsystem_name + '/status')
+        db_name = config.get('subsystems/' + subsystem_name + '/name')
+        schemas = config.get('subsystems/' + subsystem_name + '/schemas')
+        jdbc_url = config.get('subsystems/' + subsystem_name + '/jdbc_url')
+        db_user = config.get('subsystems/' + subsystem_name + '/user')
+        db_password = config.get('subsystems/' + subsystem_name + '/password')
+        exclude_tables = config.get('subsystems/' + subsystem_name + '/exclude_tables')
+        include_tables = config.get('subsystems/' + subsystem_name + '/include_tables')
+        overwrite_tables = config.get('subsystems/' + subsystem_name + '/overwrite_tables')
 
         if db_status != 'exported':
             all_exported = False
@@ -112,7 +112,7 @@ def main():
     for subsystem in subsystems:
         subsystem_name = subsystem.tag
         subsystem_dir = os.path.join(project_dir, 'content', 'sub_systems', subsystem_name)
-        db_user = config.get('subsystems/' + subsystem_name + '/db/user')
+        db_user = config.get('subsystems/' + subsystem_name + '/user')
 
         dirs = [
             os.path.join(subsystem_dir, 'header'),
@@ -144,16 +144,16 @@ def main():
                 config.put('subsystems/' + subsystem_name + '/folders/' + folder.tag + '/status', 'exported')
                 config.save()
 
-        jdbc_url = config.get('subsystems/' + subsystem_name + '/db/jdbc_url')
-        db_user = config.get('subsystems/' + subsystem_name + '/db/user')
-        db_password = config.get('subsystems/' + subsystem_name + '/db/password')
-        db_name = config.get('subsystems/' + subsystem_name + '/db/name')
-        schemas = config.get('subsystems/' + subsystem_name + '/db/schemas')
-        jdbc_url = config.get('subsystems/' + subsystem_name + '/db/jdbc_url')
-        exclude_tables = config.get('subsystems/' + subsystem_name + '/db/exclude_tables')
-        include_tables = config.get('subsystems/' + subsystem_name + '/db/include_tables')
-        overwrite_tables = config.get('subsystems/' + subsystem_name + '/db/overwrite_tables')
-        db_status = config.get('subsystems/' + subsystem_name + '/db/status')
+        jdbc_url = config.get('subsystems/' + subsystem_name + '/jdbc_url')
+        db_user = config.get('subsystems/' + subsystem_name + '/user')
+        db_password = config.get('subsystems/' + subsystem_name + '/password')
+        db_name = config.get('subsystems/' + subsystem_name + '/name')
+        schemas = config.get('subsystems/' + subsystem_name + '/schemas')
+        jdbc_url = config.get('subsystems/' + subsystem_name + '/jdbc_url')
+        exclude_tables = config.get('subsystems/' + subsystem_name + '/exclude_tables')
+        include_tables = config.get('subsystems/' + subsystem_name + '/include_tables')
+        overwrite_tables = config.get('subsystems/' + subsystem_name + '/overwrite_tables')
+        db_status = config.get('subsystems/' + subsystem_name + '/status')
 
         if not db_status:
             continue
@@ -182,11 +182,11 @@ def main():
             )
 
             if db_result != 'ok':
-                config.put('subsystems/' + subsystem_name + '/db/status', 'failed')
+                config.put('subsystems/' + subsystem_name + '/status', 'failed')
                 config.save()
                 return db_result
 
-        config.put('subsystems/' + subsystem_name + '/db/status', 'exported')
+        config.put('subsystems/' + subsystem_name + '/status', 'exported')
         config.save()
 
     if package == 'No':

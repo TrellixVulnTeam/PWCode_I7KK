@@ -24,7 +24,7 @@ from functools import reduce
 # from configparser import SafeConfigParser
 
 
-def load_data(project_dir, config_dir, schema):
+def load_data(project_dir, config_dir, schema, multi_schema):
     sub_systems_dir = os.path.join(project_dir, 'content', 'sub_systems')
     python_path = os.environ['pwcode_python_path']
     # config = SafeConfigParser()
@@ -38,10 +38,9 @@ def load_data(project_dir, config_dir, schema):
     # filepath = config.get('ENV', 'wim_path')
     # sys_name = os.path.splitext(os.path.basename(filepath))[0]
     # mount_dir = data_dir + "/" + sys_name + "_mount"
-    db_list = ['postgresql', 'oracle', 'mssql', 'sqlite']
-
-    # if not filepath:
-    #     exit()
+    db_list = ['postgresql', 'oracle', 'mssql']
+    if multi_schema == 'No':
+        db_list.append('sqlite')
 
     # WAIT: Lag også powershell eller vbs-versjon for windows
     # WAIT: Endre så henter filplassering auto og resten av paths relativt (som i arkimint)

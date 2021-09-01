@@ -26,6 +26,7 @@ def main():
     package = config.get('options/create_package')
     convert = config.get('options/convert_files')
     upload = config.get('options/upload')
+    multi_schema = config.get('multi_schem')
     memory = '-Xmx' + config.get('options/memory').split(' ')[0] + 'g'
     archive = os.path.join(project_dir, project_name + '.tar')
 
@@ -69,18 +70,18 @@ def main():
 
     for subsystem in subsystems:
         subsystem_name = subsystem.tag
-        schemas = config.get('subsystems/' + subsystem_name + '/db/schemas')
+        schemas = config.get('subsystems/' + subsystem_name + '/schemas')
         schemas = [x.strip().lower() for x in schemas.split(',')]
         base_path = os.path.join(project_dir, 'content', 'sub_systems', subsystem_name)
         result = normalize_metadata(base_path, illegal_terms_file, schemas)
 
     for subsystem in subsystems:
         subsystem_name = subsystem.tag
-        schemas = config.get('subsystems/' + subsystem_name + '/db/schemas')
+        schemas = config.get('subsystems/' + subsystem_name + '/schemas')
         schemas = [x.strip().lower() for x in schemas.split(',')]
         for schema in schemas:
             if upload == 'Yes':
-                load_data(project_dir, config_dir, schema)
+                load_data(project_dir, config_dir, schema, multi_schema)
 
     return 'Juhuu :)'
 

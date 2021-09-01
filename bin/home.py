@@ -437,14 +437,18 @@ class HomeTab(ttk.Frame):
         config, config_dir = config_init('pwcode')
         config.put('name', self.project_frame.name_entry.get())
         config.put('checksum', 'null')
+        config.put('checksum_verified', 'No')
+        config.put('multi_schema', 'No')
         config.put('options/memory', self.project_frame.memory_option.get())
         config.put('options/ddl', self.project_frame.ddl_option.get())
         config.put('options/create_package', self.project_frame.package_option.get())
         config.put('options/convert_files', 'Yes')
         config.put('options/upload', 'Yes')
 
-        i = 0
+        doc_count = 0
+        db_count = 0
         subsystem_names = []
+        multi_schema = False
         for subsystem in self.subproject_frames:
             subsystem_name = None
 
@@ -464,15 +468,18 @@ class HomeTab(ttk.Frame):
             msg = None
             if (len(db_name) == 0 or len(db_schema) == 0):
                 if folder_paths:
-                    subsystem_name = 'documents' + str(i)
-                    i += 1
+                    subsystem_name = 'doc' + str(doc_count)
+                    doc_count += 1
                 else:
                     msg = 'Missing subsystem name'
             elif subsystem_name in subsystem_names:
                 msg = 'Duplicate subsystem name'
             else:
-                subsystem_name = 'db' + str(i)
-                i += 1
+                subsystem_name = 'db' + str(db_count)
+                db_count += 1
+
+                if ',' in db_schema:
+                    multi_schema = True
 
                 if len(jdbc_url) == 0:
                     msg = "Missing jdbc connection url for '" + subsystem_name + "'"
@@ -490,16 +497,16 @@ class HomeTab(ttk.Frame):
             subsystem_names.append(subsystem_name)
             subsystem.configure(text=' ' + subsystem_name + ' ')
 
-            config.put('subsystems/' + subsystem_name + '/db/name', db_name)
-            config.put('subsystems/' + subsystem_name + '/db/schemas', db_schema)
-            config.put('subsystems/' + subsystem_name + '/db/jdbc_url', jdbc_url)
-            config.put('subsystems/' + subsystem_name + '/db/user', db_user)
-            config.put('subsystems/' + subsystem_name + '/db/password', db_pwd)
-            config.put('subsystems/' + subsystem_name + '/db/' + tables_option.replace(' ', '_'), tables)
-            config.put('subsystems/' + subsystem_name + '/db/overwrite_tables', overwrite_tables)
+            config.put('subsystems/' + subsystem_name + '/name', db_name)
+            config.put('subsystems/' + subsystem_name + '/schemas', db_schema)
+            config.put('subsystems/' + subsystem_name + '/jdbc_url', jdbc_url)
+            config.put('subsystems/' + subsystem_name + '/user', db_user)
+            config.put('subsystems/' + subsystem_name + '/password', db_pwd)
+            config.put('subsystems/' + subsystem_name + '/' + tables_option.replace(' ', '_'), tables)
+            config.put('subsystems/' + subsystem_name + '/overwrite_tables', overwrite_tables)
 
             if jdbc_url:
-                config.put('subsystems/' + subsystem_name + '/db/status', 'null')
+                config.put('subsystems/' + subsystem_name + '/status', 'null')
 
             j = 0
             for path in folder_paths:
@@ -511,6 +518,9 @@ class HomeTab(ttk.Frame):
         for name in duplicate_names:
             self.msg_label.config(text="Duplicate subsystem name '" + name + "'.")
             return
+
+        if multi_schema:
+            config.put('multi_schema', 'Yes')
 
         config.save()
         return config_dir
