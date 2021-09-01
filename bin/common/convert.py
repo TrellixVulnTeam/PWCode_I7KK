@@ -29,7 +29,7 @@ import base64
 from os.path import relpath
 from pathlib import Path
 from common.metadata import run_tika, run_siegfried
-from common.file import append_tsv_row, append_txt_file
+from common.file import append_tsv_row, append_txt_file, replace_text_in_file
 import cchardet as chardet
 # from pathlib import Path
 # from functools import reduce
@@ -499,6 +499,9 @@ def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_
             run_tika(tsv_source_path, base_source_dir, json_tmp_dir, java_path)
         else:
             run_siegfried(base_source_dir, project_dir, tsv_source_path)
+
+    # Remove any NUL characters from tsv
+    replace_text_in_file(tsv_source_path, '\0', '')
 
     table = etl.fromtsv(tsv_source_path)
     table = etl.rename(table,
