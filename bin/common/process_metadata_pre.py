@@ -281,8 +281,8 @@ def normalize_metadata(base_path, illegal_terms_file, schemas):
             #     illegal_tables[old_table_name.text] = table_name.text
 
             table_name_norm = normalize_name(table_name.text, illegal_tables, t_count)
-            file_name = os.path.join(base_path, 'content', 'data', schema, table_name.text + '.txt')
-            new_file_name = os.path.join(base_path, 'content', 'data', schema, table_name_norm.lower() + '.tsv')
+            file_name = os.path.join(base_path, 'content', schema, 'data', table_name.text + '.txt')
+            new_file_name = os.path.join(base_path, 'content', schema, 'data', table_name_norm.lower() + '.tsv')
 
             tsv_process = False
             if not os.path.isfile(tsv_done_file):
@@ -557,7 +557,6 @@ def normalize_metadata(base_path, illegal_terms_file, schemas):
             root = tree.getroot()
             indent(root)
             tree.write(header_xml_file, encoding='utf-8')
-
 
             ddl = []
             for table in deps_list:

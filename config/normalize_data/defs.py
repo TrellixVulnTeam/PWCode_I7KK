@@ -53,7 +53,7 @@ def get_java_path_sep():
 
 
 def export_lob_columns(data_dir, batch, jdbc_url, table, table_columns, schema):
-    txt_file = os.path.join(data_dir, schema.lower(), table + '_lobs.txt')
+    txt_file = os.path.join(data_dir, table + '_lobs.txt')
     for column in table_columns[table + '_lobs']:
         file_name = "'" + table.lower() + "_" + column.lower() + "_" + "'" + " || rownum() || '.data'"
         # condition = f'''WHERE NULLIF("{column}", '') IS NOT NULL'''
@@ -83,7 +83,7 @@ def export_lob_columns(data_dir, batch, jdbc_url, table, table_columns, schema):
 
 def export_text_columns(data_dir, batch, jdbc_url, table, table_columns, schema):
     batch.runScript("WbConnect -url='" + jdbc_url + "';")
-    txt_file = os.path.join(data_dir, schema.lower(), table + '.txt')
+    txt_file = os.path.join(data_dir, table + '.txt')
     columns = table_columns[table]
 
     for index, column in enumerate(columns):
@@ -196,15 +196,13 @@ def get_schemas(sub_systems_dir, sub_system):
 
 
 def export_db_schema(data_dir, sub_system, class_path, bin_dir, memory, sub_systems_dir, schema, db_file):
-    # database_dir = os.path.join(data_dir, 'database')
-    # jdbc_url = 'jdbc:h2:' + database_dir + os.path.sep + sub_system + ';LAZY_QUERY_EXECUTION=1;TRACE_LEVEL_FILE=0'
     jdbc_url = 'jdbc:h2:' + db_file[:-6] + ';LAZY_QUERY_EXECUTION=1;TRACE_LEVEL_FILE=0'
     driver_jar = os.path.join(bin_dir, 'vendor', 'jars', 'h2.jar')
     class_paths = class_path + get_java_path_sep() + driver_jar
     batch = wb_batch(class_paths, memory)
     tables, table_columns = get_tables(sub_systems_dir, sub_system, jdbc_url, driver_jar, schema)
 
-    Path(os.path.join(data_dir, schema.lower())).mkdir(parents=True, exist_ok=True)
+    Path(data_dir).mkdir(parents=True, exist_ok=True)
 
     for table in tables:
         if table in table_columns:
@@ -280,42 +278,41 @@ def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir,
     for sub_system in os.listdir(sub_systems_dir):
 
         # process db's:
-        data_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'data')
-        database_dir = os.path.join(data_dir, 'database')
-        # TODO: Må endre så blir data_docs_dir pr skjema under?-> hva med bruk lenger nede da?
-        data_docs_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'data_documents_tmp')
+        database_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'database')
         db_path = os.path.join(database_dir, '*.mv.db')
         db_file = get_db_file(database_dir, db_path)
 
         if db_file:
             schemas = get_schemas(sub_systems_dir, sub_system)
-            Path(data_docs_dir).mkdir(parents=True, exist_ok=True)
 
             for schema in schemas:
+                data_dir = os.path.join(sub_systems_dir, sub_system, 'content', schema.lower(), 'data')
+                data_docs_dir = os.path.join(sub_systems_dir, sub_system, 'content', schema.lower(), 'data_documents_tmp')
+                Path(data_docs_dir).mkdir(parents=True, exist_ok=True)
                 print("Exporting schema: '" + schema + "' to disk...")
 
                 tables = export_db_schema(data_dir, sub_system, class_path, bin_dir, memory, sub_systems_dir, schema, db_file)
                 if tables == 'Error':
                     return tables
 
+                for data_file in glob.iglob(data_dir + os.path.sep + '*.data'):
+                    if os.path.getsize(data_file) == 0:
+                        os.remove(data_file)
+                    else:
+                        shutil.move(data_file, data_docs_dir)
+
+                for text_file in glob.iglob(data_dir + os.path.sep + '*_lobs.txt'):
+                    os.remove(text_file)
+
+                if os.path.isdir(data_docs_dir):
+                    if len(os.listdir(data_docs_dir)) == 0:
+                        os.rmdir(data_docs_dir)
+                    else:
+                        tsv_file = os.path.join(sub_systems_dir, sub_system, 'header', 'data_documents.tsv')
+                        if not os.path.isfile(tsv_file):
+                            run_tika(tsv_file, data_docs_dir, tika_tmp_dir, java_path)
+
             shutil.rmtree(database_dir)
-
-            for data_file in glob.iglob(data_dir + os.path.sep + '*.data'):
-                if os.path.getsize(data_file) == 0:
-                    os.remove(data_file)
-                else:
-                    shutil.move(data_file, data_docs_dir)
-
-            for text_file in glob.iglob(data_dir + os.path.sep + '*_lobs.txt'):
-                os.remove(text_file)
-
-            if os.path.isdir(data_docs_dir):
-                if len(os.listdir(data_docs_dir)) == 0:
-                    os.rmdir(data_docs_dir)
-                else:
-                    tsv_file = os.path.join(sub_systems_dir, sub_system, 'header', 'data_documents.tsv')
-                    if not os.path.isfile(tsv_file):
-                        run_tika(tsv_file, data_docs_dir, tika_tmp_dir, java_path)
 
         # process files:
         docs_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'documents')
@@ -362,20 +359,25 @@ def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir,
             if len(os.listdir(docs_dir)) == 0:
                 os.rmdir(docs_dir)
 
-        if os.path.exists(data_docs_dir):
-            if len(os.listdir(data_docs_dir)) == 0:
-                os.rmdir(data_docs_dir)
-            else:
-                if convert == 'Yes':
-                    export_dir = data_docs_dir
-                    base_target_dir = data_docs_dir[:-4]
-                    tsv_file = os.path.join(sub_systems_dir, sub_system, 'header', 'data_documents.tsv')
-                    tsv_target_path = os.path.splitext(tsv_file)[0] + '_processed.tsv'
-                    result = convert_folder(project_dir, export_dir, base_target_dir, tmp_dir, java_path, tsv_source_path=tsv_file, tsv_target_path=tsv_target_path, make_unique=False)
-                    print(result)
+        if db_file:
+            schemas = get_schemas(sub_systems_dir, sub_system)
+            for schema in schemas:
+                # TODO: Trenger navnestandard for tsv-fil som er skjema-avhengig? -> vil ikke virke hvis flere skjema har blob'er ellers
+                data_docs_dir = os.path.join(sub_systems_dir, sub_system, 'content', schema.lower(), 'data_documents_tmp')
+                if os.path.exists(data_docs_dir):
+                    if len(os.listdir(data_docs_dir)) == 0:
+                        os.rmdir(data_docs_dir)
+                    else:
+                        if convert == 'Yes':
+                            export_dir = data_docs_dir
+                            base_target_dir = data_docs_dir[:-4]
+                            tsv_file = os.path.join(sub_systems_dir, sub_system, 'header', 'data_documents.tsv')
+                            tsv_target_path = os.path.splitext(tsv_file)[0] + '_processed.tsv'
+                            result = convert_folder(project_dir, export_dir, base_target_dir, tmp_dir, java_path, tsv_source_path=tsv_file, tsv_target_path=tsv_target_path, make_unique=False)
+                            print(result)
 
-                    if 'All files converted' in result:
-                        shutil.rmtree(export_dir)
+                            if 'All files converted' in result:
+                                shutil.rmtree(export_dir)
 
         for file in files:
             mount_dir = os.path.splitext(file)[0] + '_mount'

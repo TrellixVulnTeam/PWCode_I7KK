@@ -458,9 +458,8 @@ def create_index(table, pk_dict, unique_dict, ddl, t_count):
 
 def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tables, bin_dir, table_columns, overwrite_tables, DDL_GEN):
     batch = wb_batch(class_path, max_java_heap)
-    Path(os.path.join(subsystem_dir, 'content', 'data', 'database')).mkdir(parents=True, exist_ok=True)
-    # target_url = 'jdbc:h2:' + os.path.join(subsystem_dir, 'content', 'data', 'database', s_jdbc.db_name + '_' + s_jdbc.db_schema) + ';autocommit=off'
-    target_url = 'jdbc:h2:' + os.path.join(subsystem_dir, 'content', 'data', 'database', s_jdbc.db_name) + ';autocommit=off'
+    Path(os.path.join(subsystem_dir, 'content', 'database')).mkdir(parents=True, exist_ok=True)
+    target_url = 'jdbc:h2:' + os.path.join(subsystem_dir, 'content', 'database', s_jdbc.db_name) + ';autocommit=off'
 
     target_url, driver_jar, driver_class = get_db_details(target_url, bin_dir)
     t_jdbc = Jdbc(target_url, '', '', '', s_jdbc.db_schema, driver_jar, driver_class, True, True)

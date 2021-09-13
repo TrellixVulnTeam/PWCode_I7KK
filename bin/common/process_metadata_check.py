@@ -67,7 +67,7 @@ def load_data(project_dir, config_dir, schema, multi_schema):
     for folder in subfolders:
         base_path = os.path.join(sub_systems_dir, folder)
         header_xml_file = os.path.join(base_path, 'header', 'metadata.xml')
-        data_path = os.path.join(base_path, 'content', 'data', schema)
+        data_path = os.path.join(base_path, 'content', schema, 'data')
 
         if os.path.isfile(header_xml_file) and os.listdir(data_path):
             documentation_folder = os.path.join(base_path, 'documentation')
