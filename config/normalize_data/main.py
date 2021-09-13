@@ -73,7 +73,7 @@ def main():
         schemas = config.get('subsystems/' + subsystem_name + '/schemas')
         schemas = [x.strip().lower() for x in schemas.split(',')]
         base_path = os.path.join(project_dir, 'content', 'sub_systems', subsystem_name)
-        result = normalize_metadata(base_path, illegal_terms_file, schemas)
+        result = normalize_metadata(base_path, illegal_terms_file, schemas, tmp_dir)
 
     if upload == 'Yes':
         for subsystem in subsystems:

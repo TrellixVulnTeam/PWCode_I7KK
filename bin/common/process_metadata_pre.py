@@ -206,7 +206,7 @@ def get_table_deps(table_name, table_def, deps_dict, empty_tables,
     return table_deps
 
 
-def tsv_fix(base_path, new_file_name, pk_list, illegal_columns, tsv_process):
+def tsv_fix(base_path, new_file_name, pk_list, illegal_columns, tsv_process, tmp_dir):
     if tsv_process:
         pwb_replace_in_file(new_file_name, '\0', '')  # Remove null bytes
 
@@ -221,8 +221,7 @@ def tsv_fix(base_path, new_file_name, pk_list, illegal_columns, tsv_process):
     # row_count = etl.nrows(table)
 
     if tsv_process:
-        # TODO: Endre så temp-fil er i tmp-mappe så ikke blir liggende igjen hvis prosess feiler
-        tempfile = NamedTemporaryFile(mode='w', dir=base_path + "/content/data/", delete=False)
+        tempfile = NamedTemporaryFile(mode='w', dir=tmp_dir, delete=False)
 
         table = normalize_header(table, illegal_columns)
 
@@ -245,7 +244,7 @@ def tsv_fix(base_path, new_file_name, pk_list, illegal_columns, tsv_process):
     # return row_count
 
 
-def normalize_metadata(base_path, illegal_terms_file, schemas):
+def normalize_metadata(base_path, illegal_terms_file, schemas, tmp_dir):
     empty_tables = []
     illegal_terms_set = set(map(str.strip, open(illegal_terms_file)))
     d = {s: s + '_' for s in illegal_terms_set}
@@ -354,7 +353,7 @@ def normalize_metadata(base_path, illegal_terms_file, schemas):
             pk_dict[table_name_norm] = ', '.join(sorted(pk_list))
 
             if os.path.exists(new_file_name):
-                tsv_fix(base_path, new_file_name, pk_list, illegal_columns, tsv_process)
+                tsv_fix(base_path, new_file_name, pk_list, illegal_columns, tsv_process, tmp_dir)
 
         # Sort tables in dependent order:
         for schema in schemas:
