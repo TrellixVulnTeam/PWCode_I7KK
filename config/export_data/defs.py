@@ -433,7 +433,7 @@ def gen_sync_table(table, columns, target_url, driver_jar, driver_class, source_
     return source_query
 
 
-def create_index(table, pk_dict, unique_dict, ddl, t_count):
+def create_index(table, pk_dict, unique_dict, ddl, t_count, schema):
     # TODO: Renskriv def etter testet mot profdoc
 
     # TODO: Må forhindre at de "to" under lager samme index hvis finnes i begge...
@@ -441,15 +441,17 @@ def create_index(table, pk_dict, unique_dict, ddl, t_count):
     # -> Gjør så om til streng helt nederst før return bare
 
     ddl_list = []
+    target_table = schema + '"."' + table
     if table in pk_dict:
         for col in pk_dict[table]:
             # TODO: Beholde \n her
-            ddl_list.append('\nCREATE INDEX c_' + col + '_' + str(t_count) + ' ON "' + table + '" ("' + col + '");')
+            ddl_list.append('\nCREATE INDEX c_' + col + '_' + str(t_count) + ' ON "' + target_table + '" ("' + col + '");')
+
             # ddl = ddl + '\nCREATE INDEX c_' + col + '_' + str(t_count) + ' ON "' + table + '" ("' + col + '");'
     if table in unique_dict:
         for col in unique_dict[table]:
             # TODO: Beholde \n her
-            ddl_list.append('\nCREATE INDEX c_' + col + '_' + str(t_count) + ' ON "' + table + '" ("' + col + '");')
+            ddl_list.append('\nCREATE INDEX c_' + col + '_' + str(t_count) + ' ON "' + target_table + '" ("' + col + '");')
             # ddl = ddl + '\nCREATE INDEX c_' + col + '_' + str(t_count) + ' ON "' + table + '" ("' + col + '");'
 
     ddl = ddl + ''.join(set(ddl_list))
@@ -511,7 +513,7 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
                 # t_jdbc = Jdbc(target_url, '', '', '', s_jdbc.db_schema, driver_jar, driver_class, True, True)
                 t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)
                 ddl = '\nCREATE TABLE "' + target_table + '"\n(\n' + ddl_columns[table][:-1] + '\n);'
-                ddl = create_index(table, pk_dict, unique_dict, ddl, t_count)
+                ddl = create_index(table, pk_dict, unique_dict, ddl, t_count, s_jdbc.db_schema)
                 print(ddl)
                 sql = 'DROP TABLE IF EXISTS "' + target_table + '"; ' + ddl
                 run_ddl(t_jdbc, sql)
