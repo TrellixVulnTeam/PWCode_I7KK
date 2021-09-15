@@ -96,7 +96,7 @@ def load_data(project_dir, config_dir, schema, multi_schema):
 
             for db in db_list:
                 pathlib.Path(os.path.join(documentation_folder, db + '_import')).mkdir(parents=True, exist_ok=True)
-                done_files[db] = os.path.join(documentation_folder, db + '_done')
+                done_files[db] = os.path.join(documentation_folder, schema + '_' + db + '_done')
                 import_sql_files[db] = os.path.join(documentation_folder, db + '_import',  schema + '_import.sh')
 
                 if db in ('postgresql', 'sqlite', 'mssql'):
