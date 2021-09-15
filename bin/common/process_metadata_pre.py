@@ -382,17 +382,19 @@ def normalize_metadata(base_path, illegal_terms_file, schemas, tmp_dir):
 
                 table_name_norm = normalize_name(table_name.text, illegal_tables)
 
-                if table_schema.text.lower() == schema:
-                    ora_ctl_file = os.path.join(oracle_dir, schema, table_name_norm + '.ctl')
-                    ora_ctl_list = []
-                    if disposed.text != "true":
-                        ora_ctl = [
-                            'LOAD DATA', 'CHARACTERSET UTF8 LENGTH SEMANTICS CHAR',
-                            'INFILE ' + table_name_norm + '.tsv',
-                            'INSERT INTO TABLE ' + str(table_name_norm).upper(),
-                            "FIELDS TERMINATED BY '\\t' TRAILING NULLCOLS", '(#'
-                        ]
-                        ora_ctl_list.append('\n'.join(ora_ctl))
+                if table_schema.text.lower() != schema:
+                    continue
+
+                ora_ctl_file = os.path.join(oracle_dir, schema, table_name_norm + '.ctl')
+                ora_ctl_list = []
+                if disposed.text != "true":
+                    ora_ctl = [
+                        'LOAD DATA', 'CHARACTERSET UTF8 LENGTH SEMANTICS CHAR',
+                        'INFILE ' + table_name_norm + '.tsv',
+                        'INSERT INTO TABLE ' + str(table_name_norm).upper(),
+                        "FIELDS TERMINATED BY '\\t' TRAILING NULLCOLS", '(#'
+                    ]
+                    ora_ctl_list.append('\n'.join(ora_ctl))
 
                 if table_name_norm in deps_list:
                     index = int(deps_list.index(table_name_norm))
