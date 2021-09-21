@@ -151,7 +151,6 @@ def get_tables(sub_systems_dir, sub_system, jdbc_url, driver_jar, schema):
             # TODO: Hvilken av datatypene regnes som hhv blob og clob av sqlwb? -> må sjekke i kildekode?
             # -> Disse regnes som blob: 2004, -4, -3, -2
             # Clob'er: -16, -1 -> 2005 og 2011 og?
-            # Test om får eksportert til fil ved å bruke dette: CAST("fldØnsker" AS CLOB)
             if int(java_sql_type.text) in (-4, -3, -2, 2004, 2005, 2011, -16):
                 if int(dbms_data_size.text) > 4000:  # TODO: Sikkert ikke riktig for alle datatyper over
 
