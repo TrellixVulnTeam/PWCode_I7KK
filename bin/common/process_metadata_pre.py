@@ -156,6 +156,7 @@ def sort_dependent_tables(table_defs, base_path, empty_tables, illegal_tables, s
             continue
 
         table_name = table_def.find("table-name")
+        print(table_name.text)
         disposed = table_def.find("disposed")
         if disposed.text != "true":
             deps_dict.update({
@@ -504,7 +505,7 @@ def normalize_metadata(base_path, illegal_terms_file, schemas, tmp_dir):
                         ) not in empty_tables:
                             self_dep_set.add(ref_column_name.text.lower() + ':' + column_name.text.lower())
 
-                        xpath_str = "table-def[table-name='" + col_ref_table_name.text + "']/column-def[column-name='" + old_ref_column_name.text + "']"
+                        xpath_str = "table-def[table-name='" + col_ref_table_name.text + "']/column-def[column-name='" + old_ref_column_name_text + "']"
                         ref_column = tree_lookup.find(xpath_str)
 
                         if ref_column:
