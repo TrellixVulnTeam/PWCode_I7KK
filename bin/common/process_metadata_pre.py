@@ -30,6 +30,7 @@ import petl as etl
 from petl.util.base import Table
 from petl.compat import text_type
 from functools import reduce
+from common.xml import merge_xml_element
 
 csv.field_size_limit(sys.maxsize)
 
@@ -159,8 +160,7 @@ def sort_dependent_tables(table_defs, base_path, empty_tables, illegal_tables, s
         if disposed.text != "true":
             deps_dict.update({
                 table_name.text:
-                get_table_deps(table_name, table_def, deps_dict,
-                               empty_tables, illegal_tables)
+                get_table_deps(table_name, table_def, deps_dict, empty_tables, illegal_tables)
             })
     deps_list = toposort_flatten(deps_dict)
 
@@ -185,8 +185,7 @@ def normalize_name(name, illegal_dict, t_count=0):
     return norm_name
 
 
-def get_table_deps(table_name, table_def, deps_dict, empty_tables,
-                   illegal_tables):
+def get_table_deps(table_name, table_def, deps_dict, empty_tables, illegal_tables):
     table_deps = set()
     foreign_keys = table_def.findall("foreign-keys/foreign-key")
     for foreign_key in foreign_keys:
@@ -301,7 +300,9 @@ def normalize_metadata(base_path, illegal_terms_file, schemas, tmp_dir):
 
             # table_name.text = table_name_norm.lower()
             # table_name.text = table_name.text.lower()
-            table_def.insert(3, old_table_name)
+
+            merge_xml_element(table_def, 'original-table-name', old_table_name.text, 3)
+
             table_def.set('name', table_name_norm)
 
             # unique_list = []
@@ -375,7 +376,6 @@ def normalize_metadata(base_path, illegal_terms_file, schemas, tmp_dir):
             for table_def in table_defs:
                 table_schema = table_def.find('table-schema')
                 table_name = table_def.find("table-name")
-                dep_position = ET.Element("dep-position")
                 disposed = table_def.find("disposed")
                 self_dep_set = set()
                 index = 0
@@ -399,22 +399,19 @@ def normalize_metadata(base_path, illegal_terms_file, schemas, tmp_dir):
                 if table_name_norm in deps_list:
                     index = int(deps_list.index(table_name_norm))
 
-                dep_position.text = str(index + 1)
-                table_def.insert(6, dep_position)
+                merge_xml_element(table_def, 'dep-position', str(index + 1), 6)
 
                 constraint_set = set()
                 foreign_keys = table_def.findall("foreign-keys/foreign-key")
                 for foreign_key in foreign_keys:
                     tab_constraint_name = foreign_key.find("constraint-name")
-                    old_tab_constraint_name = ET.Element(
-                        "original-constraint-name")
-                    old_tab_constraint_name.text = tab_constraint_name.text
+                    old_tab_constraint_name_text = tab_constraint_name.text
 
                     if str(tab_constraint_name.text).startswith('SYS_C'):
                         tab_constraint_name.text = tab_constraint_name.text + '_'
 
                     tab_constraint_name.text = tab_constraint_name.text.lower()
-                    foreign_key.insert(1, old_tab_constraint_name)
+                    merge_xml_element(foreign_key, 'original-constraint-name', old_tab_constraint_name_text, 1)
 
                     fk_references = foreign_key.findall('references')
                     for fk_reference in fk_references:
@@ -426,7 +423,7 @@ def normalize_metadata(base_path, illegal_terms_file, schemas, tmp_dir):
                             tab_constraint_name.text = "_disabled_" + tab_constraint_name.text
 
                         tab_ref_table_name.text = normalize_name(tab_ref_table_name.text, illegal_tables).lower()
-                        fk_reference.insert(3, old_tab_ref_table_name)
+                        merge_xml_element(fk_reference, 'original-table-name', old_tab_ref_table_name.text, 3)
 
                         if not tab_constraint_name.text.startswith('_disabled_'):
                             constraint_set.add(tab_constraint_name.text + ':' + tab_ref_table_name.text)
@@ -438,12 +435,11 @@ def normalize_metadata(base_path, illegal_terms_file, schemas, tmp_dir):
                     for source_column in source_columns:
                         source_column_names = source_column.findall('column')
 
-                        # source_columns_string = ''
                         for source_column_name in source_column_names:
-                            old_source_column_name = ET.Element("original-column")
-                            old_source_column_name.text = source_column_name.text
+                            value = source_column_name.text
                             source_column_name.text = normalize_name(source_column_name.text, illegal_columns).lower()
-                            source_column.insert(10, old_source_column_name)
+
+                            merge_xml_element(source_column, 'original-column', value, 10)
                             source_column_set.add(source_column_name.text)
 
                     if not len(source_column_set) == 0:
@@ -454,10 +450,9 @@ def normalize_metadata(base_path, illegal_terms_file, schemas, tmp_dir):
                         referenced_column_names = referenced_column.findall('column')
 
                         for referenced_column_name in referenced_column_names:
-                            old_referenced_column_name = ET.Element("original-column")
-                            old_referenced_column_name.text = referenced_column_name.text
+                            old_referenced_column_name_text = referenced_column_name.text
                             referenced_column_name.text = normalize_name(referenced_column_name.text, illegal_columns).lower()
-                            referenced_column.insert(10, old_referenced_column_name)
+                            merge_xml_element(referenced_column, 'original-column', old_referenced_column_name_text, 10)
 
                 constraint_dict[table_name_norm] = ','.join(constraint_set).lower()
 
@@ -468,14 +463,11 @@ def normalize_metadata(base_path, illegal_terms_file, schemas, tmp_dir):
                 ddl_columns_list = []
                 for column_def in column_defs:
                     column_name = column_def.find('column-name')
-                    # java_sql_type_name = column_def.find('java-sql-type-name')
                     java_sql_type = column_def.find('java-sql-type')
                     dbms_data_size = column_def.find('dbms-data-size')
-                    # dbms_data_type = column_def.find('dbms-data-type')
-                    old_column_name = ET.Element("original-column-name")
-                    old_column_name.text = column_name.text
+                    value = column_name.text
                     column_name.text = normalize_name(column_name.text, illegal_columns).lower()
-                    column_def.insert(2, old_column_name)
+                    merge_xml_element(column_def, 'original-column-name', value, 2)
                     column_def.set('name', column_name.text)
 
                     col_references = column_def.findall('references')
@@ -485,18 +477,15 @@ def normalize_metadata(base_path, illegal_terms_file, schemas, tmp_dir):
                         ref_column_name = col_reference.find('column-name')
                         col_ref_table_name = col_reference.find('table-name')
                         col_constraint_name = col_reference.find('constraint-name')
-                        old_col_constraint_name = ET.Element("original-constraint-name")
-                        old_col_constraint_name.text = col_constraint_name.text
-                        old_ref_column_name = ET.Element("original-column-name")
-                        old_ref_column_name.text = ref_column_name.text
-                        old_ref_table_name = ET.Element("original-table-name")
-                        old_ref_table_name.text = col_ref_table_name.text
+                        old_col_constraint_name_text = col_constraint_name.text
+                        old_ref_column_name_text = ref_column_name.text
+                        old_ref_table_name_text = col_ref_table_name.text
 
                         ref_column_name.text = normalize_name(ref_column_name.text, illegal_columns)
-                        column_def.insert(3, old_ref_column_name)
+                        merge_xml_element(column_def, 'original-column-name', old_ref_column_name_text, 3)
 
                         col_ref_table_name.text = normalize_name(col_ref_table_name.text, illegal_tables)
-                        col_reference.insert(3, old_ref_table_name)
+                        merge_xml_element(col_reference, 'original-table-name', old_ref_table_name_text, 3)
 
                         old_col_constraint_fix = False
                         if str(col_constraint_name.text).startswith('SYS_C'):
@@ -508,7 +497,7 @@ def normalize_metadata(base_path, illegal_terms_file, schemas, tmp_dir):
                             old_col_constraint_fix = True
 
                         if old_col_constraint_fix:
-                            col_reference.insert(2, old_col_constraint_name)
+                            merge_xml_element(col_reference, 'original-constraint-name', old_col_constraint_name_text, 2)
 
                         if col_ref_table_name.text.lower(
                         ) == table_name.text and col_ref_table_name.text.lower(

@@ -28,6 +28,7 @@ from common.metadata import run_tika
 from common.database import run_select
 from database.jdbc import Jdbc
 from common.convert import convert_folder, file_convert
+from common.xml import merge_xml_element
 
 
 def mount_wim(filepath, mount_dir):
@@ -234,6 +235,7 @@ def indent(elem, level=0):
 
 
 def dispose_tables(sub_systems_dir, sub_system, tables, tmp_dir):
+    # TODO: Denne kalles ikke lenger. Kan den fjernes?
     schema_file = os.path.join(sub_systems_dir, sub_system, 'header', 'metadata.xml')
     schema_file_raw = os.path.join(sub_systems_dir, sub_system, 'header', 'metadata_raw.xml')
 
@@ -248,14 +250,20 @@ def dispose_tables(sub_systems_dir, sub_system, tables, tmp_dir):
     for table_def in table_defs:
         table_name = table_def.find("table-name")
 
-        disposed = table_def.find("disposed")
-        if disposed is None:
-            disposed = ET.Element("disposed")
-            table_def.insert(5, disposed)
-
-        disposed.text = "false"
+        value = 'false'
         if table_name.text not in tables:
-            disposed.text = "true"
+            value = 'true'
+
+        merge_xml_element(table_def, 'disposed', value, 5)
+
+        # disposed = table_def.find("disposed")
+        # if disposed is None:
+        #     disposed = ET.Element("disposed")
+        #     table_def.insert(5, disposed)
+
+        # disposed.text = "false"
+        # if table_name.text not in tables:
+        #     disposed.text = "true"
 
     root = tree.getroot()
     indent(root)

@@ -14,6 +14,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import os
+if os.name == "posix":
+    import xml.etree.ElementTree as ET
+
+
 def indent(elem, level=0):
     i = "\n" + level * "  "
     if len(elem):
@@ -28,3 +33,12 @@ def indent(elem, level=0):
     else:
         if level and (not elem.tail or not elem.tail.strip()):
             elem.tail = i
+
+
+def merge_xml_element(node, name, value, order):
+    elem = node.find(name)
+    if elem is None:
+        elem = ET.Element(name)
+        node.insert(order, elem)
+
+    elem.text = value
