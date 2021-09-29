@@ -22,7 +22,6 @@ import tarfile
 import shutil
 from common.jvm import wb_batch
 import jpype as jp
-import jpype.imports
 import xml.etree.ElementTree as ET
 from common.metadata import run_tika
 from common.database import run_select
@@ -145,16 +144,15 @@ def get_tables(sub_systems_dir, sub_system, jdbc_url, driver_jar, schema):
 
         for column_def in column_defs:
             column_name = column_def.find('column-name')
-            java_sql_type = column_def.find('java-sql-type')
-            dbms_data_size = column_def.find('dbms-data-size')
+            java_sql_type = int(column_def.find('java-sql-type').text)
+            dbms_data_size = int(column_def.find('dbms-data-size').text)
             column_name_fixed = column_name.text
 
-            # TODO: Hvilken av datatypene regnes som hhv blob og clob av sqlwb? -> må sjekke i kildekode?
             # -> Disse regnes som blob: 2004, -4, -3, -2
-            # Clob'er: -16, -1 -> 2005 og 2011 og?
-            if int(java_sql_type.text) in (-4, -3, -2, 2004, 2005, 2011, -16):
-                if int(dbms_data_size.text) > 4000:  # TODO: Sikkert ikke riktig for alle datatyper over
+            # Clob'er: -16, -1, 2005, 2011
 
+            if java_sql_type in (-4, -3, -2, 2004, 2005, 2011, -16, -1):
+                if (dbms_data_size > 4000 or java_sql_type in (2004, -4, -3, -2)):
                     # # TODO: Endre linje under når ferdig med IST filkonvertering -> eller skulle
                     # schema = 'PUBLIC'
                     jdbc = Jdbc(jdbc_url, '', '', '', schema, driver_jar, 'org.h2.Driver', True, True)
