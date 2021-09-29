@@ -2,7 +2,7 @@
     "python.linting.pylintEnabled": false,
     "python.linting.flake8Enabled": true,
     "python.linting.enabled": true,
-    "python.pythonPath": "/home/bba/bin/PWCode/bin/vendor/linux/python/opt/python3.8/bin/python3.8",
+    "python.pythonPath": "bin/vendor/linux/python/opt/python3.8/bin/python3.8",
     "python.linting.pycodestyleEnabled": false,
     "python.formatting.provider": "autopep8",
     "python.formatting.autopep8Args": [
@@ -11,5 +11,8 @@
     "python.linting.flake8Args": [
         "--max-line-length=200"
     ],
-    "files.trimTrailingWhitespace": true
+    "files.trimTrailingWhitespace": true,
+    "python.analysis.extraPaths": [
+        "./bin"
+    ]
 }
