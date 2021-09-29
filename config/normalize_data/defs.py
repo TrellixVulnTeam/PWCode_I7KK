@@ -256,15 +256,6 @@ def dispose_tables(sub_systems_dir, sub_system, tables, tmp_dir):
 
         merge_xml_element(table_def, 'disposed', value, 5)
 
-        # disposed = table_def.find("disposed")
-        # if disposed is None:
-        #     disposed = ET.Element("disposed")
-        #     table_def.insert(5, disposed)
-
-        # disposed.text = "false"
-        # if table_name.text not in tables:
-        #     disposed.text = "true"
-
     root = tree.getroot()
     indent(root)
     tree.write(schema_file, encoding='utf-8')
