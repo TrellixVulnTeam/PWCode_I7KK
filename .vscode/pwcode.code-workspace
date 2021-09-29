@@ -5,6 +5,7 @@
 		}
 	],
 	"settings": {
-		"python.pythonPath": "bin/vendor/linux/python/opt/python3.8/bin/python3.8"
+		"python.pythonPath": "bin/vendor/linux/python/opt/python3.8/bin/python3.8",
+		"telemetry.enableCrashReporter": false
 	}
 }
