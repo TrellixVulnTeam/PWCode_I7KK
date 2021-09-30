@@ -148,7 +148,38 @@ def indent(elem, level=0):
             elem.tail = i
 
 
-def sort_dependent_tables(table_defs, base_path, empty_tables, illegal_tables, schema):
+def get_empty_tables(table_defs, schema):
+    empty_tables = []
+    for table_def in table_defs:
+        table_schema = table_def.find('table-schema')
+        if table_schema.text.lower() != schema:
+            continue
+
+        table_name = table_def.find("table-name")
+        disposed = table_def.find("disposed")
+        if disposed.text == "true":
+            empty_tables.append(table_name.text.lower())
+
+    return empty_tables
+
+
+def sort_dependent_tables_old(table_defs, base_path, empty_tables, illegal_tables):
+    deps_dict = {}
+    for table_def in table_defs:
+        table_name = table_def.find("table-name")
+        disposed = table_def.find("disposed")
+        if disposed.text != "true":
+            deps_dict.update({
+                table_name.text:
+                get_table_deps(table_name, table_def, deps_dict,
+                               empty_tables, illegal_tables)
+            })
+    deps_list = toposort_flatten(deps_dict)
+
+    return deps_list
+
+
+def sort_dependent_tables(table_defs, base_path, illegal_tables, schema, empty_tables):
     deps_dict = {}
     for table_def in table_defs:
         table_schema = table_def.find('table-schema')
@@ -156,14 +187,19 @@ def sort_dependent_tables(table_defs, base_path, empty_tables, illegal_tables, s
             continue
 
         table_name = table_def.find("table-name")
-        print(table_name.text)
+        # print(table_name.text)
+
         disposed = table_def.find("disposed")
         if disposed.text != "true":
             deps_dict.update({
-                table_name.text:
-                get_table_deps(table_name, table_def, deps_dict, empty_tables, illegal_tables)
+                table_name.text.lower():
+                get_table_deps(table_name, table_def, deps_dict, empty_tables, illegal_tables, schema)
             })
+
     deps_list = toposort_flatten(deps_dict)
+
+    # for dep in deps_list:
+    #     print(dep)
 
     return deps_list
 
@@ -186,7 +222,7 @@ def normalize_name(name, illegal_dict, t_count=0):
     return norm_name
 
 
-def get_table_deps(table_name, table_def, deps_dict, empty_tables, illegal_tables):
+def get_table_deps_old(table_name, table_def, deps_dict, empty_tables, illegal_tables):
     table_deps = set()
     foreign_keys = table_def.findall("foreign-keys/foreign-key")
     for foreign_key in foreign_keys:
@@ -203,6 +239,37 @@ def get_table_deps(table_name, table_def, deps_dict, empty_tables, illegal_table
 
     if len(table_deps) == 0:
         table_deps.add(table_name.text)
+    return table_deps
+
+
+def get_table_deps(table_name, table_def, deps_dict, empty_tables, illegal_tables, schema):
+    table_deps = set()
+    foreign_keys = table_def.findall("foreign-keys/foreign-key")
+    for foreign_key in foreign_keys:
+        constraint_name = foreign_key.find("constraint-name")
+
+        # WAIT: Legg inn støtte senere for constraints på tvers av skjemaer?
+        table_schema = foreign_key.find("references/table-schema")
+        if table_schema.text.lower() != schema:
+            continue
+
+        print(constraint_name.text)
+        ref_table = foreign_key.find("references/table-name")
+        # ref_table_value = ref_table.text.lower()
+        ref_table_value = normalize_name(ref_table.text, illegal_tables).lower()
+        if ref_table_value not in table_deps and ref_table_value not in empty_tables:
+            if ref_table_value in deps_dict.keys():
+                if table_name.text.lower() in deps_dict[ref_table_value]:
+                    if not constraint_name.text.startswith('_disabled_'):
+                        constraint_name.text = "_disabled_" + constraint_name.text
+                    continue
+            # ref_table_value = normalize_name(ref_table.text, illegal_tables).lower()
+            table_deps.add(ref_table_value)
+
+    # TODO: Må ha sjekk på skjema for denne og?
+    if len(table_deps) == 0:
+        table_deps.add(table_name.text.lower())
+    # print(table_name.text.lower() + ': ' + str(table_deps))
     return table_deps
 
 
@@ -245,10 +312,10 @@ def tsv_fix(base_path, new_file_name, pk_list, illegal_columns, tsv_process, tmp
 
 
 def normalize_metadata(base_path, illegal_terms_file, schemas, tmp_dir):
-    empty_tables = []
     illegal_terms_set = set(map(str.strip, open(illegal_terms_file)))
-    d = {s: s + '_' for s in illegal_terms_set}
+    d = {s: s + '_' for s in illegal_terms_set if s}
     illegal_tables = d.copy()
+
     illegal_columns = d.copy()
     tsv_done_file = os.path.join(base_path, 'documentation', 'tsv_done')
     header_xml_file = os.path.join(base_path, 'header', 'metadata.xml')
@@ -339,10 +406,8 @@ def normalize_metadata(base_path, illegal_terms_file, schemas, tmp_dir):
                 if primary_key.text == 'true':
                     pk_list.append(column_name.text)
 
-
                     # if column_name.text in illegal_columns:
                     #     column_name.text = column_name.text.lower() + '_'
-
 
                     # # tab_constraint_name.text = tab_constraint_name.text + '_'
                     # if column_name_short:
@@ -364,8 +429,13 @@ def normalize_metadata(base_path, illegal_terms_file, schemas, tmp_dir):
             oracle_dir = os.path.join(base_path, 'documentation', 'oracle_import')
             pathlib.Path(os.path.join(oracle_dir, schema)).mkdir(parents=True, exist_ok=True)
 
-            deps_list = sort_dependent_tables(table_defs, base_path, empty_tables, illegal_tables, schema)
-            # TODO: Endre så sort_dependent_tables kjøres en gang for hvert skjema og skriver til to filer
+            empty_tables = get_empty_tables(table_defs, schema)
+
+            # for tabl in illegal_tables:
+            #     print(tabl)
+            # return
+
+            deps_list = sort_dependent_tables(table_defs, base_path, illegal_tables, schema, empty_tables)
 
             import_order_file = os.path.join(base_path, 'documentation', schema + '_tables.txt')
             with open(import_order_file, 'w') as file:
@@ -388,14 +458,16 @@ def normalize_metadata(base_path, illegal_terms_file, schemas, tmp_dir):
 
                 ora_ctl_file = os.path.join(oracle_dir, schema, table_name_norm + '.ctl')
                 ora_ctl_list = []
-                if disposed.text != "true":
-                    ora_ctl = [
-                        'LOAD DATA', 'CHARACTERSET UTF8 LENGTH SEMANTICS CHAR',
-                        'INFILE ' + table_name_norm + '.tsv',
-                        'INSERT INTO TABLE ' + str(table_name_norm).upper(),
-                        "FIELDS TERMINATED BY '\\t' TRAILING NULLCOLS", '(#'
-                    ]
-                    ora_ctl_list.append('\n'.join(ora_ctl))
+                if disposed.text == "true":
+                    continue
+
+                ora_ctl = [
+                    'LOAD DATA', 'CHARACTERSET UTF8 LENGTH SEMANTICS CHAR',
+                    'INFILE ' + table_name_norm + '.tsv',
+                    'INSERT INTO TABLE ' + str(table_name_norm).upper(),
+                    "FIELDS TERMINATED BY '\\t' TRAILING NULLCOLS", '(#'
+                ]
+                ora_ctl_list.append('\n'.join(ora_ctl))
 
                 if table_name_norm in deps_list:
                     index = int(deps_list.index(table_name_norm))
@@ -421,7 +493,8 @@ def normalize_metadata(base_path, illegal_terms_file, schemas, tmp_dir):
                         old_tab_ref_table_name.text = tab_ref_table_name.text
 
                         if tab_ref_table_name.text.lower() in empty_tables:
-                            tab_constraint_name.text = "_disabled_" + tab_constraint_name.text
+                            if not tab_constraint_name.text.startswith('_disabled_'):
+                                tab_constraint_name.text = "_disabled_" + tab_constraint_name.text
 
                         tab_ref_table_name.text = normalize_name(tab_ref_table_name.text, illegal_tables).lower()
                         merge_xml_element(fk_reference, 'original-table-name', old_tab_ref_table_name.text, 3)
@@ -494,7 +567,8 @@ def normalize_metadata(base_path, illegal_terms_file, schemas, tmp_dir):
                             old_col_constraint_fix = True
 
                         if col_ref_table_name.text.lower() in empty_tables:
-                            col_constraint_name.text = "_disabled_" + col_constraint_name.text
+                            if not col_constraint_name.text.startswith('_disabled_'):
+                                col_constraint_name.text = "_disabled_" + col_constraint_name.text
                             old_col_constraint_fix = True
 
                         if old_col_constraint_fix:
@@ -550,6 +624,12 @@ def normalize_metadata(base_path, illegal_terms_file, schemas, tmp_dir):
             tree.write(header_xml_file, encoding='utf-8')
 
             ddl = []
+
+            # # TODO Print under kun for test
+            # for table in deps_list:
+            #     print(table)
+            # # TODO: Fjern duplikater her eller finn måte å unngå i utgangspunktet
+
             for table in deps_list:
                 table_norm = normalize_name(table, illegal_tables)
                 pk_str = ''
@@ -610,16 +690,16 @@ def order_by_constraint(base_path, table, schema, self_dep_set):
     file_name = base_path + "/content/data/" + table + ".tsv"
     tempfile = NamedTemporaryFile(mode='w', dir=base_path + "/content/data/", delete=False)
     table = etl.fromcsv(
-            file_name,
-            delimiter='\t',
-            skipinitialspace=True,
-            quoting=csv.QUOTE_NONE,
-            quotechar='',
-            escapechar='')
+        file_name,
+        delimiter='\t',
+        skipinitialspace=True,
+        quoting=csv.QUOTE_NONE,
+        quotechar='',
+        escapechar='')
 
     key_dep_dict = {}
 
-    print(file_name)
+    # print(file_name)
     for constraint in self_dep_set:
         child_dep, parent_dep = constraint.split(':')
         data = etl.values(table, child_dep, parent_dep)

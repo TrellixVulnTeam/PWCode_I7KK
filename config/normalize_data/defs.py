@@ -134,7 +134,7 @@ def get_tables(sub_systems_dir, sub_system, jdbc_url, driver_jar, schema):
             continue
 
         table_name = table_def.find('table-name')
-        print(table_name.text)
+        # print(table_name.text)
         tables.append(table_name.text)
 
         text_columns = []
