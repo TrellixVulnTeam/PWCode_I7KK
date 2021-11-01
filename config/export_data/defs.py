@@ -556,7 +556,7 @@ jdbc_to_iso_data_type = {
     '-9': 'varchar',           # NVARCHAR
     '-7': 'boolean',           # BIT
     '-6': 'integer',           # TINYINT
-    '-5': 'integer',           # BIGINT
+    '-5': 'bigint',            # BIGINT
     '-4': 'blob',              # LONGVARBINARY
     '-3': 'blob',              # VARBINARY
     '-2': 'blob',              # BINARY
