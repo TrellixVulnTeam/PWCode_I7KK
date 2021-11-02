@@ -59,40 +59,40 @@ class NormalizedHeaderView(Table):
 # value e.g. CAST(xml_column AS CLOB) or to_clob(xml_column)
 #
 # Mangler disse for alle i JDBC 4.0: ROWID=-8 og SQLXML=2009
-#                        jdbc-id  iso-name               jdbc-name
+# jdbc-id  iso-name             jdbc-name
 jdbc_to_iso_data_type = {
-    '-16': 'text',               # LONGNVARCHAR
-    '-15': 'varchar()',          # NCHAR
+    '-16': 'text',              # LONGNVARCHAR
+    '-15': 'varchar()',         # NCHAR
     '-9': 'varchar()',          # NVARCHAR
     '-7': 'varchar(5)',         # BIT
     '-6': 'integer',            # TINYINT
-    '-5': 'integer',            # BIGINT
+    '-5': 'bigint',             # BIGINT
     '-4': 'text',               # LONGVARBINARY
     '-3': 'text',               # VARBINARY
     '-2': 'text',               # BINARY
     '-1': 'text',               # LONGVARCHAR
-    '1': 'varchar()',          # CHAR
-    '2': 'numeric',            # NUMERIC  # WAIT: Se xslt for ekstra nyanser på denne
-    '3': 'decimal',            # DECIMAL  # WAIT: Se xslt for ekstra nyanser på denne
-    '4': 'integer',            # INTEGER
-    '5': 'integer',            # SMALLINT
-    '6': 'float',              # FLOAT
-    '7': 'real',               # REAL
-    '8': 'double precision',   # DOUBLE
+    '1': 'varchar()',           # CHAR
+    '2': 'numeric',             # NUMERIC  # WAIT: Se xslt for ekstra nyanser på denne
+    '3': 'decimal',             # DECIMAL  # WAIT: Se xslt for ekstra nyanser på denne
+    '4': 'integer',             # INTEGER
+    '5': 'integer',             # SMALLINT
+    '6': 'float',               # FLOAT
+    '7': 'real',                # REAL
+    '8': 'double precision',    # DOUBLE
     '12': 'varchar()',          # VARCHAR
     '16': 'varchar(5)',         # BOOLEAN
     '91': 'date',               # DATE
     '92': 'time',               # TIME
     '93': 'timestamp',          # TIMESTAMP
-    '2004': 'text',               # BLOB
-    '2005': 'text',               # CLOB
-    '2011': 'text',               # NCLOB
+    '2004': 'text',             # BLOB
+    '2005': 'text',             # CLOB
+    '2011': 'text',             # NCLOB
 }
 
-#                            jdbc-id  ora-ctl-name                          jdbc-name
+# jdbc-id  ora-ctl-name                         jdbc-name
 jdbc_to_ora_ctl_data_type = {
-    '-16': 'CHAR(1000000)',                      # LONGNVARCHAR # WAIT: Finn absolutte maks som kan brukes
-    '-15': 'CHAR()',                             # NCHAR
+    '-16': 'CHAR(1000000)',                     # LONGNVARCHAR # WAIT: Finn absolutte maks som kan brukes
+    '-15': 'CHAR()',                            # NCHAR
     '-9': 'CHAR()',                             # NVARCHAR
     '-7': 'CHAR(5)',                            # BIT
     '-6': 'INTEGER EXTERNAL',                   # TINYINT
@@ -101,22 +101,22 @@ jdbc_to_ora_ctl_data_type = {
     '-3': 'CHAR(1000000)',                      # VARBINARY
     '-2': 'CHAR(1000000)',                      # BINARY
     '-1': 'CHAR(1000000)',                      # LONGVARCHAR
-    '1': 'CHAR()',                             # CHAR
-    '2': 'DECIMAL EXTERNAL',                   # NUMERIC  # TODO: Se xslt for ekstra nyanser på denne
-    '3': 'DECIMAL EXTERNAL',                   # DECIMAL  # TODO: Se xslt for ekstra nyanser på denne
-    '4': 'INTEGER EXTERNAL',                   # INTEGER
-    '5': 'INTEGER EXTERNAL',                   # SMALLINT
-    '6': 'FLOAT EXTERNAL',                     # FLOAT
-    '7': 'DECIMAL EXTERNAL',                   # REAL
-    '8': 'DECIMAL EXTERNAL',                   # DOUBLE
+    '1': 'CHAR()',                              # CHAR
+    '2': 'DECIMAL EXTERNAL',                    # NUMERIC  # TODO: Se xslt for ekstra nyanser på denne
+    '3': 'DECIMAL EXTERNAL',                    # DECIMAL  # TODO: Se xslt for ekstra nyanser på denne
+    '4': 'INTEGER EXTERNAL',                    # INTEGER
+    '5': 'INTEGER EXTERNAL',                    # SMALLINT
+    '6': 'FLOAT EXTERNAL',                      # FLOAT
+    '7': 'DECIMAL EXTERNAL',                    # REAL
+    '8': 'DECIMAL EXTERNAL',                    # DOUBLE
     '12': 'CHAR()',                             # VARCHAR
     '16': 'CHAR(5)',                            # BOOLEAN
     '91': 'DATE "YYYY-MM-DD"',                  # DATE
     '92': 'TIMESTAMP',                          # TIME
     '93': 'TIMESTAMP "YYYY-MM-DD HH24:MI:SS"',  # TIMESTAMP
-    '2004': 'CHAR(1000000)',                      # BLOB
-    '2005': 'CHAR(1000000)',                      # CLOB
-    '2011': 'CHAR(1000000)',                      # NCLOB
+    '2004': 'CHAR(1000000)',                    # BLOB
+    '2005': 'CHAR(1000000)',                    # CLOB
+    '2011': 'CHAR(1000000)',                    # NCLOB
 }
 
 

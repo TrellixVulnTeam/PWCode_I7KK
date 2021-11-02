@@ -138,6 +138,7 @@ def load_data(project_dir, config_dir, schema, multi_schema):
                         (" varchar(4000)", " clob"),
                         (" varchar2(4000)", " clob"),
                         # (" boolean", " varchar2(5)"),
+                        (" bigint", " number(19)"),
                         (" varchar(", " varchar2("),
                     )
 
