@@ -124,7 +124,6 @@ def get_tables(sub_systems_dir, sub_system, jdbc_url, driver_jar, schema):
 
     table_defs = tree.findall('table-def')
     for table_def in table_defs:
-
         table_schema = table_def.find('table-schema')
         if table_schema.text != schema:
             continue
@@ -159,6 +158,7 @@ def get_tables(sub_systems_dir, sub_system, jdbc_url, driver_jar, schema):
                     length_query = f'''SELECT MAX(LENGTH("{column_name_fixed}")) FROM "{schema}"."{table_name.text}"'''
                     result = run_select(jdbc, length_query)
                     max_length = [x[0] for x in result][0]
+
                     # TODO: Endre senere her slik at tomme felt ikke skrives til text_columns så fjernes i tsv
                     # -> Må legge inn 'disposed' på kolonne da og ha sjekk mot det i annen kode så det blir riktg ved opplasting
                     if max_length is not None:
@@ -283,6 +283,10 @@ def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir,
 
             for schema in schemas:
                 data_dir = os.path.join(sub_systems_dir, sub_system, 'content', schema.lower(), 'data')
+                Path(data_dir).mkdir(parents=True, exist_ok=True)
+                if len(os.listdir(data_dir)) > 0:
+                    continue
+
                 data_docs_dir = os.path.join(sub_systems_dir, sub_system, 'content', schema.lower(), 'data_documents_tmp')
                 Path(data_docs_dir).mkdir(parents=True, exist_ok=True)
                 print("Exporting schema: '" + schema + "' to disk...")
@@ -308,7 +312,7 @@ def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir,
                         if not os.path.isfile(tsv_file):
                             run_tika(tsv_file, data_docs_dir, tika_tmp_dir, java_path)
 
-            shutil.rmtree(database_dir)
+            # shutil.rmtree(database_dir)
 
         # process files:
         docs_dir = os.path.join(sub_systems_dir, sub_system, 'content', 'documents')
@@ -337,10 +341,14 @@ def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir,
                 subprocess.run('wimunmount --force ' + mount_dir + ' 2>/dev/null', shell=True)
 
             # TODO: Hva er riktig mappe å konvertere til? Sjekk PWB-kode
-            if convert == 'Yes':
+            sample = False
+            if convert in ('Yes', 'Sample'):
+                if convert == 'Sample':
+                    sample = True
+
                 base_target_dir = export_dir + '_normalized'
                 tsv_target_path = os.path.splitext(tsv_file)[0] + '_processed.tsv'
-                result = convert_folder(project_dir, export_dir, base_target_dir, tmp_dir, java_path, tsv_source_path=tsv_file, tsv_target_path=tsv_target_path)
+                result = convert_folder(project_dir, export_dir, base_target_dir, tmp_dir, java_path, tsv_source_path=tsv_file, tsv_target_path=tsv_target_path, sample=sample)
                 print(result)
                 # TODO: Må hente ut denne og kobinere med resultat av konvertering av eksporterte lob'er under slik at vises samlet til slutt
 
@@ -364,12 +372,16 @@ def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir,
                     if len(os.listdir(data_docs_dir)) == 0:
                         os.rmdir(data_docs_dir)
                     else:
-                        if convert == 'Yes':
+                        sample = False
+                        if convert in ('Yes', 'Sample'):
+                            if convert == 'Sample':
+                                sample = True
+
                             export_dir = data_docs_dir
                             base_target_dir = data_docs_dir[:-4]
                             tsv_file = os.path.join(sub_systems_dir, sub_system, 'header', 'data_documents.tsv')
                             tsv_target_path = os.path.splitext(tsv_file)[0] + '_processed.tsv'
-                            result = convert_folder(project_dir, export_dir, base_target_dir, tmp_dir, java_path, tsv_source_path=tsv_file, tsv_target_path=tsv_target_path, make_unique=False)
+                            result = convert_folder(project_dir, export_dir, base_target_dir, tmp_dir, java_path, tsv_source_path=tsv_file, tsv_target_path=tsv_target_path, make_unique=False, sample=sample)
                             print(result)
 
                             if 'All files converted' in result:

@@ -475,7 +475,7 @@ def add_fields(fields, table):
     return table
 
 
-def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_path, tika=False, ocr=False, merge=False, tsv_source_path=None, tsv_target_path=None, make_unique=True):
+def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_path, tika=False, ocr=False, merge=False, tsv_source_path=None, tsv_target_path=None, make_unique=True, sample=False):
     # TODO: Legg inn i gui at kan velge om skal ocr-behandles
     txt_target_path = base_target_dir + '_result.txt'
     json_tmp_dir = base_target_dir + '_tmp'
@@ -533,6 +533,7 @@ def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_
     # original_documents
     # TODO: Legg inn at ikke skal telle filer i mapper med de to navnene over
     file_count = sum([len(files) for r, d, files in os.walk(base_source_dir)])
+
     if row_count == 0:
         print('No files to convert. Exiting.')
         return 'error'
@@ -641,19 +642,28 @@ def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_
             row['original_file_copy'] = file_copy_path
 
         row['result'] = result
-        append_tsv_row(tsv_target_path, list(row.values()))
+        row_values = list(row.values())
+        row_values = [r.replace('\n', ' ') for r in row_values if r is not None]
+        append_tsv_row(tsv_target_path, row_values)
 
-    shutil.move(tsv_target_path, tsv_source_path)
+        if sample and count > 9:
+            break
+
+    if not sample:
+        shutil.move(tsv_target_path, tsv_source_path)
     # TODO: Legg inn valg om at hvis merge = true kopieres alle filer til mappe på øverste nivå og så slettes tomme undermapper
 
     msg = None
-    if converted_now:
-        if errors:
-            msg = "Not all files were converted. See '" + txt_target_path + "' for details."
-        else:
-            msg = 'All files converted succcessfully.'
+    if sample:
+        msg = 'Sample documents converted.'
     else:
-        msg = 'All files converted previously.'
+        if converted_now:
+            if errors:
+                msg = "Not all files were converted. See '" + txt_target_path + "' for details."
+            else:
+                msg = 'All files converted succcessfully.'
+        else:
+            msg = 'All files converted previously.'
 
     # print(msg)
     return msg  # TODO: Fiks så bruker denne heller for oppsummering til slutt når flere mapper konvertert
