@@ -44,7 +44,8 @@ if os.name == "posix":
 mime_to_norm = {
     'application/msword': (False, 'docbuilder2x', 'pdf'),
     'application/pdf': (False, 'pdf2pdfa', 'pdf'),
-    'application/rtf': (False, 'abi2x', 'pdf'),
+    # 'application/rtf': (False, 'abi2x', 'pdf'),
+    'application/rtf': (False, 'docbuilder2x', 'pdf'),
     'application/vnd.ms-excel': (True, 'docbuilder2x', 'pdf'),
     # 'application/vnd.ms-project': ('pdf'), # TODO: Har ikke ferdig kode for denne ennå
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document': (True, 'docbuilder2x', 'pdf'),
