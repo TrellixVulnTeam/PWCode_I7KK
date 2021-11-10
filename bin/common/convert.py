@@ -644,7 +644,12 @@ def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_
 
         row['result'] = result
         row_values = list(row.values())
-        row_values = [r.replace('\n', ' ') for r in row_values if r is not None]
+        # if source_file_path == '/home/bba/bin/PWCode/projects/INFODOC/content/sub_systems/db0/content/idsys/data_documents_tmp/joucorrespondenceattachment_document_1358.data':
+        #     for r in row_values:
+        #         print('|' + str(r) + '|')
+
+        # TODO: Fikset med å legge inn escapechar='\\' i append_tsv_row -> vil det skal problemer senere?
+        # row_values = [r.replace('\n', ' ') for r in row_values if r is not None]
         append_tsv_row(tsv_target_path, row_values)
 
         if sample and count > 9:

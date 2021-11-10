@@ -32,7 +32,7 @@ def append_tsv_row(file_path, row):
             quoting=csv.QUOTE_NONE,
             quotechar='',
             lineterminator='\n',
-            escapechar='')
+            escapechar='\\')
         writer.writerow(row)
 
 
