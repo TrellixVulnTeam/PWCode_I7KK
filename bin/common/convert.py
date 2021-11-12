@@ -549,7 +549,7 @@ def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_
     append_fields = ('version', 'norm_file_path', 'result', 'original_file_copy', 'id')
     table = add_fields(append_fields, table)
 
-    cut_fields = ('0', '1', 'X_TIKA_EXCEPTION_runtime')
+    cut_fields = ('0', '1', 'X_TIKA_EXCEPTION_runtime', 'X_TIKA_EXCEPTION_warn')
     table = remove_fields(cut_fields, table)
 
     header = etl.header(table)
