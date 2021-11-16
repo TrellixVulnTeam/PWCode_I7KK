@@ -491,6 +491,9 @@ def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_
     if tsv_target_path is None:
         tsv_target_path = base_target_dir + '_processed.tsv'
 
+    if os.path.exists(tsv_target_path):
+        os.remove(tsv_target_path)
+
     Path(base_target_dir).mkdir(parents=True, exist_ok=True)
 
     # TODO: Viser mime direkte om er pdf/a eller må en sjekke mot ekstra felt i de to under?
