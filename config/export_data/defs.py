@@ -471,7 +471,7 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
     unique_dict = get_unique_indexes(subsystem_dir, export_tables)
 
     if DDL_GEN == 'Native':
-        ddl_columns = get_ddl_columns(subsystem_dir, s_jdbc.db_schema)
+        ddl_columns = get_ddl_columns(subsystem_dir, s_jdbc.db_schema, pk_dict, unique_dict)
 
     mode = '-mode=INSERT'
     std_params = ' -ignoreIdentityColumns=false -removeDefaults=true -commitEvery=1000 '
@@ -583,8 +583,16 @@ jdbc_to_iso_data_type = {
 # WAIT: Sortere long raw sist eller først for å unngå bug i driver?
 # -> https://blog.jooq.org/tag/long-raw/
 
+#    if table in pk_dict:
+#        for col in pk_dict[table]:
+#            ddl_list.append('\nCREATE INDEX c_' + col + '_' + str(t_count) + ' ON "' + target_table + '" ("' + col + '");')
 
-def get_ddl_columns(subsystem_dir, schema):
+# if table in unique_dict:
+#     for col in unique_dict[table]:
+#         ddl_list.append('\nCREATE INDEX c_' + col + '_' + str(t_count) + ' ON "' + target_table + '" ("' + col + '");')
+
+
+def get_ddl_columns(subsystem_dir, schema, pk_dict, unique_dict):
     ddl_columns = {}
     schema_file = os.path.join(subsystem_dir, 'header', 'metadata.xml')
     tree = ET.parse(schema_file)
@@ -595,26 +603,38 @@ def get_ddl_columns(subsystem_dir, schema):
         if table_schema.text != schema:
             continue
 
-        table_name = table_def.find("table-name")
         disposed = table_def.find("disposed")
+        if disposed.text == "true":
+            continue
+
+        table_name = table_def.find("table-name")
+        pk_list = []
+        if table_name.text in pk_dict:
+            pk_list = pk_dict[table_name.text]
+
+        unique_list = []
+        if table_name.text in unique_dict:
+            unique_list = unique_dict[table_name.text]
 
         ddl_columns_list = []
         column_defs = table_def.findall("column-def")
-        column_defs[:] = sorted(
-            column_defs,
-            key=lambda elem: int(elem.findtext('dbms-position')))
+        column_defs[:] = sorted(column_defs, key=lambda elem: int(elem.findtext('dbms-position')))
         for column_def in column_defs:
             column_name = column_def.find('column-name')
-            print(column_name.text)
+
             java_sql_type = column_def.find('java-sql-type')
             dbms_data_size = column_def.find('dbms-data-size')
 
-            if disposed.text != "true":
-                iso_data_type = jdbc_to_iso_data_type[java_sql_type.text]
-                if '()' in iso_data_type:
-                    iso_data_type = iso_data_type.replace('()', '(' + dbms_data_size.text + ')')
+            iso_data_type = jdbc_to_iso_data_type[java_sql_type.text]
+            if '()' in iso_data_type:
+                iso_data_type = iso_data_type.replace('()', '(' + dbms_data_size.text + ')')
 
-                ddl_columns_list.append('"' + column_name.text + '" ' + iso_data_type + ',')
+            column_text = '"' + column_name.text + '" ' + iso_data_type
+            if column_name.text in pk_list or column_name.text in unique_list:
+                column_text = column_text + ' NOT NULL'
+
+            print(column_text)
+            ddl_columns_list.append(column_text + ',')
         ddl_columns[table_name.text] = '\n'.join(ddl_columns_list)
 
     return ddl_columns
