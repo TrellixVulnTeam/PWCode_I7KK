@@ -531,6 +531,8 @@ def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_
         table = etl.select(table, lambda rec: Path(rec.source_file_path).name != 'Thumbs.db')
 
     table = etl.select(table, lambda rec: rec.source_file_path != '')
+    table = etl.select(table, lambda rec: '#' not in rec.source_file_path)
+    # WAIT: Ikke fullgod sjekk på embedded dokument i linje over da # faktisk kan forekomme i filnavn
     row_count = etl.nrows(table)
 
     # error_documents
