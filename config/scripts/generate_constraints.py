@@ -48,19 +48,9 @@ def add_primary_keys(table_defs, schema, empty_tables):
             if primary_key.text == 'true':
                 column_name = column_def.find('column-name')
                 pk_list.append('"' + column_name.text + '"')
-                dbms_data_type = column_def.find('dbms-data-type')
-
-                # WAIT: Endre til å bruke java-sql-type og map til iso/sql typer (som gjort i export-kode)
-
-                repls = (
-                    (' identity', ''),
-                    ('()', ''),
-                )
-                data_type = reduce(lambda a, kv: a.replace(*kv), repls, dbms_data_type.text)
-                constraints.append('\nALTER TABLE ' + table + ' ALTER "' + column_name.text + '" ' + data_type + ' NOT NULL;')
 
         pk_dict[table_name.text] = ', '.join(sorted(pk_list))
-        constraints.append('ALTER TABLE ' + table + ' ADD PRIMARY KEY(' + pk_dict[table_name.text] + ');')
+        constraints.append('\nALTER TABLE ' + table + ' ADD PRIMARY KEY(' + pk_dict[table_name.text] + ');')
 
     return constraints
 
