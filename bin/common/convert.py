@@ -60,7 +60,7 @@ mime_to_norm = {
     # 'application/x-msdownload': (False, 'what?', None),  # executable on win
     # 'application/x-ms-installer': (False, 'what?', None),  # Installer on win
     'application/x-tika-msoffice': (False, 'delete_file', None),  # TODO: Skriv funksjon ferdig
-    'application/zip': (False, 'extract_nested_zip', 'zip'),  # TODO: Legg inn for denne
+    'application/zip': (False, 'extract_nested_zip', 'zip'),
     'image/gif': (False, 'image2norm', 'pdf'),
     # 'image/jpeg': (False, 'image2norm', 'pdf'),
     'image/jpeg': (False, 'file_copy', 'jpg'),
@@ -68,7 +68,7 @@ mime_to_norm = {
     'image/tiff': (False, 'image2norm', 'pdf'),
     'text/html': (False, 'html2pdf', 'pdf'),  # TODO: Legg til undervarianter her (var opprinnelig 'startswith)
     'text/plain': (False, 'x2utf8', 'txt'),
-    # 'message/rfc822': (False, 'eml2pdf', 'pdf'), # TODO: Sjekk om oppdatert 3. party finnes først. Noen tilfeller av korrupt pdf. Encoding problem. Relaterte?
+    'message/rfc822': (False, 'eml2pdf', 'pdf'), # TODO: Sjekk om oppdatert 3. party finnes først. Noen tilfeller av korrupt pdf. Encoding problem. Relaterte?
 }
 
 
@@ -92,30 +92,15 @@ def add_converter():
 @add_converter()
 def eml2pdf(args):
     ok = False
+    args['tmp_file_path'] = args['tmp_file_path'] + '.pdf'
+    command = ['eml_to_pdf', args['source_file_path'], args['tmp_file_path']]
+    run_shell_command(command)
 
-    repls = (
-        ('‘', 'æ'),
-        ('›', 'ø'),
-        ('†', 'å'),
-        ('=C2=A0', ' '),
-        ('=C3=A6', 'æ'),
-        ('=C3=B8|==C3=B8|=C=3=A5|=C3==B8|=C3=B=8', 'ø'),
-        ('=C3=A5|==C3=A5|=C=3=A5|=C3==A5|=C3=A=5', 'å'),  # TODO: Virket ikke siden multiline ikke ignorerte line breaks -> skulle den  ikke det?
-        # TODO: Fiks tilfeller når hex variant som skal byttes ut er på hvers av = + line break (er = på slutten av linjer i eml)
-        # Multiline skal ignorere line break -> bare alltid ignorere = også og sjekk mot eg C2A0 heller enn =C2=A0 ?
-    )
+    if os.path.exists(args['tmp_file_path']):
+        ok = pdf2pdfa(args)
 
-    with open(args['norm_file_path'], "wb") as file:  # TODO: Endre til tmp_file_path
-        with open(args['source_file_path'], 'rb') as file_r:
-            content = file_r.read()
-            data = content.decode(chardet.detect(content)['encoding'])
-            for k, v in repls:
-                data = re.sub(k, v, data, 0, re.MULTILINE)
-        file.write(data.encode('latin1'))  # TODO: Test eml-to-pdf-converter igjen senere for om utf-8 støtte på plass. Melde inn som feil?
-
-    if os.path.exists(args['norm_file_path']):  # TODO: Endre til tmp_file_path
-        # TODO konverter til pdf mm som norm_file_path
-        ok = True
+        if os.path.isfile(args['tmp_file_path']):
+            os.remove(args['tmp_file_path'])
 
     return ok
 
@@ -164,6 +149,7 @@ def x2utf8(args):
     return False
 
 
+# @add_converter()
 def extract_nested_zip(zippedFile, toFolder):
     """ Extract a zip file including any nested zip files
         Delete the zip file(s) after extraction
