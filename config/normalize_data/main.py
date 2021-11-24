@@ -14,7 +14,6 @@ from defs import (  # .defs.py
 
 def main():
     bin_dir = os.environ["pwcode_bin_dir"]  # Get PWCode executable path
-    java_path = os.environ['pwcode_java_path']  # Get Java home path
     class_path = os.environ['CLASSPATH']  # Get jar path
     config_dir = os.environ["pwcode_config_dir"]  # Get PWCode config path
     tmp_dir = os.path.join(config_dir, 'tmp')
@@ -58,7 +57,7 @@ def main():
         with tarfile.open(archive) as tar:
             tar.extractall(path=project_dir)
 
-    result = normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir, convert)
+    result = normalize_data(project_dir, bin_dir, class_path, memory, tmp_dir, convert)
     if result == 'Error':
         return result
 

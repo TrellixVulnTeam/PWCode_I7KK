@@ -18,7 +18,6 @@ def main():
     config_dir = os.environ['pwcode_config_dir']
     tmp_dir = os.path.join(config_dir, 'tmp')
     data_dir = os.environ['pwcode_data_dir']
-    java_path = os.environ['pwcode_java_path']
     tmp_config_path = os.path.join(config_dir, 'tmp', 'convert_files.xml')
     tmp_config = XMLSettings(tmp_config_path)
 
@@ -51,7 +50,7 @@ def main():
     results = {}
     for folder in folders:
         base_target_dir = os.path.join(project_dir, folder.tag)
-        result = convert_folder(project_dir, folder.text, base_target_dir, tmp_dir, java_path, merge=merge)
+        result = convert_folder(folder.text, base_target_dir, tmp_dir, merge=merge)
         results[folder.text] = result
 
     # print('\n')

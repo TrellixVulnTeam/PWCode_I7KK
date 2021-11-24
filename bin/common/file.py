@@ -22,6 +22,15 @@ from common.print import pretty_size, print_progress_bar
 import hashlib
 import blake3
 import csv
+import shutil
+
+
+def delete_file_or_dir(path):
+    if os.path.isfile(path):
+        os.remove(path)
+
+    if os.path.isdir(path):
+        shutil.rmtree(path)
 
 
 def append_tsv_row(file_path, row):

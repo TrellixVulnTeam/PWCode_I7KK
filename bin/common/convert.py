@@ -29,7 +29,7 @@ import base64
 from os.path import relpath
 from pathlib import Path
 from common.metadata import run_tika, run_siegfried
-from common.file import append_tsv_row, append_txt_file, replace_text_in_file
+from common.file import append_tsv_row, append_txt_file, replace_text_in_file, delete_file_or_dir
 import cchardet as chardet
 # from pathlib import Path
 # from functools import reduce
@@ -56,11 +56,12 @@ mime_to_norm = {
     'application/xhtml+xml': (False, 'wkhtmltopdf', 'pdf'),
     # 'application/xml': (False, 'file_copy', 'xml'),
     'application/xml': (False, 'x2utf8', 'xml'),
-    # 'application/x-elf': (False, 'what?', None),  # executable on lin
-    # 'application/x-msdownload': (False, 'what?', None),  # executable on win
-    # 'application/x-ms-installer': (False, 'what?', None),  # Installer on win
-    'application/x-tika-msoffice': (False, 'delete_file', None),  # TODO: Skriv funksjon ferdig
-    'application/zip': (False, 'extract_nested_zip', 'zip'),
+    'application/x-elf': (False, None, None),  # executable on lin
+    'application/x-msdownload': (False, None, None),  # executable on win
+    'application/x-ms-installer': (False, None, None),  # Installer on win
+    'application/x-tika-msoffice': (False, None, None),
+    'n/a': (False, None, None),
+    'application/zip': (False, 'zip_to_norm', 'zip'),
     'image/gif': (False, 'image2norm', 'pdf'),
     # 'image/jpeg': (False, 'image2norm', 'pdf'),
     'image/jpeg': (False, 'file_copy', 'jpg'),
@@ -82,12 +83,6 @@ def add_converter():
         converters[func.__name__] = func
         return func
     return _add_converter
-
-
-# def delete_file():
-#     # TODO: Fjern garbage files og oppdater i tsv at det er gjort
-#     return
-
 
 @add_converter()
 def eml2pdf(args):
@@ -149,19 +144,52 @@ def x2utf8(args):
     return False
 
 
-# @add_converter()
-def extract_nested_zip(zippedFile, toFolder):
-    """ Extract a zip file including any nested zip files
-        Delete the zip file(s) after extraction
-    """
-    # pathlib.Path(toFolder).mkdir(parents=True, exist_ok=True)
-    with zipfile.ZipFile(zippedFile, 'r') as zfile:
-        zfile.extractall(path=toFolder)
-    os.remove(zippedFile)
-    for root, dirs, files in os.walk(toFolder):
+@add_converter()
+def zip_to_norm(args):
+    # TODO: Fiks også slik at fil som har tom mime type håndteres bedre. Hvorfor ikke lagt i error-mappe?
+    # TODO: Sjekk på om kun en fil i zip->ikke pakk som zip igjen da. Sjekk på norm file path må justeres også da
+    # TODO: Test når del av full normalisering -> infodoc
+    # TODO: Test zip i zip
+    # TODO: automatisk 'keep original' hvis konvertering ikke støttet?
+    # TODO: Fjern eller juster tekst som printes når konvertering inni zip?
+    norm_zip_path = os.path.splitext(args['norm_file_path'])[0]
+    args['norm_file_path'] = norm_zip_path + '_zip'
+    norm_dir_path = args['norm_file_path'] + '_norm'
+
+    extract_nested_zip(args)
+
+    result = convert_folder(args['norm_file_path'], norm_dir_path, args['tmp_dir'])
+
+    if 'succcessfully' in result:
+        try:
+            shutil.make_archive(norm_zip_path, 'zip', norm_dir_path)
+        except Exception as e:
+            print(e)
+            return False
+
+        paths = [norm_dir_path + '.tsv', norm_dir_path, args['norm_file_path']]
+        for path in paths:
+            delete_file_or_dir(path)
+
+        return True
+
+    return False
+
+
+def extract_nested_zip(args):
+    zipped_file = args['source_file_path']
+    to_folder = args['norm_file_path']
+
+    with zipfile.ZipFile(zipped_file, 'r') as zfile:
+        zfile.extractall(path=to_folder)
+
+    for root, dirs, files in os.walk(to_folder):
         for filename in files:
+            # file_path = os.path.join(to_folder, filename)
+            # print(file_path)
             if re.search(r'\.zip$', filename):
                 fileSpec = os.path.join(root, filename)
+                # print(fileSpec)
                 extract_nested_zip(fileSpec, root)
 
 
@@ -392,7 +420,11 @@ def file_convert(source_file_path, mime_type, function, target_dir, tmp_dir, nor
     normalized = {'result': None, 'norm_file_path': norm_file_path, 'error': None, 'original_file_copy': None}
 
     if not os.path.isfile(norm_file_path):
-        if os.path.islink(source_file_path):
+        # print(os.lstat(source_file_path))
+        # print('|' + os.path.abspath(source_file_path) + '|')
+
+        if mime_type == 'n/a':
+            print('jj')
             normalized['result'] = 5  # Not a file
             normalized['norm_file_path'] = None
         elif function in converters:
@@ -462,12 +494,14 @@ def add_fields(fields, table):
     return table
 
 
-def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_path, tika=False, ocr=False, merge=False, tsv_source_path=None, tsv_target_path=None, make_unique=True, sample=False):
-    # TODO: Legg inn i gui at kan velge om skal ocr-behandles
+def convert_folder(base_source_dir, base_target_dir, tmp_dir, tika=False, ocr=False, merge=False, tsv_source_path=None, tsv_target_path=None, make_unique=True, sample=False):
+    # WAIT: Legg inn i gui at kan velge om skal ocr-behandles
     txt_target_path = base_target_dir + '_result.txt'
     json_tmp_dir = base_target_dir + '_tmp'
     converted_now = False
     errors = False
+
+    print(base_source_dir)
 
     if tsv_source_path is None:
         tsv_source_path = base_target_dir + '.tsv'
@@ -486,9 +520,9 @@ def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_
 
     if not os.path.isfile(tsv_source_path):
         if tika:
-            run_tika(tsv_source_path, base_source_dir, json_tmp_dir, java_path)
+            run_tika(tsv_source_path, base_source_dir, json_tmp_dir)
         else:
-            run_siegfried(base_source_dir, project_dir, tsv_source_path)
+            run_siegfried(base_source_dir, tmp_dir, tsv_source_path)
 
     # Remove any NUL characters from tsv
     replace_text_in_file(tsv_source_path, '\0', '')
@@ -573,16 +607,20 @@ def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_
         result = None
         old_result = row['result']
 
-        print(count_str + source_file_path + ' (' + mime_type + ')')
-
         if not mime_type:
+            if os.path.islink(source_file_path):
+                mime_type = 'n/a'
+
             # kind = filetype.guess(source_file_path)
             extension = os.path.splitext(source_file_path)[1][1:].lower()
             if extension == 'xml':
                 mime_type = 'application/xml'
 
+        print(count_str + source_file_path + ' (' + mime_type + ')')
+
         if mime_type not in mime_to_norm.keys():
             # print("|" + mime_type + "|")
+
             errors = True
             converted_now = True
             result = 'Conversion not supported'
@@ -595,8 +633,11 @@ def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_
 
             # Ensure unique file names in dir hierarchy:
             norm_ext = mime_to_norm[mime_type][2]
+            if not norm_ext:
+                norm_ext = 'none'
+
             if make_unique:
-                norm_ext = (base64.b32encode(bytes(str(count), encoding='ascii'))).decode('utf8').replace('=', '').lower() + '.' + mime_to_norm[mime_type][2]
+                norm_ext = (base64.b32encode(bytes(str(count), encoding='ascii'))).decode('utf8').replace('=', '').lower() + '.' + norm_ext
             target_dir = os.path.dirname(source_file_path.replace(base_source_dir, base_target_dir))
             normalized = file_convert(source_file_path, mime_type, function, target_dir, tmp_dir, None, norm_ext, version, ocr, keep_original)
 
@@ -623,7 +664,7 @@ def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_
                 result = normalized['error']
                 append_txt_file(txt_target_path, result + ': ' + source_file_path + ' (' + mime_type + ')')
             elif normalized['result'] == 5:
-                result = 'Not a file'
+                result = 'Not a document'
 
             if normalized['norm_file_path']:
                 row['norm_file_path'] = relpath(normalized['norm_file_path'], base_target_dir)
@@ -635,9 +676,6 @@ def convert_folder(project_dir, base_source_dir, base_target_dir, tmp_dir, java_
 
         row['result'] = result
         row_values = list(row.values())
-        # if source_file_path == '/home/bba/bin/PWCode/projects/INFODOC/content/sub_systems/db0/content/idsys/data_documents_tmp/joucorrespondenceattachment_document_1358.data':
-        #     for r in row_values:
-        #         print('|' + str(r) + '|')
 
         # TODO: Fikset med å legge inn escapechar='\\' i append_tsv_row -> vil det skal problemer senere?
         # row_values = [r.replace('\n', ' ') for r in row_values if r is not None]

@@ -36,10 +36,10 @@ def merge_json_files(tmp_dir, json_path):
         json.dump(glob_data, f, indent=4)
 
 
-def run_siegfried(base_source_dir, project_dir, tsv_path):
+def run_siegfried(base_source_dir, tmp_dir, tsv_path):
     print('\nIdentifying file types...')
 
-    csv_path = os.path.join(project_dir, 'tmp.csv')
+    csv_path = os.path.join(tmp_dir, 'tmp.csv')
     subprocess.run(
         'sf -z -csv "' + base_source_dir + '" > ' + csv_path,
         stderr=subprocess.DEVNULL,
@@ -57,18 +57,18 @@ def run_siegfried(base_source_dir, project_dir, tsv_path):
         os.remove(csv_path)
 
 
-def run_tika(tsv_path, base_source_dir, tika_tmp_dir, java_path):
+def run_tika(tsv_path, base_source_dir, tika_tmp_dir):
     Path(tika_tmp_dir).mkdir(parents=True, exist_ok=True)
     json_path = os.path.join(tika_tmp_dir, 'merged.json')
     tika_dir = os.path.expanduser("~") + '/bin/tika/'
     tika_jar = tika_dir + 'tika-app.jar'
     tika_config = tika_dir + 'tika.config'
+    java_path = os.environ['pwcode_java_path']  # Get Java home path
 
     # TODO: Ha sjekk på om tsv finnes allerede?
     # if not os.path.isfile(tsv_path):
     print('\nIdentifying file types and extracting metadata...')
     subprocess.run(  # TODO: Denne blir ikke avsluttet ved ctrl-k -> fix (kill prosess gruppe?)
-        # TODO: Endre så bruker java_path fra def arg heller i linjen under
         java_path + ' -jar ' + tika_jar + ' -c ' + tika_config + ' -J -m -i ' + base_source_dir + ' -o ' + tika_tmp_dir,
         stderr=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,

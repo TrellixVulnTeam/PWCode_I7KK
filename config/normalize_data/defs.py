@@ -267,7 +267,7 @@ def get_db_file(database_dir, db_path):
                 return file_path
 
 
-def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir, convert):
+def normalize_data(project_dir, bin_dir, class_path, memory, tmp_dir, convert):
     sub_systems_dir = os.path.join(project_dir, 'content', 'sub_systems')
     tika_tmp_dir = os.path.join(tmp_dir, 'tika')
 
@@ -310,7 +310,7 @@ def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir,
                     else:
                         tsv_file = os.path.join(sub_systems_dir, sub_system, 'header', 'data_documents.tsv')
                         if not os.path.isfile(tsv_file):
-                            run_tika(tsv_file, data_docs_dir, tika_tmp_dir, java_path)
+                            run_tika(tsv_file, data_docs_dir, tika_tmp_dir)
 
             # shutil.rmtree(database_dir)
 
@@ -335,7 +335,7 @@ def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir,
                     with tarfile.open(file) as tar:
                         tar.extractall(path=export_dir)
 
-                run_tika(tsv_file, mount_dir, tika_tmp_dir, java_path)
+                run_tika(tsv_file, mount_dir, tika_tmp_dir)
 
             if os.path.exists(mount_dir):
                 subprocess.run('wimunmount --force ' + mount_dir + ' 2>/dev/null', shell=True)
@@ -348,7 +348,7 @@ def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir,
 
                 base_target_dir = export_dir + '_normalized'
                 tsv_target_path = os.path.splitext(tsv_file)[0] + '_processed.tsv'
-                result = convert_folder(project_dir, export_dir, base_target_dir, tmp_dir, java_path, tsv_source_path=tsv_file, tsv_target_path=tsv_target_path, sample=sample)
+                result = convert_folder(export_dir, base_target_dir, tmp_dir, tsv_source_path=tsv_file, tsv_target_path=tsv_target_path, sample=sample)
                 print(result)
                 # TODO: Må hente ut denne og kobinere med resultat av konvertering av eksporterte lob'er under slik at vises samlet til slutt
 
@@ -381,7 +381,7 @@ def normalize_data(project_dir, bin_dir, class_path, java_path, memory, tmp_dir,
                             base_target_dir = data_docs_dir[:-4]
                             tsv_file = os.path.join(sub_systems_dir, sub_system, 'header', 'data_documents.tsv')
                             tsv_target_path = os.path.splitext(tsv_file)[0] + '_processed.tsv'
-                            result = convert_folder(project_dir, export_dir, base_target_dir, tmp_dir, java_path, tsv_source_path=tsv_file, tsv_target_path=tsv_target_path, make_unique=False, sample=sample)
+                            result = convert_folder(export_dir, base_target_dir, tmp_dir, tsv_source_path=tsv_file, tsv_target_path=tsv_target_path, make_unique=False, sample=sample)
                             print(result)
 
                             if 'All files converted' in result:
