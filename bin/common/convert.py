@@ -146,11 +146,9 @@ def x2utf8(args):
 
 @add_converter()
 def zip_to_norm(args):
-    # TODO: Fiks også slik at fil som har tom mime type håndteres bedre. Hvorfor ikke lagt i error-mappe?
     # TODO: Sjekk på om kun en fil i zip->ikke pakk som zip igjen da. Sjekk på norm file path må justeres også da
     # TODO: Test når del av full normalisering -> infodoc
     # TODO: Test zip i zip
-    # TODO: automatisk 'keep original' hvis konvertering ikke støttet?
     # TODO: Fjern eller juster tekst som printes når konvertering inni zip?
     norm_zip_path = os.path.splitext(args['norm_file_path'])[0]
     args['norm_file_path'] = norm_zip_path + '_zip'
@@ -158,7 +156,7 @@ def zip_to_norm(args):
 
     extract_nested_zip(args)
 
-    result = convert_folder(args['norm_file_path'], norm_dir_path, args['tmp_dir'])
+    result = convert_folder(args['norm_file_path'], norm_dir_path, args['tmp_dir'], zip=True)
 
     if 'succcessfully' in result:
         try:
@@ -424,7 +422,6 @@ def file_convert(source_file_path, mime_type, function, target_dir, tmp_dir, nor
         # print('|' + os.path.abspath(source_file_path) + '|')
 
         if mime_type == 'n/a':
-            print('jj')
             normalized['result'] = 5  # Not a file
             normalized['norm_file_path'] = None
         elif function in converters:
@@ -494,14 +491,12 @@ def add_fields(fields, table):
     return table
 
 
-def convert_folder(base_source_dir, base_target_dir, tmp_dir, tika=False, ocr=False, merge=False, tsv_source_path=None, tsv_target_path=None, make_unique=True, sample=False):
+def convert_folder(base_source_dir, base_target_dir, tmp_dir, tika=False, ocr=False, merge=False, tsv_source_path=None, tsv_target_path=None, make_unique=True, sample=False, zip=False):
     # WAIT: Legg inn i gui at kan velge om skal ocr-behandles
     txt_target_path = base_target_dir + '_result.txt'
     json_tmp_dir = base_target_dir + '_tmp'
     converted_now = False
     errors = False
-
-    print(base_source_dir)
 
     if tsv_source_path is None:
         tsv_source_path = base_target_dir + '.tsv'
@@ -520,9 +515,9 @@ def convert_folder(base_source_dir, base_target_dir, tmp_dir, tika=False, ocr=Fa
 
     if not os.path.isfile(tsv_source_path):
         if tika:
-            run_tika(tsv_source_path, base_source_dir, json_tmp_dir)
+            run_tika(tsv_source_path, base_source_dir, json_tmp_dir, zip)
         else:
-            run_siegfried(base_source_dir, tmp_dir, tsv_source_path)
+            run_siegfried(base_source_dir, tmp_dir, tsv_source_path, zip)
 
     # Remove any NUL characters from tsv
     replace_text_in_file(tsv_source_path, '\0', '')
@@ -566,7 +561,7 @@ def convert_folder(base_source_dir, base_target_dir, tmp_dir, tika=False, ocr=Fa
     elif file_count != row_count:
         print("Files listed in '" + tsv_source_path + "' doesn't match files on disk. Exiting.")
         return 'error'
-    else:
+    elif not zip:
         print('Converting files..')
 
     # WAIT: Legg inn sjekk på filstørrelse før og etter konvertering
@@ -616,7 +611,8 @@ def convert_folder(base_source_dir, base_target_dir, tmp_dir, tika=False, ocr=Fa
             if extension == 'xml':
                 mime_type = 'application/xml'
 
-        print(count_str + source_file_path + ' (' + mime_type + ')')
+        if not zip:
+            print(count_str + source_file_path + ' (' + mime_type + ')')
 
         if mime_type not in mime_to_norm.keys():
             # print("|" + mime_type + "|")

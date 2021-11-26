@@ -36,8 +36,9 @@ def merge_json_files(tmp_dir, json_path):
         json.dump(glob_data, f, indent=4)
 
 
-def run_siegfried(base_source_dir, tmp_dir, tsv_path):
-    print('\nIdentifying file types...')
+def run_siegfried(base_source_dir, tmp_dir, tsv_path, zip=False):
+    if not zip:
+        print('\nIdentifying file types...')
 
     csv_path = os.path.join(tmp_dir, 'tmp.csv')
     subprocess.run(
@@ -57,7 +58,7 @@ def run_siegfried(base_source_dir, tmp_dir, tsv_path):
         os.remove(csv_path)
 
 
-def run_tika(tsv_path, base_source_dir, tika_tmp_dir):
+def run_tika(tsv_path, base_source_dir, tika_tmp_dir, zip=False):
     Path(tika_tmp_dir).mkdir(parents=True, exist_ok=True)
     json_path = os.path.join(tika_tmp_dir, 'merged.json')
     tika_dir = os.path.expanduser("~") + '/bin/tika/'
@@ -67,7 +68,10 @@ def run_tika(tsv_path, base_source_dir, tika_tmp_dir):
 
     # TODO: Ha sjekk på om tsv finnes allerede?
     # if not os.path.isfile(tsv_path):
-    print('\nIdentifying file types and extracting metadata...')
+
+    if not zip:
+        print('\nIdentifying file types and extracting metadata...')
+
     subprocess.run(  # TODO: Denne blir ikke avsluttet ved ctrl-k -> fix (kill prosess gruppe?)
         java_path + ' -jar ' + tika_jar + ' -c ' + tika_config + ' -J -m -i ' + base_source_dir + ' -o ' + tika_tmp_dir,
         stderr=subprocess.DEVNULL,
