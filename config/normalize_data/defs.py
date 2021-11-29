@@ -348,7 +348,7 @@ def normalize_data(project_dir, bin_dir, class_path, memory, tmp_dir, convert):
 
                 base_target_dir = export_dir + '_normalized'
                 tsv_target_path = os.path.splitext(tsv_file)[0] + '_processed.tsv'
-                result = convert_folder(export_dir, base_target_dir, tmp_dir, tsv_source_path=tsv_file, tsv_target_path=tsv_target_path, sample=sample)
+                result, file_count = convert_folder(export_dir, base_target_dir, tmp_dir, tsv_source_path=tsv_file, tsv_target_path=tsv_target_path, sample=sample)
                 print(result)
                 # TODO: Må hente ut denne og kobinere med resultat av konvertering av eksporterte lob'er under slik at vises samlet til slutt
 
@@ -381,7 +381,7 @@ def normalize_data(project_dir, bin_dir, class_path, memory, tmp_dir, convert):
                             base_target_dir = data_docs_dir[:-4]
                             tsv_file = os.path.join(sub_systems_dir, sub_system, 'header', 'data_documents.tsv')
                             tsv_target_path = os.path.splitext(tsv_file)[0] + '_processed.tsv'
-                            result = convert_folder(export_dir, base_target_dir, tmp_dir, tsv_source_path=tsv_file, tsv_target_path=tsv_target_path, make_unique=False, sample=sample)
+                            result, file_count = convert_folder(export_dir, base_target_dir, tmp_dir, tsv_source_path=tsv_file, tsv_target_path=tsv_target_path, make_unique=False, sample=sample)
                             print(result)
 
                             if 'All files converted' in result:

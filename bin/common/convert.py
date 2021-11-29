@@ -45,7 +45,7 @@ mime_to_norm = {
     'application/msword': (False, 'docbuilder2x', 'pdf'),
     'application/pdf': (False, 'pdf2pdfa', 'pdf'),
     # 'application/rtf': (False, 'abi2x', 'pdf'),
-    'application/rtf': (False, 'docbuilder2x', 'pdf'),
+    'application/rtf': (True, 'docbuilder2x', 'pdf'),  # TODO: Finn beste test på om har blitt konvertert til pdf
     'application/vnd.ms-excel': (True, 'docbuilder2x', 'pdf'),
     # 'application/vnd.ms-project': ('pdf'), # TODO: Har ikke ferdig kode for denne ennå
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document': (True, 'docbuilder2x', 'pdf'),
@@ -148,26 +148,26 @@ def x2utf8(args):
 def zip_to_norm(args):
     # TODO: Sjekk på om kun en fil i zip->ikke pakk som zip igjen da. Sjekk på norm file path må justeres også da
     # TODO: Test når del av full normalisering -> infodoc
-    # TODO: Test zip i zip
-    # TODO: Fjern eller juster tekst som printes når konvertering inni zip?
+
     norm_zip_path = os.path.splitext(args['norm_file_path'])[0]
     args['norm_file_path'] = norm_zip_path + '_zip'
     norm_dir_path = args['norm_file_path'] + '_norm'
 
     extract_nested_zip(args)
 
-    result = convert_folder(args['norm_file_path'], norm_dir_path, args['tmp_dir'], zip=True)
+    result, file_count = convert_folder(args['norm_file_path'], norm_dir_path, args['tmp_dir'], zip=True)
 
     if 'succcessfully' in result:
-        try:
-            shutil.make_archive(norm_zip_path, 'zip', norm_dir_path)
-        except Exception as e:
-            print(e)
-            return False
+        if file_count > 1:
+            try:
+                shutil.make_archive(norm_zip_path, 'zip', norm_dir_path)
+            except Exception as e:
+                print(e)
+                return False
 
-        paths = [norm_dir_path + '.tsv', norm_dir_path, args['norm_file_path']]
-        for path in paths:
-            delete_file_or_dir(path)
+        # paths = [norm_dir_path + '.tsv', norm_dir_path, args['norm_file_path']]
+        # for path in paths:
+        #     delete_file_or_dir(path)
 
         return True
 
@@ -183,8 +183,8 @@ def extract_nested_zip(args):
 
     for root, dirs, files in os.walk(to_folder):
         for filename in files:
-            # file_path = os.path.join(to_folder, filename)
-            # print(file_path)
+            file_path = os.path.join(to_folder, filename)
+            print(file_path)
             if re.search(r'\.zip$', filename):
                 fileSpec = os.path.join(root, filename)
                 # print(fileSpec)
@@ -697,4 +697,4 @@ def convert_folder(base_source_dir, base_target_dir, tmp_dir, tika=False, ocr=Fa
             msg = 'All files converted previously.'
 
     # print(msg)
-    return msg  # TODO: Fiks så bruker denne heller for oppsummering til slutt når flere mapper konvertert
+    return msg, file_count  # TODO: Fiks så bruker denne heller for oppsummering til slutt når flere mapper konvertert

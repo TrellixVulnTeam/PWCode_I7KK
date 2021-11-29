@@ -50,7 +50,7 @@ def main():
     results = {}
     for folder in folders:
         base_target_dir = os.path.join(project_dir, folder.tag)
-        result = convert_folder(folder.text, base_target_dir, tmp_dir, merge=merge)
+        result, file_count = convert_folder(folder.text, base_target_dir, tmp_dir, merge=merge)
         results[folder.text] = result
 
     # print('\n')
