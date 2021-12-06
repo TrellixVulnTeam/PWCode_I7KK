@@ -58,8 +58,12 @@ def main():
             tar.extractall(path=project_dir)
 
     result = normalize_data(project_dir, bin_dir, class_path, memory, tmp_dir, convert)
-    if result == 'Error':
-        return result
+
+    if convert == 'Sample':
+        return ''
+
+    if not result:
+        return 'Error converting some files. Exiting...'
 
     # TODO: Legg inn sjekk her på om databaseservicer startet og start hvis ikke
 
@@ -86,7 +90,7 @@ def main():
             for schema in schemas:
                 load_data(project_dir, config_dir, schema, multi_schema)
 
-    return 'Juhuu :)'
+    return 'All data normalized...'
 
 # TODO: Legg inn sjekk på om finnes upakket mappestruktur hvis ikke tar. Ha i config om pakket eller ikke? Ja -> sjekksum henger jo sammen med den
 

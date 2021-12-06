@@ -69,7 +69,8 @@ mime_to_norm = {
     'image/tiff': (False, 'image2norm', 'pdf'),
     'text/html': (False, 'html2pdf', 'pdf'),  # TODO: Legg til undervarianter her (var opprinnelig 'startswith)
     'text/plain': (False, 'x2utf8', 'txt'),
-    'message/rfc822': (False, 'eml2pdf', 'pdf'), # TODO: Sjekk om oppdatert 3. party finnes først. Noen tilfeller av korrupt pdf. Encoding problem. Relaterte?
+    'multipart/related': (True, 'mhtml2pdf', 'pdf'),
+    'message/rfc822': (True, 'eml2pdf', 'pdf'),
 }
 
 
@@ -90,6 +91,26 @@ def eml2pdf(args):
     args['tmp_file_path'] = args['tmp_file_path'] + '.pdf'
     command = ['eml_to_pdf', args['source_file_path'], args['tmp_file_path']]
     run_shell_command(command)
+
+    if os.path.exists(args['tmp_file_path']):
+        ok = pdf2pdfa(args)
+
+        if os.path.isfile(args['tmp_file_path']):
+            os.remove(args['tmp_file_path'])
+
+    return ok
+
+
+@add_converter()
+def mhtml2pdf(args):
+    ok = False
+    args['tmp_file_path'] = args['tmp_file_path'] + '.pdf'
+    java_path = os.environ['pwcode_java_path']  # Get Java home path
+    converter_jar = os.path.expanduser("~") + '/bin/emailconverter/emailconverter.jar'
+
+    command = [java_path, '-jar', converter_jar, '-e', args['source_file_path'], '-o', args['tmp_file_path']]
+    result = run_shell_command(command)
+    # print(result)
 
     if os.path.exists(args['tmp_file_path']):
         ok = pdf2pdfa(args)
@@ -146,31 +167,50 @@ def x2utf8(args):
 
 @add_converter()
 def zip_to_norm(args):
-    # TODO: Sjekk på om kun en fil i zip->ikke pakk som zip igjen da. Sjekk på norm file path må justeres også da
+    # TODO: Blir sjekk på om normalisert fil finnes nå riktig for konvertering av zip-fil når ext kan variere?
     # TODO: Test når del av full normalisering -> infodoc
+
+    def copy_file(norm_dir_path, norm_zip_path):
+        files = os.listdir(norm_dir_path)
+        file = files[0]
+        ext = Path(file).suffix
+        src = os.path.join(norm_dir_path, file)
+        dest = os.path.join(Path(norm_zip_path).parent, os.path.basename(norm_zip_path) + ext)
+        shutil.copy(src, dest)
+
+    def zip_dir(norm_dir_path, norm_zip_path):
+        shutil.make_archive(norm_zip_path, 'zip', norm_dir_path)
+
+    def rm_tmp(paths):
+        for path in paths:
+            delete_file_or_dir(path)
 
     norm_zip_path = os.path.splitext(args['norm_file_path'])[0]
     args['norm_file_path'] = norm_zip_path + '_zip'
     norm_dir_path = args['norm_file_path'] + '_norm'
+    paths = [norm_dir_path + '.tsv', norm_dir_path, args['norm_file_path']]
 
     extract_nested_zip(args)
 
     result, file_count = convert_folder(args['norm_file_path'], norm_dir_path, args['tmp_dir'], zip=True)
 
+    # print(result)
+
     if 'succcessfully' in result:
+        func = copy_file
         if file_count > 1:
-            try:
-                shutil.make_archive(norm_zip_path, 'zip', norm_dir_path)
-            except Exception as e:
-                print(e)
-                return False
+            func = zip_dir
 
-        # paths = [norm_dir_path + '.tsv', norm_dir_path, args['norm_file_path']]
-        # for path in paths:
-        #     delete_file_or_dir(path)
+        try:
+            func(norm_dir_path, norm_zip_path)
+        except Exception as e:
+            print(e)
+            return False
 
+        rm_tmp(paths)
         return True
 
+    rm_tmp(paths)
     return False
 
 
@@ -183,11 +223,8 @@ def extract_nested_zip(args):
 
     for root, dirs, files in os.walk(to_folder):
         for filename in files:
-            file_path = os.path.join(to_folder, filename)
-            print(file_path)
             if re.search(r'\.zip$', filename):
                 fileSpec = os.path.join(root, filename)
-                # print(fileSpec)
                 extract_nested_zip(fileSpec, root)
 
 
@@ -511,15 +548,15 @@ def convert_folder(base_source_dir, base_target_dir, tmp_dir, tika=False, ocr=Fa
 
     Path(base_target_dir).mkdir(parents=True, exist_ok=True)
 
-    # TODO: Viser mime direkte om er pdf/a eller må en sjekke mot ekstra felt i de to under?
+    # TODO: Viser mime direkte om er pdf/a eller må en sjekke mot ekstra felt i de to under? Forsjekk om Tika og siegfried?
 
+    # TODO: Trengs denne sjekk om tsv her. Gjøres sjekk før kaller denne funskjonen og slik at unødvendig?
     if not os.path.isfile(tsv_source_path):
         if tika:
             run_tika(tsv_source_path, base_source_dir, json_tmp_dir, zip)
         else:
             run_siegfried(base_source_dir, tmp_dir, tsv_source_path, zip)
 
-    # Remove any NUL characters from tsv
     replace_text_in_file(tsv_source_path, '\0', '')
 
     table = etl.fromtsv(tsv_source_path)
@@ -550,17 +587,16 @@ def convert_folder(base_source_dir, base_target_dir, tmp_dir, tika=False, ocr=Fa
     # WAIT: Ikke fullgod sjekk på embedded dokument i linje over da # faktisk kan forekomme i filnavn
     row_count = etl.nrows(table)
 
-    # error_documents
-    # original_documents
-    # TODO: Legg inn at ikke skal telle filer i mapper med de to navnene over
     file_count = sum([len(files) for r, d, files in os.walk(base_source_dir)])
 
     if row_count == 0:
         print('No files to convert. Exiting.')
-        return 'error'
+        return 'Error', file_count
     elif file_count != row_count:
+        print('Row count: ' + str(row_count))
+        print('File count: ' + str(file_count))
         print("Files listed in '" + tsv_source_path + "' doesn't match files on disk. Exiting.")
-        return 'error'
+        return 'Error', file_count
     elif not zip:
         print('Converting files..')
 
@@ -625,6 +661,9 @@ def convert_folder(base_source_dir, base_target_dir, tmp_dir, tika=False, ocr=Fa
             row['original_file_copy'] = ''
         else:
             keep_original = mime_to_norm[mime_type][0]
+            if zip:
+                keep_original = False
+
             function = mime_to_norm[mime_type][1]
 
             # Ensure unique file names in dir hierarchy:
@@ -686,15 +725,15 @@ def convert_folder(base_source_dir, base_target_dir, tmp_dir, tika=False, ocr=Fa
 
     msg = None
     if sample:
-        msg = 'Sample documents converted.'
+        msg = 'Sample files converted.'
+        if errors:
+            msg = "Not all sample files were converted. See '" + txt_target_path + "' for details."
     else:
         if converted_now:
+            msg = 'All files converted succcessfully.'
             if errors:
                 msg = "Not all files were converted. See '" + txt_target_path + "' for details."
-            else:
-                msg = 'All files converted succcessfully.'
         else:
             msg = 'All files converted previously.'
 
-    # print(msg)
     return msg, file_count  # TODO: Fiks så bruker denne heller for oppsummering til slutt når flere mapper konvertert

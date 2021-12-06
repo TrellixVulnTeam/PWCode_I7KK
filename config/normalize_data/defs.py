@@ -270,6 +270,9 @@ def get_db_file(database_dir, db_path):
 def normalize_data(project_dir, bin_dir, class_path, memory, tmp_dir, convert):
     sub_systems_dir = os.path.join(project_dir, 'content', 'sub_systems')
     tika_tmp_dir = os.path.join(tmp_dir, 'tika')
+    all_done = True
+
+    print('Normalizing data...')
 
     for sub_system in os.listdir(sub_systems_dir):
 
@@ -282,6 +285,7 @@ def normalize_data(project_dir, bin_dir, class_path, memory, tmp_dir, convert):
             schemas = get_schemas(sub_systems_dir, sub_system)
 
             for schema in schemas:
+                print("Processing schema '" + schema + "'...")
                 data_dir = os.path.join(sub_systems_dir, sub_system, 'content', schema.lower(), 'data')
                 Path(data_dir).mkdir(parents=True, exist_ok=True)
                 if len(os.listdir(data_dir)) > 0:
@@ -293,7 +297,8 @@ def normalize_data(project_dir, bin_dir, class_path, memory, tmp_dir, convert):
 
                 tables = export_db_schema(data_dir, sub_system, class_path, bin_dir, memory, sub_systems_dir, schema, db_file)
                 if tables == 'Error':
-                    return tables
+                    print(tables)
+                    return False
 
                 for data_file in glob.iglob(data_dir + os.path.sep + '*.data'):
                     if os.path.getsize(data_file) == 0:
@@ -328,7 +333,7 @@ def normalize_data(project_dir, bin_dir, class_path, memory, tmp_dir, convert):
                     Path(mount_dir).mkdir(parents=True, exist_ok=True)
                     subprocess.run('wimapply ' + str(file) + ' ' + export_dir + ' 2>/dev/null', shell=True)
                     print('Scanning files for viruses...')
-                    # WAIT: Egen funksjon for virus sjekk med return verdi
+                    # WAIT: Egne funksjoner for virussjekk og win-kommandoer med return verdi som sjekkes
                     subprocess.run('clamdscan -m -v ' + export_dir, shell=True)
                     subprocess.run('wimmount ' + str(file) + ' ' + mount_dir, shell=True)
                 else:
@@ -340,7 +345,6 @@ def normalize_data(project_dir, bin_dir, class_path, memory, tmp_dir, convert):
             if os.path.exists(mount_dir):
                 subprocess.run('wimunmount --force ' + mount_dir + ' 2>/dev/null', shell=True)
 
-            # TODO: Hva er riktig mappe å konvertere til? Sjekk PWB-kode
             sample = False
             if convert in ('Yes', 'Sample'):
                 if convert == 'Sample':
@@ -350,14 +354,18 @@ def normalize_data(project_dir, bin_dir, class_path, memory, tmp_dir, convert):
                 tsv_target_path = os.path.splitext(tsv_file)[0] + '_processed.tsv'
                 result, file_count = convert_folder(export_dir, base_target_dir, tmp_dir, tsv_source_path=tsv_file, tsv_target_path=tsv_target_path, sample=sample)
                 print(result)
+
                 # TODO: Må hente ut denne og kobinere med resultat av konvertering av eksporterte lob'er under slik at vises samlet til slutt
 
-                if 'All files converted' in result:
-                    if os.path.isfile(file):
-                        os.remove(file)
+                if not sample:
+                    if 'All files converted' in result:
+                        if os.path.isfile(file):
+                            os.remove(file)
 
-                    shutil.rmtree(export_dir)
-                    shutil.move(base_target_dir, export_dir)
+                        shutil.rmtree(export_dir)
+                        shutil.move(base_target_dir, export_dir)
+                    else:
+                        all_done = False
 
         if os.path.exists(docs_dir):
             if len(os.listdir(docs_dir)) == 0:
@@ -384,9 +392,14 @@ def normalize_data(project_dir, bin_dir, class_path, memory, tmp_dir, convert):
                             result, file_count = convert_folder(export_dir, base_target_dir, tmp_dir, tsv_source_path=tsv_file, tsv_target_path=tsv_target_path, make_unique=False, sample=sample)
                             print(result)
 
-                            if 'All files converted' in result:
-                                shutil.rmtree(export_dir)
+                            if not sample:
+                                if 'All files converted' in result:
+                                    shutil.rmtree(export_dir)
+                                else:
+                                    all_done = False
 
         for file in files:
             mount_dir = os.path.splitext(file)[0] + '_mount'
             subprocess.run('rm -rdf ' + mount_dir, shell=True)
+
+    return all_done
