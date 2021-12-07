@@ -17,8 +17,6 @@
 import os
 import subprocess
 import shutil
-import filetype
-# import sys
 import signal
 import zipfile
 import re
@@ -29,7 +27,7 @@ import base64
 from os.path import relpath
 from pathlib import Path
 from common.metadata import run_tika, run_siegfried
-from common.file import append_tsv_row, append_txt_file, replace_text_in_file, delete_file_or_dir
+from common.file import append_tsv_row, append_txt_file, replace_text_in_file, delete_file_or_dir, copy_file_or_dir
 import cchardet as chardet
 # from pathlib import Path
 # from functools import reduce
@@ -61,7 +59,7 @@ mime_to_norm = {
     'application/x-ms-installer': (False, None, None),  # Installer on win
     'application/x-tika-msoffice': (False, None, None),
     'n/a': (False, None, None),
-    'application/zip': (False, 'zip_to_norm', 'zip'),
+    'application/zip': (False, 'zip_to_norm', 'zip'), # TODO: Test når true på keep original og
     'image/gif': (False, 'image2norm', 'pdf'),
     # 'image/jpeg': (False, 'image2norm', 'pdf'),
     'image/jpeg': (False, 'file_copy', 'jpg'),
@@ -168,41 +166,51 @@ def x2utf8(args):
 @add_converter()
 def zip_to_norm(args):
     # TODO: Blir sjekk på om normalisert fil finnes nå riktig for konvertering av zip-fil når ext kan variere?
-    # TODO: Test når del av full normalisering -> infodoc
+    # --> Blir skrevet til tsv som 'converted successfully' -> sjekk hvordan det kan stemme når extension på normalsert varierer
 
-    def copy_file(norm_dir_path, norm_zip_path):
+    def copy(norm_dir_path, norm_base_path):
         files = os.listdir(norm_dir_path)
         file = files[0]
         ext = Path(file).suffix
         src = os.path.join(norm_dir_path, file)
-        dest = os.path.join(Path(norm_zip_path).parent, os.path.basename(norm_zip_path) + ext)
-        shutil.copy(src, dest)
+        dest = os.path.join(Path(norm_base_path).parent, os.path.basename(norm_base_path) + ext)
+        if os.path.isfile(src):
+            shutil.copy(src, dest)
 
-    def zip_dir(norm_dir_path, norm_zip_path):
-        shutil.make_archive(norm_zip_path, 'zip', norm_dir_path)
+    def zip_dir(norm_dir_path, norm_base_path):
+        shutil.make_archive(norm_base_path, 'zip', norm_dir_path)
 
     def rm_tmp(paths):
         for path in paths:
             delete_file_or_dir(path)
 
-    norm_zip_path = os.path.splitext(args['norm_file_path'])[0]
-    args['norm_file_path'] = norm_zip_path + '_zip'
-    norm_dir_path = args['norm_file_path'] + '_norm'
-    paths = [norm_dir_path + '.tsv', norm_dir_path, args['norm_file_path']]
+    norm_base_path = os.path.splitext(args['norm_file_path'])[0]
+    norm_zip_path = norm_base_path + '_zip'
+    norm_dir_path = norm_zip_path + '_norm'
+    paths = [norm_dir_path + '.tsv', norm_dir_path, norm_zip_path]
 
-    extract_nested_zip(args)
+    extract_nested_zip(args['source_file_path'], norm_zip_path)
 
-    result, file_count = convert_folder(args['norm_file_path'], norm_dir_path, args['tmp_dir'], zip=True)
+    msg, file_count, errors, originals = convert_folder(norm_zip_path, norm_dir_path, args['tmp_dir'], zip=True)
 
-    # print(result)
+    if not args['zip']:
+        if errors:
+            error_docs = os.path.join(Path(norm_base_path).parent, 'error_documents')
+            Path(error_docs).mkdir(parents=True, exist_ok=True)
+            shutil.copy(args['source_file_path'], error_docs)
+        elif originals:
+            # TODO: Må også skrives til kolonne original_file_copy
+            original_docs = os.path.join(Path(norm_base_path).parent, 'original_documents')
+            Path(original_docs).mkdir(parents=True, exist_ok=True)
+            shutil.copy(args['source_file_path'], original_docs)
 
-    if 'succcessfully' in result:
-        func = copy_file
+    if 'succcessfully' in msg:
+        func = copy
         if file_count > 1:
             func = zip_dir
 
         try:
-            func(norm_dir_path, norm_zip_path)
+            func(norm_dir_path, norm_base_path)
         except Exception as e:
             print(e)
             return False
@@ -214,10 +222,7 @@ def zip_to_norm(args):
     return False
 
 
-def extract_nested_zip(args):
-    zipped_file = args['source_file_path']
-    to_folder = args['norm_file_path']
-
+def extract_nested_zip(zipped_file, to_folder):
     with zipfile.ZipFile(zipped_file, 'r') as zfile:
         zfile.extractall(path=to_folder)
 
@@ -442,7 +447,7 @@ def html2pdf(args):
     return ok
 
 
-def file_convert(source_file_path, mime_type, function, target_dir, tmp_dir, norm_file_path=None, norm_ext=None, version=None, ocr=False, keep_original=False):
+def file_convert(source_file_path, mime_type, function, target_dir, tmp_dir, norm_file_path=None, norm_ext=None, version=None, ocr=False, keep_original=False, zip=False):
     source_file_name = os.path.basename(source_file_path)
     base_file_name = os.path.splitext(source_file_name)[0] + '.'
     tmp_file_path = tmp_dir + '/' + base_file_name + 'tmp'
@@ -471,6 +476,7 @@ def file_convert(source_file_path, mime_type, function, target_dir, tmp_dir, nor
                              'tmp_dir': tmp_dir,
                              'mime_type': mime_type,
                              'version': version,
+                             'zip': zip,
                              #  'ocr': ocr,
                              }
 
@@ -534,6 +540,7 @@ def convert_folder(base_source_dir, base_target_dir, tmp_dir, tika=False, ocr=Fa
     json_tmp_dir = base_target_dir + '_tmp'
     converted_now = False
     errors = False
+    originals = False
 
     if tsv_source_path is None:
         tsv_source_path = base_target_dir + '.tsv'
@@ -661,6 +668,8 @@ def convert_folder(base_source_dir, base_target_dir, tmp_dir, tika=False, ocr=Fa
             row['original_file_copy'] = ''
         else:
             keep_original = mime_to_norm[mime_type][0]
+            if keep_original:
+                originals = True
             if zip:
                 keep_original = False
 
@@ -674,7 +683,7 @@ def convert_folder(base_source_dir, base_target_dir, tmp_dir, tika=False, ocr=Fa
             if make_unique:
                 norm_ext = (base64.b32encode(bytes(str(count), encoding='ascii'))).decode('utf8').replace('=', '').lower() + '.' + norm_ext
             target_dir = os.path.dirname(source_file_path.replace(base_source_dir, base_target_dir))
-            normalized = file_convert(source_file_path, mime_type, function, target_dir, tmp_dir, None, norm_ext, version, ocr, keep_original)
+            normalized = file_convert(source_file_path, mime_type, function, target_dir, tmp_dir, None, norm_ext, version, ocr, keep_original, zip=zip)
 
             if normalized['result'] == 0:
                 errors = True
@@ -736,4 +745,4 @@ def convert_folder(base_source_dir, base_target_dir, tmp_dir, tika=False, ocr=Fa
         else:
             msg = 'All files converted previously.'
 
-    return msg, file_count  # TODO: Fiks så bruker denne heller for oppsummering til slutt når flere mapper konvertert
+    return msg, file_count, errors, originals  # TODO: Fiks så bruker denne heller for oppsummering til slutt når flere mapper konvertert

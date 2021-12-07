@@ -23,6 +23,7 @@ import hashlib
 import blake3
 import csv
 import shutil
+import errno
 
 
 def delete_file_or_dir(path):
@@ -31,6 +32,16 @@ def delete_file_or_dir(path):
 
     if os.path.isdir(path):
         shutil.rmtree(path)
+
+
+def copy_file_or_dir(src, dst):
+    try:
+        shutil.copytree(src, dst)
+    except OSError as exc:
+        if exc.errno in (errno.ENOTDIR, errno.EINVAL):
+            shutil.copy(src, dst)
+        else:
+            raise
 
 
 def append_tsv_row(file_path, row):
