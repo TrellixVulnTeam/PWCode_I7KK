@@ -59,7 +59,7 @@ mime_to_norm = {
     'application/x-ms-installer': (False, None, None),  # Installer on win
     'application/x-tika-msoffice': (False, None, None),
     'n/a': (False, None, None),
-    'application/zip': (False, 'zip_to_norm', 'zip'), # TODO: Test når true på keep original og
+    'application/zip': (False, 'zip_to_norm', 'zip'),
     'image/gif': (False, 'image2norm', 'pdf'),
     # 'image/jpeg': (False, 'image2norm', 'pdf'),
     'image/jpeg': (False, 'file_copy', 'jpg'),
@@ -193,17 +193,6 @@ def zip_to_norm(args):
 
     msg, file_count, errors, originals = convert_folder(norm_zip_path, norm_dir_path, args['tmp_dir'], zip=True)
 
-    if not args['zip']:
-        if errors:
-            error_docs = os.path.join(Path(norm_base_path).parent, 'error_documents')
-            Path(error_docs).mkdir(parents=True, exist_ok=True)
-            shutil.copy(args['source_file_path'], error_docs)
-        elif originals:
-            # TODO: Må også skrives til kolonne original_file_copy
-            original_docs = os.path.join(Path(norm_base_path).parent, 'original_documents')
-            Path(original_docs).mkdir(parents=True, exist_ok=True)
-            shutil.copy(args['source_file_path'], original_docs)
-
     if 'succcessfully' in msg:
         func = copy
         if file_count > 1:
@@ -216,7 +205,10 @@ def zip_to_norm(args):
             return False
 
         rm_tmp(paths)
-        return True
+        if originals:
+            return 'originals'
+        else:
+            return True
 
     rm_tmp(paths)
     return False
@@ -492,6 +484,15 @@ def file_convert(source_file_path, mime_type, function, target_dir, tmp_dir, nor
                 normalized['original_file_copy'] = file_copy_args['norm_file_path']  # TODO: Fjern fil hvis konvertering lykkes når kjørt på nytt
                 normalized['result'] = 0  # Conversion failed
                 normalized['norm_file_path'] = None
+            elif ok == 'originals':
+                original_files = target_dir + '/original_documents/'
+                pathlib.Path(original_files).mkdir(parents=True, exist_ok=True)
+                file_copy_args = {'source_file_path': source_file_path,
+                                  'norm_file_path': original_files + os.path.basename(source_file_path)
+                                  }
+                file_copy(file_copy_args)
+                normalized['original_file_copy'] = file_copy_args['norm_file_path']
+                normalized['result'] = 1  # Converted successfully
             elif keep_original:
                 original_files = target_dir + '/original_documents/'
                 pathlib.Path(original_files).mkdir(parents=True, exist_ok=True)
@@ -668,8 +669,10 @@ def convert_folder(base_source_dir, base_target_dir, tmp_dir, tika=False, ocr=Fa
             row['original_file_copy'] = ''
         else:
             keep_original = mime_to_norm[mime_type][0]
+
             if keep_original:
                 originals = True
+
             if zip:
                 keep_original = False
 
