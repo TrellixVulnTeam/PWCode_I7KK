@@ -655,7 +655,8 @@ def convert_folder(base_source_dir, base_target_dir, tmp_dir, tika=False, ocr=Fa
                 mime_type = 'application/xml'
 
         if not zip:
-            print(count_str + source_file_path + ' (' + mime_type + ')')
+            print_path = os.path.relpath(source_file_path, Path(base_source_dir).parents[1])
+            print(count_str + '.../' + print_path + ' (' + mime_type + ')')
 
         if mime_type not in mime_to_norm.keys():
             # print("|" + mime_type + "|")
