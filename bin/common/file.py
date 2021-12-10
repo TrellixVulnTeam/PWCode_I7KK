@@ -24,6 +24,15 @@ import blake3
 import csv
 import shutil
 import errno
+import glob
+
+
+def check_for_files(filepath):
+    for filepath_object in glob.glob(filepath):
+        if os.path.isfile(filepath_object):
+            return True
+
+    return False
 
 
 def delete_file_or_dir(path):

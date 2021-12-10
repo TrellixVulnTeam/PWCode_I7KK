@@ -27,7 +27,7 @@ import base64
 from os.path import relpath
 from pathlib import Path
 from common.metadata import run_tika, run_siegfried
-from common.file import append_tsv_row, append_txt_file, replace_text_in_file, delete_file_or_dir, copy_file_or_dir
+from common.file import append_tsv_row, append_txt_file, replace_text_in_file, delete_file_or_dir, check_for_files
 import cchardet as chardet
 # from pathlib import Path
 # from functools import reduce
@@ -173,7 +173,7 @@ def zip_to_norm(args):
         file = files[0]
         ext = Path(file).suffix
         src = os.path.join(norm_dir_path, file)
-        dest = os.path.join(Path(norm_base_path).parent, os.path.basename(norm_base_path) + ext)
+        dest = os.path.join(Path(norm_base_path).parent, os.path.basename(norm_base_path) + '.zip' + ext)
         if os.path.isfile(src):
             shutil.copy(src, dest)
 
@@ -195,6 +195,7 @@ def zip_to_norm(args):
 
     if 'succcessfully' in msg:
         func = copy
+
         if file_count > 1:
             func = zip_dir
 
@@ -361,6 +362,7 @@ def abi2x(args):
     command = ['abiword', '--to=pdf', '--import-extension=rtf', '-o', args['tmp_file_path'], args['source_file_path']]
     run_shell_command(command)
 
+    # TODO: Må ha bedre sjekk av generert pdf. Har laget tomme pdf-filer noen ganger
     if os.path.exists(args['tmp_file_path']):
         ok = pdf2pdfa(args)
 
@@ -451,10 +453,7 @@ def file_convert(source_file_path, mime_type, function, target_dir, tmp_dir, nor
     # TODO: Endre så returneres file paths som starter med prosjektmappe? Alltid, eller bare når genereres arkivpakke?
     normalized = {'result': None, 'norm_file_path': norm_file_path, 'error': None, 'original_file_copy': None}
 
-    if not os.path.isfile(norm_file_path):
-        # print(os.lstat(source_file_path))
-        # print('|' + os.path.abspath(source_file_path) + '|')
-
+    if not check_for_files(norm_file_path + '*'):
         if mime_type == 'n/a':
             normalized['result'] = 5  # Not a file
             normalized['norm_file_path'] = None
