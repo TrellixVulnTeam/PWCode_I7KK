@@ -338,6 +338,8 @@ class HomeTab(ttk.Frame):
 
     def normalize_data(self, app):
         project_dir = multi_open(app.data_dir + os.path.sep, mode='dir')
+        os.environ['pwcode_project_dir'] = project_dir
+
         if not project_dir:
             return 'No folder chosen.'
 

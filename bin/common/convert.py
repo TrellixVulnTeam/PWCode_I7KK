@@ -564,6 +564,7 @@ def convert_folder(base_source_dir, base_target_dir, tmp_dir, tika=False, ocr=Fa
         else:
             run_siegfried(base_source_dir, tmp_dir, tsv_source_path, zip)
 
+    # TODO: Legg inn test på at tsv-fil ikke er tom
     replace_text_in_file(tsv_source_path, '\0', '')
 
     table = etl.fromtsv(tsv_source_path)

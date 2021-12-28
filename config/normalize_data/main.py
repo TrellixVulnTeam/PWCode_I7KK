@@ -18,7 +18,10 @@ def main():
     config_dir = os.environ["pwcode_config_dir"]  # Get PWCode config path
     tmp_dir = os.path.join(config_dir, 'tmp')
     os.chdir(tmp_dir)  # Avoid littering from subprocesses
-    project_dir = str(Path(__file__).parents[2])
+
+    # project_dir = str(Path(__file__).parents[2])
+    project_dir = os.environ["pwcode_project_dir"]
+
     config_path = os.path.join(project_dir, 'pwcode.xml')
     config = XMLSettings(config_path)
     project_name = config.get('name')
