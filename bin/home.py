@@ -352,7 +352,7 @@ class HomeTab(ttk.Frame):
         def_name = inspect.currentframe().f_code.co_name
         config_dir = os.environ["pwcode_config_dir"]  # Get PWCode config path
 
-        self.run_plugin(app, project_name, config_dir, def_name)
+        self.run_plugin(app, project_name, config_dir, def_name, project_dir)
 
     def export_data_project(self, app):
         self.reset_rhs("Export Data")
@@ -527,15 +527,18 @@ class HomeTab(ttk.Frame):
         config.save()
         return config_dir
 
-    def run_plugin(self, app, project_name, config_dir, def_name):
-        base_path = os.path.join(app.data_dir, project_name, '.pwcode', def_name)
-        Path(base_path).mkdir(parents=True, exist_ok=True)
+    def run_plugin(self, app, project_name, config_dir, def_name, project_dir=None):
+        if project_dir is None:
+            project_dir = os.path.join(app.data_dir, project_name)
+
+        project_dir = os.path.join(project_dir, '.pwcode', def_name)
+        Path(project_dir).mkdir(parents=True, exist_ok=True)
 
         for filename in os.listdir(os.path.join(config_dir, def_name)):
             # TODO: Endre kode så ikke defs.py overskriver hverandre
-            new_path = os.path.join(base_path, filename)
+            new_path = os.path.join(project_dir, filename)
             if filename == 'main.py':
-                new_path = os.path.join(base_path, project_name + '_' + def_name + '.py')
+                new_path = os.path.join(project_dir, project_name + '_' + def_name + '.py')
                 path = new_path
 
             shutil.copy(os.path.join(config_dir, def_name, filename), new_path)
