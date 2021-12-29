@@ -162,7 +162,7 @@ def load_data(project_dir, config_dir, schema, multi_schema):
                     reset_before_statements[db] = '$sql_bin -b -U $user -P $password -H $host -d master -Q \"DROP DATABASE IF EXISTS $db_name; CREATE DATABASE $db_name\"'
                     reset_after_statements[db] = sql_bin[db] + ' -b -U ' + users[db] + ' -P ' + passwords[db] + ' -H localhost -d master -Q "DROP DATABASE IF EXISTS pwb;"'
                     create_schema_statements[db] = '$sql_bin -b -U $user -P $password -H $host -d $db_name -i $ddl_file'
-                    import_statements[db] = 'echo "importing $table...."; $import_bin $table in "$data_path""$table".tsv -U $user -P $password -D $db_name -S $host -F 2 -c'
+                    import_statements[db] = '$import_bin $table in "$data_path""$table".tsv -U $user -P $password -D $db_name -S $host -F 2 -c'
                     # TODO: Test linjen under på windows (må legge til encodingvalg som ikke støttes på linux da)
                     # db] = 'echo "importing" $table "...."; $import_bin $table in "$data_path""$table".tsv -U $user -P $password -d $db_name -S $host -r 0x0a -F 2 -c'
 
@@ -192,6 +192,7 @@ def load_data(project_dir, config_dir, schema, multi_schema):
 
                 # TODO: Legg inn at sqlite ignoreres hvis mer enn ett skjema
                 if db == 'sqlite':
+                    print('test')
                     shutil.copyfile(tsv2sqlite_script, os.path.join(documentation_folder, db + '_import', 'tsv2sqlite.py'))
                     users[db] = ' #Not needed for sqlite'
                     passwords[db] = ' #Not needed for sqlite'
@@ -206,6 +207,7 @@ def load_data(project_dir, config_dir, schema, multi_schema):
                     create_schema_statements[db] = '$sql_bin "$db_name" < $ddl_file'
                     import_statements[db] = '$import_bin $table $data_path$table.tsv $db_name'
 
+                import_statements[db] = 'echo "Importing $schema.$table..." && ' + import_statements[db]
                 gen_import_file(db)
 
             # TODO: Lag egen def for suprocess heller. Bedre sjekker før 'done', og 'done' til config-fil heller enn separate filer
