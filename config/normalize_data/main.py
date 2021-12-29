@@ -28,7 +28,7 @@ def main():
     package = config.get('options/create_package')
     convert = config.get('options/convert_files')
     upload = config.get('options/upload')
-    multi_schema = config.get('multi_schem')
+    multi_schema = config.get('multi_schema')
     memory = '-Xmx' + config.get('options/memory').split(' ')[0] + 'g'
     archive = os.path.join(project_dir, project_name + '.tar')
 

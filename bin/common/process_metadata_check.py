@@ -192,7 +192,6 @@ def load_data(project_dir, config_dir, schema, multi_schema):
 
                 # TODO: Legg inn at sqlite ignoreres hvis mer enn ett skjema
                 if db == 'sqlite':
-                    print('test')
                     shutil.copyfile(tsv2sqlite_script, os.path.join(documentation_folder, db + '_import', 'tsv2sqlite.py'))
                     users[db] = ' #Not needed for sqlite'
                     passwords[db] = ' #Not needed for sqlite'
