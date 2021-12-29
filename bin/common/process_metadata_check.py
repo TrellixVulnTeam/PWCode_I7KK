@@ -60,6 +60,9 @@ def load_data(project_dir, config_dir, schema, multi_schema):
             'done < "$import_order_file"'
         ]
 
+        if os.path.isfile(import_sql_files[db]):
+            os.remove(import_sql_files[db])
+
         with open(os.open(import_sql_files[db], os.O_CREAT | os.O_WRONLY, 0o777), 'w') as file:
             file.write("\n".join(ln))
 
@@ -72,7 +75,7 @@ def load_data(project_dir, config_dir, schema, multi_schema):
         if os.path.isfile(header_xml_file) and os.listdir(data_path):
             documentation_folder = os.path.join(base_path, 'documentation')
             import_order_file = os.path.join(documentation_folder, schema + '_tables.txt')
-            sqlite_db = os.path.join('tmp', folder + '.db')
+            # sqlite_db = os.path.join('tmp', folder + '.db')
 
             order_list = []
             with open(import_order_file) as file:
@@ -204,9 +207,11 @@ def load_data(project_dir, config_dir, schema, multi_schema):
                     reset_before_statements[db] = 'rm "$db_name" 2> /dev/null'
                     reset_after_statements[db] = 'echo "*********************************** \n All databases imported successfully"'
                     create_schema_statements[db] = '$sql_bin "$db_name" < $ddl_file'
-                    import_statements[db] = '$import_bin $table $data_path$table.tsv $db_name'
+                    import_statements[db] = 'echo "Importing $table..." && $import_bin $table $data_path$table.tsv $db_name'
 
-                import_statements[db] = 'echo "Importing $schema.$table..." && ' + import_statements[db]
+                if db != 'sqlite':
+                    import_statements[db] = 'echo "Importing $schema.$table..." && ' + import_statements[db]
+
                 gen_import_file(db)
 
             # TODO: Lag egen def for suprocess heller. Bedre sjekker før 'done', og 'done' til config-fil heller enn separate filer

@@ -18,7 +18,6 @@
 import os
 from pathlib import Path
 import xml.etree.ElementTree as ET
-from functools import reduce
 
 
 def add_primary_keys(table_defs, schema, empty_tables):

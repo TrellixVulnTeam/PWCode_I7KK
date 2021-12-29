@@ -3,6 +3,7 @@
 import sys
 import csv
 import sqlite3
+import os
 csv.field_size_limit(sys.maxsize)
 
 
@@ -12,8 +13,11 @@ def chunks(data, rows=10000):
 
 
 def main():
-    table = sys.argv[1]  # table name s first argument
     tsv_file = sys.argv[2]  # data file as secong argument
+    if os.stat(tsv_file).st_size == 0:
+        return 'Empty file. Nothing to import.\n'
+
+    table = sys.argv[1]  # table name s first argument
     con = sqlite3.connect(sys.argv[3])  # database file path as third argument
     cur = con.cursor()
 
@@ -34,8 +38,8 @@ def main():
 
             cur.execute('COMMIT')
 
-    print(table + ' imported successfully')
+    return 'Table imported successfully.\n'
 
 
 if __name__ == '__main__':
-    main()
+    print(main())
