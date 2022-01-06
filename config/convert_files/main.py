@@ -8,6 +8,7 @@ import xml.etree.ElementTree as ET
 # import csv
 from common.xml_settings import XMLSettings
 from common.convert import convert_folder
+from distutils.util import strtobool
 # from petl import extendheader, rename, appendtsv
 
 # WAIT: Lage egen plugin.py som setter paths mm så slipper å repetere i plugin kode
@@ -37,7 +38,7 @@ def main():
         shutil.copyfile(tmp_config_path, config_path)
 
     config = XMLSettings(config_path)
-    merge = config.get('options/merge')
+    merge = bool(strtobool(config.get('options/merge')))
 
     tree = ET.parse(config_path)
     folders = list(tree.find('folders'))
