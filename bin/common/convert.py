@@ -543,6 +543,9 @@ def convert_folder(base_source_dir, base_target_dir, tmp_dir, tika=False, ocr=Fa
     errors = False
     originals = False
 
+    if not merge:  # TODO: Trengs begge argumentene?
+        make_unique = False
+
     if tsv_source_path is None:
         tsv_source_path = base_target_dir + '.tsv'
     else:
