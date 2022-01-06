@@ -37,12 +37,13 @@ def merge_json_files(tmp_dir, json_path):
 
 
 def run_siegfried(base_source_dir, tmp_dir, tsv_path, zip=False):
+    sf_bin = os.path.expanduser("~") + '/bin/go/bin/sf'
     if not zip:
         print('\nIdentifying file types...')
 
     csv_path = os.path.join(tmp_dir, 'tmp.csv')
     subprocess.run(
-        'sf -z -csv "' + base_source_dir + '" > ' + csv_path,
+        sf_bin + ' -z -csv "' + base_source_dir + '" > ' + csv_path,
         stderr=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,
         shell=True,
