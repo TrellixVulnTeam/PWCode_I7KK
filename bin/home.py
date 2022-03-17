@@ -468,27 +468,27 @@ class HomeTab(ttk.Frame):
             overwrite_tables = subsystem.overwrite_entry.get()
 
             msg = None
-            if (len(db_name) == 0 or len(db_schema) == 0):
-                if folder_paths:
-                    subsystem_name = 'doc' + str(doc_count)
-                    doc_count += 1
-                else:
-                    msg = 'Missing subsystem name'
-            elif subsystem_name in subsystem_names:
-                msg = 'Duplicate subsystem name'
-            else:
-                subsystem_name = 'db' + str(db_count)
-                db_count += 1
+            # if (len(db_name) == 0 or len(db_schema) == 0):
+            # if folder_paths:
+            #     subsystem_name = 'doc' + str(doc_count)
+            #     doc_count += 1
+            #     # else:
+            #     #     msg = 'Missing subsystem name'
+            # elif subsystem_name in subsystem_names:
+            #     msg = 'Duplicate subsystem name'
+            # else:
+            subsystem_name = 'db' + str(db_count)
+            db_count += 1
 
-                if ',' in db_schema:
-                    multi_schema = True
+            if ',' in db_schema:
+                multi_schema = True
 
-                if len(jdbc_url) == 0:
-                    msg = "Missing jdbc connection url for '" + subsystem_name + "'"
-                elif (len(db_user) == 0 or len(db_pwd) == 0):
-                    if not jdbc_url.lower().startswith('jdbc:h2:'):
-                        # WAIT: Andre enn h2 som skal unntas? Slå sammen med kode i get_db_details?
-                        msg = "Missing user or password for '" + subsystem_name + "'"
+            if len(jdbc_url) == 0:
+                msg = "Missing jdbc connection url for '" + subsystem_name + "'"
+            elif (len(db_user) == 0 or len(db_pwd) == 0):
+                if not jdbc_url.lower().startswith('jdbc:h2:'):
+                    # WAIT: Andre enn h2 som skal unntas? Slå sammen med kode i get_db_details?
+                    msg = "Missing user or password for '" + subsystem_name + "'"
 
             if msg:
                 self.msg_label.config(text=msg)

@@ -64,6 +64,9 @@ def get_db_details(jdbc_url, bin_dir):
     elif 'jdbc:oracle:' in jdbc_url:  # oracle database
         driver_jar = os.path.join(jars_path, 'ojdbc10.jar')  # TODO: Endre så ikke versjon i filnavn
         driver_class = 'oracle.jdbc.OracleDriver'
+    elif 'jdbc:interbase:' in jdbc_url:  # interbase database
+        driver_jar = os.path.join(jars_path, 'interclient.jar')
+        driver_class = 'interbase.interclient.Driver'        
 
     return jdbc_url, driver_jar, driver_class
 
@@ -151,12 +154,32 @@ def export_schema(class_paths, max_java_heap, subsystem_dir, jdbc, schema_names)
     batch.setAbortOnError(True)
 
     batch.setBaseDir(base_dir)
-    batch.runScript("WbConnect -url='" + jdbc.url + "' -username='" + jdbc.usr + "' -password=" + jdbc.pwd + ";")
+    connect_str = ' '.join((
+        "WbConnect -url=" + jdbc.url,
+        "-username=" + jdbc.usr,
+        "-password=" + jdbc.pwd,
+        "-driverJar=" + jdbc.driver_jar,   
+        "-driver=" + jdbc.driver_class + ";",
+        ))
+
+    batch.runScript(connect_str)
     # TODO: Fjernet foreløpig SYNONYM, fra types under
     # --> Hvorfor ble ikke SYNONYM håndtert -> sjekk i senere kode. Var dette evt tilfelle hvor synonym ikke er annet navn på table
     # men annen type dataobjekt?
-    gen_report_str = "WbSchemaReport -file=metadata.xml -schemas=" + schema_names + " -types=TABLE,VIEW -includeProcedures=true \
-                            -includeTriggers=true -writeFullSource=true;"
+
+    if jdbc.driver_class == 'interbase.interclient.Driver':  
+        schema_names = '*'
+    
+    gen_report_str = ' '.join((
+        "WbSchemaReport",
+        "-file=metadata.xml",
+        "-schemas=" + schema_names,
+        "-types=TABLE,VIEW",
+        "-includeProcedures=true",
+        "-includeTriggers=true",
+        "-writeFullSource=true;",
+        ))    
+                              
     batch.runScript(gen_report_str)
     remove_illegal_characters(schema_file)
 
@@ -193,10 +216,13 @@ def test_db_connect(JDBC_URL, bin_dir, class_path,  java_path, MAX_JAVA_HEAP, DB
                     return "Database '" + DB_NAME + "', schema '" + DB_SCHEMA + "' returns no tables."
 
                 export_tables, overwrite_tables = table_check(INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, db_tables)
+
+                if not export_tables:
+                    return 'No table data to export. Exiting.'
+
                 return 'ok'
 
-            if not export_tables:
-                return 'No table data to export. Exiting.'
+
 
         except Exception as e:
             return e
@@ -250,15 +276,22 @@ def get_db_meta(jdbc):
 
     # Get row count per table:
     for table in tables:
-        get_count = 'SELECT COUNT(*) from "' + jdbc.db_schema + '"."' + table + '"'
+        if jdbc.driver_class != 'interbase.interclient.Driver':  
+            if len(jdbc.db_schema) != 0:
+                table = '"' + jdbc.db_schema + '"."' + table + '"' 
+            else:                           
+                table = '"' + table + '"'
+
+        get_count = 'SELECT COUNT(*) from ' + table
+        print(get_count)
         cursor.execute(get_count)
         (row_count,) = cursor.fetchone()
         db_tables[table] = row_count
 
         # Get column names of table:
         # TODO: Finnes db-uavhengig måte å begrense til kun en linje hentet ut?
-        get_columns = 'SELECT * from "' + jdbc.db_schema + '"."' + table + '"'
-        # print(get_columns)
+        get_columns = 'SELECT * from ' + table
+        print(get_columns)
         cursor.execute(get_columns)
         table_columns[table] = [str(desc[0]) for desc in cursor.description]
 
@@ -461,10 +494,14 @@ def create_index(table, pk_dict, unique_dict, ddl, t_count, schema):
 def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tables, bin_dir, table_columns, overwrite_tables, DDL_GEN):
     batch = wb_batch(class_path, max_java_heap)
     Path(os.path.join(subsystem_dir, 'content', 'database')).mkdir(parents=True, exist_ok=True)
-    target_url = 'jdbc:h2:' + os.path.join(subsystem_dir, 'content', 'database', s_jdbc.db_name) + ';autocommit=off'
 
+    target_schema = s_jdbc.db_schema
+    if len(s_jdbc.db_schema) == 0:
+        target_schema = 'PUBLIC'
+
+    target_url = 'jdbc:h2:' + os.path.join(subsystem_dir, 'content', 'database', s_jdbc.db_name) + ';autocommit=off'
     target_url, driver_jar, driver_class = get_db_details(target_url, bin_dir)
-    t_jdbc = Jdbc(target_url, '', '', '', s_jdbc.db_schema, driver_jar, driver_class, True, True)
+    t_jdbc = Jdbc(target_url, '', '', '', target_schema, driver_jar, driver_class, True, True)
 
     target_tables = get_target_tables(t_jdbc)
     pk_dict = get_primary_keys(subsystem_dir, export_tables)
@@ -488,7 +525,20 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
         #     for column in blob_columns[table]:
         #         col_query = ',LENGTH("' + column + '") AS ' + column.upper() + '_BLOB_LENGTH_PWCODE'
 
-        source_query = 'SELECT "' + '","'.join(table_columns[table]) + '"' + col_query + ' FROM "' + s_jdbc.db_schema + '"."' + table + '"'
+        # source_query = 'SELECT "' + '","'.join(table_columns[table]) + '"' + col_query + ' FROM "' + s_jdbc.db_schema + '"."' + table + '"'
+
+        source_table = table
+        source_columns = ','.join(table_columns[table]) + col_query        
+        if s_jdbc.driver_class != 'interbase.interclient.Driver':  
+            source_table = '"' + s_jdbc.db_schema + '"."' + table + '"'
+            source_columns = '"' + '","'.join(table_columns[table]) + '"' + col_query
+            
+        source_query = ' '.join((
+            'SELECT',
+            source_columns,
+            'FROM', 
+            source_table,
+            ))
 
         if table in target_tables and table not in overwrite_tables:
             t_row_count = target_tables[table]
@@ -498,23 +548,30 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
             elif t_row_count > row_count:
                 print_and_exit("Error. More data in target than in source. Table '" + table + "'. Exiting.")
             elif table in pk_dict:
-                source_query = gen_sync_table(table, pk_dict[table], target_url, driver_jar, driver_class, source_query, s_jdbc.db_name)
+                source_query = gen_sync_table(table, pk_dict[table], target_url, driver_jar, driver_class, source_query, target_schema)
                 insert = False
             elif table in unique_dict:
-                source_query = gen_sync_table(table, unique_dict[table], target_url, driver_jar, driver_class, source_query, s_jdbc.db_name)
+                source_query = gen_sync_table(table, unique_dict[table], target_url, driver_jar, driver_class, source_query, target_schema)
                 insert = False
 
-        target_table = s_jdbc.db_schema + '"."' + table
+        target_table = target_schema + '"."' + table
         if insert:
             print("Copying table '" + table + "':")
             if DDL_GEN == 'SQL Workbench':
                 params = mode + std_params + ' -createTarget=true -dropTarget=true'
             elif DDL_GEN == 'Native':
-                # t_jdbc = Jdbc(target_url, '', '', '', s_jdbc.db_schema, driver_jar, driver_class, True, True)
-                t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)
+                print('1')
+                print(ddl_columns[table][:-1])
+                print('2')
+                t_jdbc = Jdbc(target_url, '', '', '', target_schema, driver_jar, driver_class, True, True)
+                print('3')
+
+                # t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)
                 ddl = '\nCREATE TABLE "' + target_table + '"\n(\n' + ddl_columns[table][:-1] + '\n);'
-                ddl = create_index(table, pk_dict, unique_dict, ddl, t_count, s_jdbc.db_schema)
                 print(ddl)
+                print('4')
+
+                ddl = create_index(table, pk_dict, unique_dict, ddl, t_count, target_schema)
                 sql = 'DROP TABLE IF EXISTS "' + target_table + '"; ' + ddl
                 run_ddl(t_jdbc, sql)
 
@@ -597,25 +654,55 @@ def get_ddl_columns(subsystem_dir, schema, pk_dict, unique_dict):
     schema_file = os.path.join(subsystem_dir, 'header', 'metadata.xml')
     tree = ET.parse(schema_file)
 
+    print(schema)
+
     table_defs = tree.findall("table-def")
     for table_def in table_defs:
         table_schema = table_def.find('table-schema')
-        if table_schema.text != schema:
-            continue
+        if table_schema is not None:
+            if table_schema.text is not None and len(schema) > 0:  
+                if table_schema.text != schema:
+                    continue                      
 
+        # if table_schema is not None:
+        #     print('1')
+
+        # if table_schema is None:
+        #     print('2')   
+
+        # if table_schema.text is not None:
+        #     print('3')   
+        #     if table_schema.text != schema:
+        #         continue            
+
+        # if table_schema.text is None:
+        #     print('4')                                 
+
+        # if table_schema.text is not None:
+        #     if table_schema.text != schema:
+        #         continue
+
+        # print('jj')
+        # if table_schema.text is not None and len(schema) > 0:
+
+        print('test1')
         disposed = table_def.find("disposed")
-        if disposed.text == "true":
-            continue
+        if disposed is not None:
+            if disposed.text == "true":
+                continue
 
+        print('test2')
         table_name = table_def.find("table-name")
         pk_list = []
         if table_name.text in pk_dict:
             pk_list = pk_dict[table_name.text]
 
+        print('test3')
         unique_list = []
         if table_name.text in unique_dict:
             unique_list = unique_dict[table_name.text]
 
+        print('test4')
         ddl_columns_list = []
         column_defs = table_def.findall("column-def")
         column_defs[:] = sorted(column_defs, key=lambda elem: int(elem.findtext('dbms-position')))
