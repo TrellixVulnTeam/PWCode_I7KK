@@ -583,7 +583,16 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
             #         run_ddl(t_jdbc, sql)
 
         target_table = '"' + target_table + '"'
-        batch.runScript("WbConnect -url='" + s_jdbc.url + "' -username='" + s_jdbc.usr + "' -password=" + s_jdbc.pwd + ";")
+        connect_str = ' '.join((
+            "WbConnect -url=" + s_jdbc.url,
+            "-username=" + s_jdbc.usr,
+            "-password=" + s_jdbc.pwd,
+            "-driverJar=" + s_jdbc.driver_jar,   
+            "-driver=" + s_jdbc.driver_class + ";",
+            ))
+
+        batch.runScript(connect_str)
+        # batch.runScript("WbConnect -url='" + s_jdbc.url + "' -username='" + s_jdbc.usr + "' -password=" + s_jdbc.pwd + ";")
         target_conn = '"username=,password=,url=' + target_url + '" ' + params
         copy_data_str = "WbCopy -targetConnection=" + target_conn + " -targetTable=" + target_table + " -sourceQuery=" + source_query + ";"
         print(copy_data_str)
@@ -664,45 +673,20 @@ def get_ddl_columns(subsystem_dir, schema, pk_dict, unique_dict):
                 if table_schema.text != schema:
                     continue                      
 
-        # if table_schema is not None:
-        #     print('1')
-
-        # if table_schema is None:
-        #     print('2')   
-
-        # if table_schema.text is not None:
-        #     print('3')   
-        #     if table_schema.text != schema:
-        #         continue            
-
-        # if table_schema.text is None:
-        #     print('4')                                 
-
-        # if table_schema.text is not None:
-        #     if table_schema.text != schema:
-        #         continue
-
-        # print('jj')
-        # if table_schema.text is not None and len(schema) > 0:
-
-        print('test1')
         disposed = table_def.find("disposed")
         if disposed is not None:
             if disposed.text == "true":
                 continue
 
-        print('test2')
         table_name = table_def.find("table-name")
         pk_list = []
         if table_name.text in pk_dict:
             pk_list = pk_dict[table_name.text]
 
-        print('test3')
         unique_list = []
         if table_name.text in unique_dict:
             unique_list = unique_dict[table_name.text]
 
-        print('test4')
         ddl_columns_list = []
         column_defs = table_def.findall("column-def")
         column_defs[:] = sorted(column_defs, key=lambda elem: int(elem.findtext('dbms-position')))
