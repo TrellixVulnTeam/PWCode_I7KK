@@ -560,18 +560,11 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
             if DDL_GEN == 'SQL Workbench':
                 params = mode + std_params + ' -createTarget=true -dropTarget=true'
             elif DDL_GEN == 'Native':
-                print('1')
                 print(ddl_columns[table][:-1])
-                print('2')
                 t_jdbc = Jdbc(target_url, '', '', '', target_schema, driver_jar, driver_class, True, True)
-                print('3')
-
-                # t_jdbc = Jdbc(target_url, '', '', '', 'PUBLIC', driver_jar, driver_class, True, True)
                 ddl = '\nCREATE TABLE "' + target_table + '"\n(\n' + ddl_columns[table][:-1] + '\n);'
-                print(ddl)
-                print('4')
-
                 ddl = create_index(table, pk_dict, unique_dict, ddl, t_count, target_schema)
+                print(ddl)
                 sql = 'DROP TABLE IF EXISTS "' + target_table + '"; ' + ddl
                 run_ddl(t_jdbc, sql)
 
