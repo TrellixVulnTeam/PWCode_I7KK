@@ -1,3 +1,6 @@
+#!/usr/bin/python3
+# Don't change shebang
+
 # Copyright(C) 2021 Morten Eek
 
 # This program is free software: you can redistribute it and/or modify
@@ -25,9 +28,10 @@ def add_primary_keys(table_defs, schema, empty_tables):
     pk_dict = {}
 
     for table_def in table_defs:
-        table_schema = table_def.find('table-schema')
-        if table_schema.text != schema:
-            continue
+        if schema:
+            table_schema = table_def.find('table-schema')
+            if table_schema.text != schema:
+                continue
 
         primary_key_name = table_def.find('primary-key-name')
         if not primary_key_name.text:
@@ -37,7 +41,10 @@ def add_primary_keys(table_defs, schema, empty_tables):
         if table_name.text in empty_tables:
             continue
 
-        table = '"' + schema + '"."' + table_name.text + '"'
+        if schema:
+            table = '"' + schema + '"."' + table_name.text + '"'
+        else:
+            table = '"' + table_name.text + '"'
 
         pk_list = []
         column_defs = table_def.findall('column-def')
@@ -59,9 +66,10 @@ def add_unique(table_defs, schema, empty_tables):
     unique_dict = {}
 
     for table_def in table_defs:
-        table_schema = table_def.find('table-schema')
-        if table_schema.text != schema:
-            continue
+        if schema:
+            table_schema = table_def.find('table-schema')
+            if table_schema.text != schema:
+                continue
 
         table_name = table_def.find('table-name')
         if table_name.text in empty_tables:
@@ -86,7 +94,10 @@ def add_unique(table_defs, schema, empty_tables):
         unique_constraints = {key: val for key, val in unique_dict.items() if key[0] == table_name.text}
         if unique_constraints:
             for key, value in unique_constraints.items():
-                table = '"' + schema + '"."' + table_name.text + '"'
+                if schema:
+                    table = '"' + schema + '"."' + table_name.text + '"'
+                else:
+                    table = '"' + table_name.text + '"'
                 unique_str = unique_str + '\nALTER TABLE ' + table + ' ADD CONSTRAINT "' + key[1] + '" UNIQUE (' + ', '.join(value) + ');'
 
             constraints.append(unique_str + '\n')
@@ -100,9 +111,10 @@ def add_foreign_keys(table_defs, schema, empty_tables):
     fk_columns_dict = {}
     fk_ref_dict = {}
     for table_def in table_defs:
-        table_schema = table_def.find('table-schema')
-        if table_schema.text != schema:
-            continue
+        if schema:
+            table_schema = table_def.find('table-schema')
+            if table_schema.text != schema:
+                continue
 
         table_name = table_def.find('table-name')
         if table_name.text in empty_tables:
@@ -144,9 +156,10 @@ def add_foreign_keys(table_defs, schema, empty_tables):
                 fk_ref_dict[table_name.text + ':' + column_name.text] = ref_column_name.text
 
     for table_def in table_defs:
-        table_schema = table_def.find('table-schema')
-        if table_schema.text != schema:
-            continue
+        if schema:
+            table_schema = table_def.find('table-schema')
+            if table_schema.text != schema:
+                continue
 
         table_name = table_def.find('table-name')
         if table_name.text in empty_tables:
@@ -175,8 +188,12 @@ def add_foreign_keys(table_defs, schema, empty_tables):
                     source_s = source_s + ', "' + source + '"'
                 ref_s = ref_s[2:]
                 source_s = source_s[2:]
-                table = '"' + schema + '"."' + table_name.text + '"'
-                ref_table = '"' + schema + '"."' + ref_table + '"'
+                if schema:
+                    table = '"' + schema + '"."' + table_name.text + '"'
+                    ref_table = '"' + schema + '"."' + ref_table + '"'
+                else:
+                    table = '"' + table_name.text + '"'
+                    ref_table = '"' + ref_table + '"'
 
                 # WAIT: Test å legge inn støtte for constraint på tvers av skjemaer
 
@@ -191,14 +208,16 @@ def add_foreign_keys(table_defs, schema, empty_tables):
 def get_empty_tables(table_defs, schema):
     empty_tables = []
     for table_def in table_defs:
-        table_schema = table_def.find('table-schema')
-        if table_schema.text != schema:
-            continue
+        if schema:
+            table_schema = table_def.find('table-schema')
+            if table_schema.text != schema:
+                continue
 
         disposed = table_def.find('disposed')
-        if disposed.text == 'true':
-            table_name = table_def.find('table-name')
-            empty_tables.append(table_name.text)
+        if disposed:
+            if disposed.text == 'true':
+                table_name = table_def.find('table-name')
+                empty_tables.append(table_name.text)
 
     return empty_tables
 
@@ -228,18 +247,24 @@ def main():
 
     msg = ''
     for schema in schemas:
-        constraints_file = os.path.join(script_dir_path, schema + '_constraints.sql')
+        if not schema:
+            file_name = 'constraints.sql'
+        else:
+            file_name = schema + '_constraints.sql'
+
+        constraints_file = os.path.join(script_dir_path, file_name)
 
         empty_tables = get_empty_tables(table_defs, schema)
 
         with open(constraints_file, "w") as file:
-            file.write("-- Constraints for schema '" + schema + "': \n")
+            if schema:
+                file.write("-- Constraints for schema '" + schema + "': \n")
 
         add_constraints(add_primary_keys, table_defs, schema, empty_tables, constraints_file)
         add_constraints(add_unique, table_defs, schema, empty_tables, constraints_file)
         add_constraints(add_foreign_keys, table_defs, schema, empty_tables, constraints_file)
 
-        msg = msg + "\nConstraints for schema '" + schema + "' written to '" + constraints_file + "'"
+        msg = msg + "\nConstraints written to '" + constraints_file + "'"
 
     return msg[1:]
 

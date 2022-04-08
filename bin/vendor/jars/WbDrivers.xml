@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<java version="11.0.9.1" class="java.beans.XMLDecoder">
+<java version="11.0.13" class="java.beans.XMLDecoder">
  <object class="java.util.ArrayList">
   <void method="add">
    <object class="workbench.db.DbDriver" id="DbDriver0">
@@ -323,19 +323,19 @@
     </void>
     <void id="ArrayList15" property="libraryList">
      <void method="add">
-      <string>ucanaccess-2.0.3.jar</string>
+      <string>/home/pwb/Downloads/UCanAccess-5.0.1.bin/ucanaccess-5.0.1.jar</string>
      </void>
      <void method="add">
-      <string>jackcess-2.0.3.jar</string>
+      <string>/home/pwb/Downloads/UCanAccess-5.0.1.bin/lib/jackcess-3.0.1.jar</string>
      </void>
      <void method="add">
-      <string>hsqldb.jar</string>
+      <string>/home/pwb/Downloads/UCanAccess-5.0.1.bin/lib/hsqldb-2.5.0.jar</string>
      </void>
      <void method="add">
-      <string>commons-logging-1.0.4.jar</string>
+      <string>/home/pwb/Downloads/UCanAccess-5.0.1.bin/lib/commons-logging-1.2.jar</string>
      </void>
      <void method="add">
-      <string>commons-lang-2.6.jar</string>
+      <string>/home/pwb/Downloads/UCanAccess-5.0.1.bin/lib/commons-lang3-3.8.1.jar</string>
      </void>
     </void>
     <void property="libraryList">
