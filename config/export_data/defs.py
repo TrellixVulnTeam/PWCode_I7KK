@@ -66,7 +66,7 @@ def get_db_details(jdbc_url, bin_dir):
         driver_class = 'oracle.jdbc.OracleDriver'
     elif 'jdbc:interbase:' in jdbc_url:  # interbase database
         driver_jar = os.path.join(jars_path, 'interclient.jar')
-        driver_class = 'interbase.interclient.Driver'        
+        driver_class = 'interbase.interclient.Driver'
 
     return jdbc_url, driver_jar, driver_class
 
@@ -158,18 +158,18 @@ def export_schema(class_paths, max_java_heap, subsystem_dir, jdbc, schema_names)
         "WbConnect -url=" + jdbc.url,
         "-username=" + jdbc.usr,
         "-password=" + jdbc.pwd,
-        "-driverJar=" + jdbc.driver_jar,   
+        "-driverJar=" + jdbc.driver_jar,
         "-driver=" + jdbc.driver_class + ";",
-        ))
+    ))
 
     batch.runScript(connect_str)
     # TODO: Fjernet foreløpig SYNONYM, fra types under
     # --> Hvorfor ble ikke SYNONYM håndtert -> sjekk i senere kode. Var dette evt tilfelle hvor synonym ikke er annet navn på table
     # men annen type dataobjekt?
 
-    if jdbc.driver_class == 'interbase.interclient.Driver':  
+    if jdbc.driver_class == 'interbase.interclient.Driver':
         schema_names = '*'
-    
+
     gen_report_str = ' '.join((
         "WbSchemaReport",
         "-file=metadata.xml",
@@ -178,8 +178,8 @@ def export_schema(class_paths, max_java_heap, subsystem_dir, jdbc, schema_names)
         "-includeProcedures=true",
         "-includeTriggers=true",
         "-writeFullSource=true;",
-        ))    
-                              
+    ))
+
     batch.runScript(gen_report_str)
     remove_illegal_characters(schema_file)
 
@@ -221,8 +221,6 @@ def test_db_connect(JDBC_URL, bin_dir, class_path,  java_path, MAX_JAVA_HEAP, DB
                     return 'No table data to export. Exiting.'
 
                 return 'ok'
-
-
 
         except Exception as e:
             return e
@@ -276,10 +274,10 @@ def get_db_meta(jdbc):
 
     # Get row count per table:
     for table in tables:
-        if jdbc.driver_class != 'interbase.interclient.Driver':  
+        if jdbc.driver_class != 'interbase.interclient.Driver':
             if len(jdbc.db_schema) != 0:
-                table = '"' + jdbc.db_schema + '"."' + table + '"' 
-            else:                           
+                table = '"' + jdbc.db_schema + '"."' + table + '"'
+            else:
                 table = '"' + table + '"'
 
         get_count = 'SELECT COUNT(*) from ' + table
@@ -301,6 +299,7 @@ def get_db_meta(jdbc):
 
 
 def add_row_count_to_schema_file(subsystem_dir, db_tables, schema):
+    # TODO: Sjekk om denne skriver riktig til xml-fil!!
     schema_file = os.path.join(subsystem_dir, 'header', 'metadata.xml')
     tree = ET.parse(schema_file)
 
@@ -528,17 +527,17 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
         # source_query = 'SELECT "' + '","'.join(table_columns[table]) + '"' + col_query + ' FROM "' + s_jdbc.db_schema + '"."' + table + '"'
 
         source_table = table
-        source_columns = ','.join(table_columns[table]) + col_query        
-        if s_jdbc.driver_class != 'interbase.interclient.Driver':  
+        source_columns = ','.join(table_columns[table]) + col_query
+        if s_jdbc.driver_class != 'interbase.interclient.Driver':
             source_table = '"' + s_jdbc.db_schema + '"."' + table + '"'
             source_columns = '"' + '","'.join(table_columns[table]) + '"' + col_query
-            
+
         source_query = ' '.join((
             'SELECT',
             source_columns,
-            'FROM', 
+            'FROM',
             source_table,
-            ))
+        ))
 
         if table in target_tables and table not in overwrite_tables:
             t_row_count = target_tables[table]
@@ -580,9 +579,9 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
             "WbConnect -url=" + s_jdbc.url,
             "-username=" + s_jdbc.usr,
             "-password=" + s_jdbc.pwd,
-            "-driverJar=" + s_jdbc.driver_jar,   
+            "-driverJar=" + s_jdbc.driver_jar,
             "-driver=" + s_jdbc.driver_class + ";",
-            ))
+        ))
 
         batch.runScript(connect_str)
         # batch.runScript("WbConnect -url='" + s_jdbc.url + "' -username='" + s_jdbc.usr + "' -password=" + s_jdbc.pwd + ";")
@@ -662,9 +661,9 @@ def get_ddl_columns(subsystem_dir, schema, pk_dict, unique_dict):
     for table_def in table_defs:
         table_schema = table_def.find('table-schema')
         if table_schema is not None:
-            if table_schema.text is not None and len(schema) > 0:  
+            if table_schema.text is not None and len(schema) > 0:
                 if table_schema.text != schema:
-                    continue                      
+                    continue
 
         disposed = table_def.find("disposed")
         if disposed is not None:
