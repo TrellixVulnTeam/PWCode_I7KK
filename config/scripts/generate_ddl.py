@@ -99,7 +99,7 @@ def get_ddl_columns(table_defs, schema, pk_dict, unique_dict):
 
             column_text = '"' + column_name.text + '" ' + iso_data_type
             if column_name.text in pk_list or column_name.text in unique_list:
-                # TODO: Var blitt nullable på noen som så skulle blir pk med annet script... Ser ut til å gjelde bare for tomme tabeller
+                # TODO: Var blitt nullable på noen som så skulle blir pk med annet script... Ser ut til å gjelde bare for tomme tabeller->ikke bare->
                 column_text = column_text + ' NOT NULL'
 
             ddl_columns_list.append(column_text + ',')
