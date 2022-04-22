@@ -55,8 +55,13 @@ def add_primary_keys(table_defs, schema, empty_tables):
                 column_name = column_def.find('column-name')
                 pk_list.append('"' + column_name.text + '"')
 
-        pk_dict[table_name.text] = ', '.join(sorted(pk_list))
-        constraints.append('\nALTER TABLE ' + table + ' ADD PRIMARY KEY(' + pk_dict[table_name.text] + ');')
+        pk_list = sorted(pk_list)
+        fix_null_str = ''
+        for p in pk_list:
+            fix_null_str = fix_null_str + 'ALTER TABLE ' + table + ' ALTER COLUMN ' + p + ' SET NOT NULL; '
+
+        pk_dict[table_name.text] = ', '.join(pk_list)
+        constraints.append('\n' + fix_null_str + 'ALTER TABLE ' + table + ' ADD PRIMARY KEY(' + pk_dict[table_name.text] + ');')
 
     return constraints
 
@@ -98,6 +103,7 @@ def add_unique(table_defs, schema, empty_tables):
                     table = '"' + schema + '"."' + table_name.text + '"'
                 else:
                     table = '"' + table_name.text + '"'
+
                 unique_str = unique_str + '\nALTER TABLE ' + table + ' ADD CONSTRAINT "' + key[1] + '" UNIQUE (' + ', '.join(value) + ');'
 
             constraints.append(unique_str + '\n')
