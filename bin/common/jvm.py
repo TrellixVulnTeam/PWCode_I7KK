@@ -32,7 +32,6 @@ def init_jvm(class_paths, max_heap_size):
                 )
 
 
-
 def wb_batch(class_paths, max_java_heap):
     # Start Java virtual machine if not started already:
     init_jvm(class_paths, max_java_heap)

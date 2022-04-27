@@ -334,6 +334,9 @@ def normalize_metadata(base_path, illegal_terms_file, schemas, tmp_dir):
         table_defs = tree.findall("table-def")
         for table_def in table_defs:
             table_schema = table_def.find('table-schema')
+            if table_schema.text is None:
+                table_schema.text = 'PUBLIC'
+
             schema = table_schema.text.lower()
             table_name = table_def.find("table-name")
             old_table_name = ET.Element("original-table-name")

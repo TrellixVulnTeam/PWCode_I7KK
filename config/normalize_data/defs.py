@@ -122,6 +122,11 @@ def get_tables(sub_systems_dir, sub_system, jdbc_url, driver_jar, schema):
     schema_file = os.path.join(sub_systems_dir, sub_system, 'header', 'metadata.xml')
     tree = ET.parse(schema_file)
 
+    jdbc = Jdbc(jdbc_url, '', '', '', schema, driver_jar, 'org.h2.Driver', True, True)
+    table_query = f"""SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = '{schema}'"""
+    tables_h2 = run_select(jdbc, table_query)
+    tables_h2 = [x[0] for x in tables_h2]
+
     table_defs = tree.findall('table-def')
     for table_def in table_defs:
         table_schema = table_def.find('table-schema')
@@ -129,11 +134,14 @@ def get_tables(sub_systems_dir, sub_system, jdbc_url, driver_jar, schema):
             continue
 
         disposed = table_def.find('disposed')
-        if disposed.text == 'true':
-            continue
+        if disposed is not None:
+            if disposed.text == 'true':
+                continue
 
         table_name = table_def.find('table-name')
-        # print(table_name.text)
+        if table_name.text not in tables_h2:
+            continue
+
         tables.append(table_name.text)
 
         text_columns = []
@@ -145,17 +153,15 @@ def get_tables(sub_systems_dir, sub_system, jdbc_url, driver_jar, schema):
             column_name = column_def.find('column-name')
             java_sql_type = int(column_def.find('java-sql-type').text)
             dbms_data_size = int(column_def.find('dbms-data-size').text)
-            column_name_fixed = column_name.text
+            column_name_fixed = column_name.text.upper()
 
             # -> Disse regnes som blob: 2004, -4, -3, -2
             # Clob'er: -16, -1, 2005, 2011
 
             if java_sql_type in (-4, -3, -2, 2004, 2005, 2011, -16, -1):
                 if (dbms_data_size > 4000 or java_sql_type in (2004, -4, -3, -2)):
-                    # # TODO: Endre linje under når ferdig med IST filkonvertering -> eller skulle
-                    # schema = 'PUBLIC'
-                    jdbc = Jdbc(jdbc_url, '', '', '', schema, driver_jar, 'org.h2.Driver', True, True)
                     length_query = f'''SELECT MAX(LENGTH("{column_name_fixed}")) FROM "{schema}"."{table_name.text}"'''
+                    jdbc = Jdbc(jdbc_url, '', '', '', schema, driver_jar, 'org.h2.Driver', True, True)
                     result = run_select(jdbc, length_query)
                     max_length = [x[0] for x in result][0]
 
@@ -187,8 +193,11 @@ def get_schemas(sub_systems_dir, sub_system):
     table_defs = tree.findall('table-def')
     for table_def in table_defs:
         table_schema = table_def.find('table-schema')
-        if table_schema.text not in schemas:
+        if table_schema.text is not None and table_schema.text not in schemas:
             schemas.append(table_schema.text)
+
+    if not schemas:
+        schemas.append('PUBLIC')
 
     return schemas
 

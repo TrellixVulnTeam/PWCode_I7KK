@@ -22,6 +22,3 @@ def run_select(jdbc, sql):
     cursor.close()
     conn.close()
     return result
-
-
-

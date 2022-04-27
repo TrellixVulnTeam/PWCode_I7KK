@@ -299,7 +299,7 @@ def get_db_meta(jdbc):
 
 
 def add_row_count_to_schema_file(subsystem_dir, db_tables, schema):
-    # TODO: Sjekk om denne skriver riktig til xml-fil!!
+    # TODO: Sjekk om denne skriver riktig til xml-fil!! --> sjekk om feil bare med interbase siden ikke har schema der
     schema_file = os.path.join(subsystem_dir, 'header', 'metadata.xml')
     tree = ET.parse(schema_file)
 
