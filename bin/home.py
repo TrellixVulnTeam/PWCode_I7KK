@@ -233,12 +233,14 @@ class HomeTab(ttk.Frame):
 
             msg = None
 
-            if len(db_name) == 0:
+            if len(jdbc_url) == 0:
+                msg = 'Missing JDBC Url in ' + conn_name
+            elif len(db_name) == 0:
                 msg = 'Missing Database Name in ' + conn_name
             elif len(db_schema) == 0:
-                msg = 'Missing Schema Name in ' + conn_name
-            elif len(jdbc_url) == 0:
-                msg = 'Missing JDBC Url in ' + conn_name
+                if 'jdbc:sqlite' not in jdbc_url:
+                    msg = 'Missing Schema Name in ' + conn_name
+
             # TODO: Legg inn sjekk på user og pwd for bare visse dbtyper
             # elif len(db_user) == 0:
             #     msg = 'Missing User Name in ' + conn_name

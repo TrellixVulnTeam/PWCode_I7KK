@@ -1,12 +1,10 @@
 import shutil
 import os
 import sys
-from pathlib import Path
 from common.xml_settings import XMLSettings
 
 if os.name != "posix":
     sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
 
 
 def main():
