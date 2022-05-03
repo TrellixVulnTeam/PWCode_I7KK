@@ -51,30 +51,11 @@ def get_db_details(jdbc_url, bin_dir):
         driver_jar = os.path.join(jars_path, 'h2.jar')
         driver_class = 'org.h2.Driver'
 
+    if 'jdbc:sqlite:' in jdbc_url:  # SQLite database
+        driver_jar = os.path.join(jars_path, 'sqlite-jdbc.jar')
+        driver_class = 'org.sqlite.JDBC'
+
     return jdbc_url, driver_jar, driver_class
-
-
-def capture_files(bin_dir, source_path, target_path, exclude=None):
-    Path(os.path.dirname(target_path)).mkdir(parents=True, exist_ok=True)
-    archive_format = Path(target_path).suffix[1:]
-
-    def exclude_items(item):
-        if exclude is None:
-            return item
-        elif source_path + '/' + item.name not in exclude:  # TODO: Endre til os separator auto
-            return item
-
-    try:
-        if archive_format == 'wim':
-            cmd = os.path.join(bin_dir, "vendor", "wimlib-imagex") + " capture " + source_path + " " + target_path + " --no-acls --compress=none"
-            check_output(cmd, stderr=STDOUT, shell=True).decode()
-        else:
-            with tarfile.open(target_path, mode='w') as archive:
-                archive.add(source_path, recursive=True, arcname='', filter=exclude_items)
-    except Exception as e:
-        return e
-
-    return 'ok'
 
 
 def get_tables(conn, schema):
@@ -118,16 +99,22 @@ def get_java_path_sep():
 
 # TODO: Fjern duplisering av kode mellom denn og export_db_schema
 def test_db_connect(conn, bin_dir, class_path,  java_path, MAX_JAVA_HEAP, INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, new_schema=False):
-
     url, driver_jar, driver_class = get_db_details(conn.jdbc_url, bin_dir)
     if driver_jar and driver_class:
         # Start Java virtual machine if not started already:
         class_paths = class_path + get_java_path_sep() + driver_jar
 
+        print(driver_jar)
+        print(driver_class)
+        print(class_paths)
+        print(conn.schema_name)
         init_jvm(class_paths, MAX_JAVA_HEAP)
 
         try:
+            print('test1')
             jdbc = Jdbc(url, conn.db_user, conn.db_password, conn.db_name, conn.schema_name, driver_jar, driver_class, True, True)
+            print('test2')
+
             # TODO: Legg inn sjekk på at jdbc url er riktig, ikke bare på om db_name og skjema returnerer tabeller
             if jdbc:
                 if new_schema:
@@ -141,9 +128,6 @@ def test_db_connect(conn, bin_dir, class_path,  java_path, MAX_JAVA_HEAP, INCL_T
 
                     export_tables, overwrite_tables = table_check(INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, db_tables)
                 return 'ok'
-
-            if not export_tables and not new_schema:
-                return 'No table data to export. Exiting.'
 
         except Exception as e:
             return e
@@ -420,9 +404,7 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, java_path, max_java_heap, 
         target_url = target.jdbc_url
         schema = target.schema_name.upper()  # TODO: Ok for alle støttede databasetyper?
     else:
-        Path(subsystem_dir + '/content/data/').mkdir(parents=True, exist_ok=True)
-        target_url = 'jdbc:h2:' + subsystem_dir + '/content/data/' + s_jdbc.db_name + '_' + s_jdbc.db_schema
-        schema = 'PUBLIC'
+        return 'Target missing. Exiting...'
 
     if 'autocommit=off' not in target_url:
         target_url = target_url + ';autocommit=off'
