@@ -76,36 +76,35 @@ def get_empty_tables(table_defs, schema):
     return empty_tables
 
 
-def parse_arguments():
+def parse_arguments(argv):
+    if len(argv) == 1:
+        argv.append('-h')
+
     parser = ArgumentParser(add_help=False)
     required = parser.add_argument_group('required arguments')
     optional = parser.add_argument_group('optional arguments')
 
     optional.add_argument(
         '-h',
-        '--help',
         action='help',
         default=SUPPRESS,
         help='show this help message and exit'
     )
 
-    required.add_argument('-profile', dest='profile', type=str, help='SQL Workbench/J target profile', required=True)
-    # required.add_argument('-usr', dest='usr', type=str, help='Username for target database', required=True)
-    # required.add_argument('-pwd', dest='pwd', type=str, help='Password for target database', required=True)
-    # required.add_argument('-user', dest='user', type=str, help='Username for target database', required=True)
-
-    optional.add_argument('-quote', dest='quote', type=lambda x: bool(strtobool(x)), help='Quote fields (true/false)', default='True')
+    required.add_argument('-p', dest='path', type=str, help='Path of metadata.xml file', required=True)
+    required.add_argument('-t', dest='target', type=str, help='SQL Workbench/J target profile', required=True)
+    optional.add_argument('-q', dest='quote', type=lambda x: bool(strtobool(x)), help='Quote fields (true/false)', default='True')
 
     return parser.parse_args()
 
 
 def main(argv):
-    args = parse_arguments()
+    args = parse_arguments(argv)
     for a in args.__dict__:
         print(str(a) + ": " + str(args.__dict__[a]))
 
-    script_dir_path = Path(__file__).resolve().parents[0]
-    metadata_file = os.path.join(script_dir_path, 'metadata.xml')
+    metadata_file = args.path
+    dir_path = Path(metadata_file).resolve().parents[0]
 
     if not os.path.isfile(metadata_file):
         return "No 'metada.xml' file in script-directory. Exiting..."
@@ -126,7 +125,7 @@ def main(argv):
         else:
             file_name = schema + '_wbcopy.sql'
 
-        wbcopy_file = os.path.join(script_dir_path, file_name)
+        wbcopy_file = os.path.join(dir_path, file_name)
         empty_tables = get_empty_tables(table_defs, schema)
         columns = get_columns(table_defs, schema, empty_tables, args.quote)
 
@@ -154,7 +153,7 @@ def main(argv):
                 table_name.text,
             ))
 
-            copy_data_str = "WbCopy -targetProfile=" + args.profile + " -targetTable=" + table_name.text + " -sourceQuery=" + source_query + ";"
+            copy_data_str = "WbCopy -targetProfile=" + args.target + " -targetTable=" + table_name.text + " -sourceQuery=" + source_query + ";"
 
             with open(wbcopy_file, "a") as file:
                 file.write("\n\n" + copy_data_str)

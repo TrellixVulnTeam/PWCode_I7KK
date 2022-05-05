@@ -19,8 +19,11 @@
 # Only tested against H2-databases
 
 import os
+import sys
 from pathlib import Path
 import xml.etree.ElementTree as ET
+from argparse import ArgumentParser, SUPPRESS
+from distutils.util import strtobool
 
 
 # TODO: Splitte ut kode som er delt mellom scriptene i en defs.py ?
@@ -188,9 +191,34 @@ def get_empty_tables(table_defs, schema):
     return empty_tables
 
 
-def main():
-    script_dir_path = Path(__file__).resolve().parents[0]
-    metadata_file = os.path.join(script_dir_path, 'metadata.xml')
+def parse_arguments(argv):
+    if len(argv) == 1:
+        argv.append('-h')
+
+    parser = ArgumentParser(add_help=False)
+    required = parser.add_argument_group('required arguments')
+    optional = parser.add_argument_group('optional arguments')
+
+    optional.add_argument(
+        '-h',
+        action='help',
+        default=SUPPRESS,
+        help='Show this help message and exit'
+    )
+
+    required.add_argument('-p', dest='path', type=str, help='Path of metadata.xml file', required=True)
+    optional.add_argument('-c', dest='constraints', type=lambda x: bool(strtobool(x)), help='Include constraints (true/false)', default='False')
+
+    return parser.parse_args()
+
+
+def main(argv):
+    args = parse_arguments(argv)
+    for a in args.__dict__:
+        print(str(a) + ": " + str(args.__dict__[a]))
+
+    metadata_file = args.path
+    dir_path = Path(metadata_file).resolve().parents[0]
 
     if not os.path.isfile(metadata_file):
         return "No 'metada.xml' file in script-directory. Exiting..."
@@ -211,7 +239,7 @@ def main():
         else:
             file_name = schema + '_ddl.sql'
 
-        ddl_file = os.path.join(script_dir_path, file_name)
+        ddl_file = os.path.join(dir_path, file_name)
 
         empty_tables = get_empty_tables(table_defs, schema)
 
@@ -248,4 +276,4 @@ def main():
 
 
 if __name__ == '__main__':
-    print(main())
+    print(main(sys.argv))
