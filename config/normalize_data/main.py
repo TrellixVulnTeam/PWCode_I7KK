@@ -1,6 +1,5 @@
 import os
 import sys
-from pathlib import Path
 from common.file import get_checksum
 from common.process_metadata_pre import normalize_metadata
 from common.process_metadata_check import load_data

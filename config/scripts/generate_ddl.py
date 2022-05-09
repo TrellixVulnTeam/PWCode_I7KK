@@ -24,6 +24,7 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 from argparse import ArgumentParser, SUPPRESS
 from distutils.util import strtobool
+from common.ddl import get_primary_keys, get_foreign_keys, get_fk_str, get_empty_tables
 
 
 # TODO: Splitte ut kode som er delt mellom scriptene i en defs.py ?
@@ -102,45 +103,12 @@ def get_ddl_columns(table_defs, schema, pk_dict, unique_dict):
 
             column_text = '"' + column_name.text + '" ' + iso_data_type
             if column_name.text in pk_list or column_name.text in unique_list:
-                # TODO: Var blitt nullable på noen som så skulle blir pk med annet script... Ser ut til å gjelde bare for tomme tabeller->ikke bare->
                 column_text = column_text + ' NOT NULL'
 
             ddl_columns_list.append(column_text + ',')
         ddl_columns[table_name.text] = '\n'.join(ddl_columns_list)
 
     return ddl_columns
-
-
-def get_primary_keys(table_defs, schema, empty_tables):
-    pk_dict = {}
-
-    for table_def in table_defs:
-        if schema:
-            table_schema = table_def.find('table-schema')
-            if table_schema.text != schema:
-                continue
-
-        primary_key_name = table_def.find('primary-key-name')
-        if not primary_key_name.text:
-            continue
-
-        table_name = table_def.find("table-name")
-        if table_name.text in empty_tables:
-            continue
-
-        pk_list = []
-        column_defs = table_def.findall('column-def')
-        for column_def in column_defs:
-            primary_key = column_def.find('primary-key')
-
-            if primary_key.text == 'true':
-                column_name = column_def.find('column-name')
-                pk_list.append('"' + column_name.text + '"')
-
-        if pk_list:
-            pk_dict[table_name.text] = pk_list
-
-    return pk_dict
 
 
 def get_unique_indexes(table_defs, schema, empty_tables):
@@ -174,23 +142,6 @@ def get_unique_indexes(table_defs, schema, empty_tables):
     return unique_dict
 
 
-def get_empty_tables(table_defs, schema):
-    empty_tables = []
-    for table_def in table_defs:
-        if schema:
-            table_schema = table_def.find('table-schema')
-            if table_schema.text != schema:
-                continue
-
-        disposed = table_def.find('disposed')
-        if disposed:
-            if disposed.text == 'true':
-                table_name = table_def.find('table-name')
-                empty_tables.append(table_name.text)
-
-    return empty_tables
-
-
 def parse_arguments(argv):
     if len(argv) == 1:
         argv.append('-h')
@@ -208,6 +159,7 @@ def parse_arguments(argv):
 
     required.add_argument('-p', dest='path', type=str, help='Path of metadata.xml file', required=True)
     optional.add_argument('-c', dest='constraints', type=lambda x: bool(strtobool(x)), help='Include constraints (true/false)', default='False')
+    optional.add_argument('-d', dest='drop', type=lambda x: bool(strtobool(x)), help='Drop existing table (true/false)', default='False')
 
     return parser.parse_args()
 
@@ -247,9 +199,12 @@ def main(argv):
             if schema:
                 file.write("-- DDL for schema '" + schema + "': \n")
 
-        pk_dict = get_primary_keys(table_defs, schema, empty_tables)
+        pk_dict, pk_tables = get_primary_keys(table_defs, schema, empty_tables)
         unique_dict = get_unique_indexes(table_defs, schema, empty_tables)
         ddl_columns = get_ddl_columns(table_defs, schema, pk_dict, unique_dict)
+
+        if args.constraints:
+            constraint_dict, fk_columns_dict, fk_ref_dict = get_foreign_keys(table_defs, schema, empty_tables)
 
         for table_def in table_defs:
             table_schema = table_def.find('table-schema')
@@ -264,11 +219,25 @@ def main(argv):
                     continue
 
             table_name = table_def.find("table-name")
-            ddl = '\nCREATE TABLE "' + table_name.text + '"\n(\n' + ddl_columns[table_name.text][:-1] + '\n);'
-            # ddl = 'DROP TABLE IF EXISTS "' + table_name.text + '"; ' + ddl
+            ddl = '\nCREATE TABLE "' + table_name.text + '"(\n' + ddl_columns[table_name.text][:-1]
+            if args.constraints:
+                pk_str = unique_str = fk_str = ''
+                if table_name.text in pk_dict:
+                    pk_str = ',\nPRIMARY KEY (' + ', '.join(pk_dict[table_name.text]) + ')'
+
+                unique_constraints = {key: val for key, val in unique_dict.items() if key[0] == table_name.text}
+                if unique_constraints:
+                    for key, value in unique_constraints.items():
+                        unique_str = unique_str + ',\nCONSTRAINT ' + key[1] + ' UNIQUE (' + ', '.join(value) + ')'
+
+                fk_str = get_fk_str(constraint_dict, fk_columns_dict, fk_ref_dict, table_name.text, schema)
+                ddl = ddl + pk_str + unique_str + fk_str
+
+            if args.drop:
+                ddl = '\nDROP TABLE IF EXISTS "' + table_name.text + '"; ' + ddl
 
             with open(ddl_file, "a") as file:
-                file.write("\n\n" + ddl)
+                file.write(ddl + ');\n')
 
         msg = msg + "\nDDL written to '" + ddl_file + "'"
 

@@ -16,57 +16,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Only tested against H2-databases
-
 import os
 import sys
 from argparse import ArgumentParser, SUPPRESS
-from distutils.util import strtobool
 from pathlib import Path
 import xml.etree.ElementTree as ET
-
-
-def add_primary_keys(table_defs, schema, empty_tables):
-    constraints = []
-    pk_dict = {}
-
-    for table_def in table_defs:
-        if schema:
-            table_schema = table_def.find('table-schema')
-            if table_schema.text != schema:
-                continue
-
-        primary_key_name = table_def.find('primary-key-name')
-        if not primary_key_name.text:
-            continue
-
-        table_name = table_def.find("table-name")
-        if table_name.text in empty_tables:
-            continue
-
-        if schema:
-            table = '"' + schema + '"."' + table_name.text + '"'
-        else:
-            table = '"' + table_name.text + '"'
-
-        pk_list = []
-        column_defs = table_def.findall('column-def')
-        for column_def in column_defs:
-            primary_key = column_def.find('primary-key')
-
-            if primary_key.text == 'true':
-                column_name = column_def.find('column-name')
-                pk_list.append('"' + column_name.text + '"')
-
-        pk_list = sorted(pk_list)
-        fix_null_str = ''
-        for p in pk_list:
-            fix_null_str = fix_null_str + 'ALTER TABLE ' + table + ' ALTER COLUMN ' + p + ' SET NOT NULL; '
-
-        pk_dict[table_name.text] = ', '.join(pk_list)
-        constraints.append('\n' + fix_null_str + 'ALTER TABLE ' + table + ' ADD PRIMARY KEY(' + pk_dict[table_name.text] + ');')
-
-    return constraints
+from common.ddl import add_primary_keys, add_foreign_keys, get_empty_tables
 
 
 def add_unique(table_defs, schema, empty_tables):
@@ -107,128 +62,11 @@ def add_unique(table_defs, schema, empty_tables):
                 else:
                     table = '"' + table_name.text + '"'
 
-                unique_str = unique_str + '\nALTER TABLE ' + table + ' ADD CONSTRAINT "' + key[1] + '" UNIQUE (' + ', '.join(value) + ');'
+                unique_str = unique_str + 'ALTER TABLE ' + table + ' ADD CONSTRAINT "' + key[1] + '" UNIQUE (' + ', '.join(value) + ');'
 
-            constraints.append(unique_str + '\n')
-
-    return constraints
-
-
-def add_foreign_keys(table_defs, schema, empty_tables):
-    constraints = []
-    constraint_dict = {}
-    fk_columns_dict = {}
-    fk_ref_dict = {}
-    for table_def in table_defs:
-        if schema:
-            table_schema = table_def.find('table-schema')
-            if table_schema.text != schema:
-                continue
-
-        table_name = table_def.find('table-name')
-        if table_name.text in empty_tables:
-            continue
-
-        constraint_set = set()
-        foreign_keys = table_def.findall('foreign-keys/foreign-key')
-
-        for foreign_key in foreign_keys:
-            ref_table_name = foreign_key.find('references/table-name')
-            if ref_table_name.text in empty_tables:
-                continue
-
-            tab_constraint_name = foreign_key.find('constraint-name')
-            constraint_set.add(tab_constraint_name.text + ':' + ref_table_name.text)
-
-            source_column_set = set()
-            source_columns = foreign_key.findall('source-columns')
-
-            for source_column in source_columns:
-                source_column_names = source_column.findall('column')
-
-                for source_column_name in source_column_names:
-                    source_column_set.add(source_column_name.text)
-
-            if not len(source_column_set) == 0:
-                fk_columns_dict.update({tab_constraint_name.text: source_column_set})
-
-        constraint_dict[table_name.text] = ','.join(constraint_set)
-        column_defs = table_def.findall('column-def')
-        column_defs[:] = sorted(column_defs, key=lambda elem: int(elem.findtext('dbms-position')))
-
-        for column_def in column_defs:
-            column_name = column_def.find('column-name')
-            col_references = column_def.findall('references')
-
-            for col_reference in col_references:
-                ref_column_name = col_reference.find('column-name')
-                fk_ref_dict[table_name.text + ':' + column_name.text] = ref_column_name.text
-
-    for table_def in table_defs:
-        if schema:
-            table_schema = table_def.find('table-schema')
-            if table_schema.text != schema:
-                continue
-
-        table_name = table_def.find('table-name')
-        if table_name.text in empty_tables:
-            continue
-
-        fk_str = ''
-        if constraint_dict[table_name.text]:
-            for s in [x for x in constraint_dict[table_name.text].split(',')]:
-                constr, ref_table = s.split(':')
-
-                if ref_table in empty_tables:
-                    continue
-
-                ref_column_list = []
-                source_column_list = fk_columns_dict[constr]
-
-                for col in source_column_list:
-                    ref_column_list.append(fk_ref_dict[table_name.text + ':' + col] + ':' + col)
-
-                ref_column_list = sorted(ref_column_list)
-                ref_s = ''
-                source_s = ''
-                for s in ref_column_list:
-                    ref, source = s.split(':')
-                    ref_s = ref_s + ', "' + ref + '"'
-                    source_s = source_s + ', "' + source + '"'
-                ref_s = ref_s[2:]
-                source_s = source_s[2:]
-                if schema:
-                    table = '"' + schema + '"."' + table_name.text + '"'
-                    ref_table = '"' + schema + '"."' + ref_table + '"'
-                else:
-                    table = '"' + table_name.text + '"'
-                    ref_table = '"' + ref_table + '"'
-
-                # WAIT: Test å legge inn støtte for constraint på tvers av skjemaer
-
-                fk_str = fk_str + '\nALTER TABLE ' + table + ' ADD CONSTRAINT "' + constr + '" FOREIGN KEY (' + source_s + ') REFERENCES ' + ref_table + ' (' + ref_s + ');'
-
-            if fk_str:
-                constraints.append(fk_str)
+            constraints.append(unique_str)
 
     return constraints
-
-
-def get_empty_tables(table_defs, schema):
-    empty_tables = []
-    for table_def in table_defs:
-        if schema:
-            table_schema = table_def.find('table-schema')
-            if table_schema.text != schema:
-                continue
-
-        disposed = table_def.find('disposed')
-        if disposed:
-            if disposed.text == 'true':
-                table_name = table_def.find('table-name')
-                empty_tables.append(table_name.text)
-
-    return empty_tables
 
 
 def add_constraints(func, table_defs, schema, empty_tables, constraints_file):
