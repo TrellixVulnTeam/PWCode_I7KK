@@ -23,48 +23,46 @@ import sys
 from pathlib import Path
 import xml.etree.ElementTree as ET
 from argparse import ArgumentParser, SUPPRESS
-from distutils.util import strtobool
 from common.ddl import get_primary_keys, get_foreign_keys, get_fk_str, get_empty_tables
-
-
-# TODO: Splitte ut kode som er delt mellom scriptene i en defs.py ?
+import petl as etl
 
 
 # WAIT: Mangler denne for å ha alle i JDBC 4.0: SQLXML=2009
-# -> må ha reelle data å teste det på først. Takler sqlwb det eller må det egen kode til?
-# jdbc-id  iso-name               jdbc-name
-jdbc_to_iso_data_type = {
-    '-8': 'varchar',           # ROWID
-    '-16': 'clob',             # LONGNVARCHAR
-    '-15': 'varchar',          # NCHAR
-    '-9': 'varchar',           # NVARCHAR
-    '-7': 'boolean',           # BIT
-    '-6': 'integer',           # TINYINT
-    '-5': 'bigint',            # BIGINT
-    '-4': 'blob',              # LONGVARBINARY
-    '-3': 'blob',              # VARBINARY
-    '-2': 'blob',              # BINARY
-    '-1': 'clob',              # LONGVARCHAR
-    '1': 'varchar',            # CHAR
-    '2': 'numeric',            # NUMERIC
-    '3': 'decimal',            # DECIMAL
-    '4': 'integer',            # INTEGER
-    '5': 'integer',            # SMALLINT
-    '6': 'float',              # FLOAT
-    '7': 'real',               # REAL
-    '8': 'double precision',   # DOUBLE
-    '12': 'varchar',           # VARCHAR
-    '16': 'boolean',           # BOOLEAN
-    '91': 'date',              # DATE
-    '92': 'time',              # TIME
-    '93': 'timestamp',         # TIMESTAMP
-    '2004': 'blob',            # BLOB
-    '2005': 'clob',            # CLOB
-    '2011': 'clob',            # NCLOB
-}
+def get_db_type(key_column, value_column, Key_value):
+    db_types = [['jdbc_no', 'jdbc_name', 'iso', 'sqlite'],
+                [-8, 'rowid', 'varchar', 'varchar'],
+                [-16, 'longnvarchar', 'clob', 'clob'],
+                [-15, 'nchar', 'varchar', 'varchar'],
+                [-9, 'nvarchar', 'varchar', 'varchar'],
+                [-7, 'bit', 'boolean', 'boolean'],
+                [-6, 'tinyint', 'integer', 'integer'],
+                [-5, 'bigint', 'bigint', 'bigint'],
+                [-4, 'longvarbinary', 'blob', 'blob'],
+                [-3, 'varbinary', 'blob', 'blob'],
+                [-2, 'binary', 'blob', 'blob'],
+                [-1, 'longvarchar', 'clob', 'clob'],
+                [1, 'char', 'varchar', 'varchar'],
+                [2, 'numeric', 'numeric', 'numeric'],
+                [3, 'decimal', 'decimal', 'decimal'],
+                [4, 'integer', 'integer', 'integer'],
+                [5, 'smallint', 'integer', 'integer'],
+                [6, 'float', 'float', 'float'],
+                [7, 'real', 'real', 'real'],
+                [8, 'double', 'double precision', 'double precision'],
+                [12, 'varchar', 'varchar', 'varchar'],
+                [16, 'boolean', 'boolean', 'boolean'],
+                [91, 'date', 'date', 'date'],
+                [92, 'time', 'time', 'text'],
+                [93, 'timestamp', 'timestamp', 'text'],
+                [2004, 'blob', 'blob', 'blob'],
+                [2005, 'clob', 'clob', 'clob'],
+                [2011, 'nclob', 'clob', 'clob'],
+                ]
+
+    return etl.lookup(db_types, key_column, value_column)[Key_value][0]
 
 
-def get_ddl_columns(table_defs, schema, pk_dict, unique_dict):
+def get_ddl_columns(table_defs, schema, pk_dict, unique_dict, sql_type):
     ddl_columns = {}
 
     for table_def in table_defs:
@@ -96,12 +94,12 @@ def get_ddl_columns(table_defs, schema, pk_dict, unique_dict):
 
             java_sql_type = column_def.find('java-sql-type')
             dbms_data_size = column_def.find('dbms-data-size')
+            # TODO: Sjekk hvorfor det ikke blir antall tegn i parentes for varchar fra systemx metadata.xml
+            db_type = get_db_type('jdbc_no', 'sqlite', int(java_sql_type.text))
+            if '()' in db_type:
+                db_type = db_type.replace('()', '(' + dbms_data_size.text + ')')
 
-            iso_data_type = jdbc_to_iso_data_type[java_sql_type.text]
-            if '()' in iso_data_type:
-                iso_data_type = iso_data_type.replace('()', '(' + dbms_data_size.text + ')')
-
-            column_text = '"' + column_name.text + '" ' + iso_data_type
+            column_text = '"' + column_name.text + '" ' + db_type
             if column_name.text in pk_list or column_name.text in unique_list:
                 column_text = column_text + ' NOT NULL'
 
@@ -158,8 +156,9 @@ def parse_arguments(argv):
     )
 
     required.add_argument('-p', dest='path', type=str, help='Path of metadata.xml file', required=True)
-    optional.add_argument('-c', dest='constraints', type=lambda x: bool(strtobool(x)), help='Include constraints (true/false)', default='False')
-    optional.add_argument('-d', dest='drop', type=lambda x: bool(strtobool(x)), help='Drop existing table (true/false)', default='False')
+    optional.add_argument('-s', dest='sql_type', choices=['sqlite', 'h2', 'iso'], help='SQL dialect (default: %(default)s)', default='iso')
+    optional.add_argument('-c', dest='constraints', choices=['true', 'false'], help='Include constraints (default: %(default)s)', default='false')
+    optional.add_argument('-d', dest='drop', choices=['true', 'false'], help='Drop existing table (default: %(default)s)', default='false')
 
     return parser.parse_args()
 
@@ -201,7 +200,7 @@ def main(argv):
 
         pk_dict, pk_tables = get_primary_keys(table_defs, schema, empty_tables)
         unique_dict = get_unique_indexes(table_defs, schema, empty_tables)
-        ddl_columns = get_ddl_columns(table_defs, schema, pk_dict, unique_dict)
+        ddl_columns = get_ddl_columns(table_defs, schema, pk_dict, unique_dict, args.sql_type)
 
         if args.constraints:
             constraint_dict, fk_columns_dict, fk_ref_dict = get_foreign_keys(table_defs, schema, empty_tables)

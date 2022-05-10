@@ -19,7 +19,6 @@
 import os
 import sys
 from argparse import ArgumentParser, SUPPRESS
-from distutils.util import strtobool
 from pathlib import Path
 import xml.etree.ElementTree as ET
 from common.ddl import get_empty_tables
@@ -70,7 +69,8 @@ def parse_arguments(argv):
 
     required.add_argument('-p', dest='path', type=str, help='Path of metadata.xml file', required=True)
     required.add_argument('-t', dest='target', type=str, help='SQL Workbench/J target profile', required=True)
-    optional.add_argument('-q', dest='quote', type=lambda x: bool(strtobool(x)), help='Quote table/fields in source query (true/false)', default='True')
+    optional.add_argument('-q', dest='quote', choices=['true', 'false'], help='Quote table/fields in source query (default: %(default)s)', default='true')
+    optional.add_argument('-s', dest='sql_type', choices=['sqlite', 'h2', 'iso'], help='SQL dialect (default: %(default)s)', default='iso')
 
     return parser.parse_args()
 
@@ -132,7 +132,10 @@ def main(argv):
                 tbl,
             ))
 
-            copy_data_str = 'WbCopy -targetProfile=' + args.target + ' -targetTable="' + table_name.text + '" -sourceQuery=' + source_query + ';'
+            extra_args = ''
+            if args.sql_type == 'sqlite':
+                extra_args = '-preTableStatement="PRAGMA foreign_keys=OFF;" '
+            copy_data_str = 'WbCopy ' + extra_args + '-targetProfile=' + args.target + ' -targetTable="' + table_name.text + '" -sourceQuery=' + source_query + ';'
 
             with open(wbcopy_file, "a") as file:
                 file.write("\n" + copy_data_str)
