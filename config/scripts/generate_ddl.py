@@ -159,6 +159,7 @@ def parse_arguments(argv):
     optional.add_argument('-s', dest='sql_type', choices=['sqlite', 'h2', 'iso'], help='SQL dialect (default: %(default)s)', default='iso')
     optional.add_argument('-c', dest='constraints', choices=['true', 'false'], help='Include constraints (default: %(default)s)', default='false')
     optional.add_argument('-d', dest='drop', choices=['true', 'false'], help='Drop existing table (default: %(default)s)', default='false')
+    optional.add_argument('-l', dest='table_list', type=str, help='Path of file with list of tables to include.')
 
     return parser.parse_args()
 
@@ -174,9 +175,14 @@ def main(argv):
     if not os.path.isfile(metadata_file):
         return "No 'metada.xml' file in script-directory. Exiting..."
 
+    # WAIT: Håndtere table list for flere skjema?
+    include_tables = []
+    if args.table_list:
+        with open(args.table_list) as file:
+            include_tables = file.read().splitlines()
+
     tree = ET.parse(metadata_file)
     table_defs = tree.findall("table-def")
-
     schemas = set()
     for table_def in table_defs:
         table_schema = table_def.find('table-schema')
@@ -218,6 +224,9 @@ def main(argv):
                     continue
 
             table_name = table_def.find("table-name")
+            if include_tables and table_name.text not in include_tables:
+                continue
+
             ddl = '\nCREATE TABLE "' + table_name.text + '"(\n' + ddl_columns[table_name.text][:-1]
             if args.constraints:
                 pk_str = unique_str = fk_str = ''
