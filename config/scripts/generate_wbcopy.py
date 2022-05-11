@@ -109,7 +109,7 @@ def main(argv):
             file_name = schema + '_wbcopy.sql'
 
         wbcopy_file = os.path.join(dir_path, file_name)
-        empty_tables = get_empty_tables(table_defs, schema)
+        empty_tables = get_empty_tables(table_defs, schema, include_tables)
         columns = get_columns(table_defs, schema, empty_tables, args.quote)
 
         with open(wbcopy_file, "w") as file:
@@ -125,9 +125,6 @@ def main(argv):
 
             table_name = table_def.find("table-name")
             if table_name.text in empty_tables:
-                continue
-
-            if include_tables and table_name.text not in include_tables:
                 continue
 
             tbl = table_name.text

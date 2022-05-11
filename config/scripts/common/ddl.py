@@ -170,7 +170,7 @@ def add_foreign_keys(table_defs, schema, empty_tables):
     return constraints
 
 
-def get_empty_tables(table_defs, schema):
+def get_empty_tables(table_defs, schema, include_tables=[]):
     empty_tables = []
     for table_def in table_defs:
         if schema:
@@ -179,9 +179,12 @@ def get_empty_tables(table_defs, schema):
                 continue
 
         disposed = table_def.find('disposed')
+        table_name = table_def.find('table-name')
         if disposed:
             if disposed.text == 'true':
-                table_name = table_def.find('table-name')
+                empty_tables.append(table_name.text)
+        elif include_tables:
+            if table_name.text not in include_tables:
                 empty_tables.append(table_name.text)
 
     return empty_tables

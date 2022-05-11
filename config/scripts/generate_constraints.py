@@ -92,6 +92,7 @@ def parse_arguments(argv):
     )
 
     required.add_argument('-p', dest='path', type=str, help='Path of metadata.xml file', required=True)
+    optional.add_argument('-l', dest='table_list', type=str, help='Path of file with list of tables to include.')
 
     return parser.parse_args()
 
@@ -107,9 +108,14 @@ def main(argv):
     if not os.path.isfile(metadata_file):
         return "No 'metada.xml' file in script-directory. Exiting..."
 
+    # WAIT: Håndtere table list for flere skjema?
+    include_tables = []
+    if args.table_list:
+        with open(args.table_list) as file:
+            include_tables = file.read().splitlines()
+
     tree = ET.parse(metadata_file)
     table_defs = tree.findall("table-def")
-
     schemas = set()
     for table_def in table_defs:
         table_schema = table_def.find('table-schema')
@@ -124,8 +130,7 @@ def main(argv):
             file_name = schema + '_constraints.sql'
 
         constraints_file = os.path.join(dir_path, file_name)
-
-        empty_tables = get_empty_tables(table_defs, schema)
+        empty_tables = get_empty_tables(table_defs, schema, include_tables)
 
         with open(constraints_file, "w") as file:
             if schema:

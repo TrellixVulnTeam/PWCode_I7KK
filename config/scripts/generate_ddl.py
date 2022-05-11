@@ -197,8 +197,7 @@ def main(argv):
             file_name = schema + '_ddl.sql'
 
         ddl_file = os.path.join(dir_path, file_name)
-
-        empty_tables = get_empty_tables(table_defs, schema)
+        empty_tables = get_empty_tables(table_defs, schema, include_tables)
 
         with open(ddl_file, "w") as file:
             if schema:
@@ -218,13 +217,8 @@ def main(argv):
                     if table_schema.text != schema:
                         continue
 
-            disposed = table_def.find("disposed")
-            if disposed is not None:
-                if disposed.text == "true":
-                    continue
-
             table_name = table_def.find("table-name")
-            if include_tables and table_name.text not in include_tables:
+            if table_name.text in empty_tables:
                 continue
 
             ddl = '\nCREATE TABLE "' + table_name.text + '"(\n' + ddl_columns[table_name.text][:-1]
