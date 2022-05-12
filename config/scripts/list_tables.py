@@ -24,13 +24,24 @@ from pathlib import Path
 import jaydebeapi
 
 
-def get_tables(conn, schema):
+def get_tables(conn, schema, driver_class):
     results = conn.jconn.getMetaData().getTables(None, schema, "%", None)
     table_reader_cursor = conn.cursor()
     table_reader_cursor._rs = results
     table_reader_cursor._meta = results.getMetaData()
     read_results = table_reader_cursor.fetchall()
     tables = [row[2] for row in read_results if row[3] == 'TABLE']
+
+    for index, table in enumerate(tables):
+        table_name = table
+        if driver_class != 'interbase.interclient.Driver':
+            table_name = '"' + table + '"'
+
+        get_count = 'SELECT COUNT(*) from ' + table_name
+        table_reader_cursor.execute(get_count)
+        (row_count,) = table_reader_cursor.fetchone()
+        tables[index] = table + ':' + str(row_count)
+
     return tables
 
 
@@ -80,7 +91,7 @@ def main(argv):
 
     tables = ''
     with jaydebeapi.connect(driver_class, args.jdbc_url, [args.user, args.password], driver_jar,) as conn:
-        tables = get_tables(conn, args.schema)
+        tables = get_tables(conn, args.schema, driver_class)
 
     for table in tables:
         with open(table_file, "a") as file:

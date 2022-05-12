@@ -138,10 +138,10 @@ def main(argv):
                 tbl,
             ))
 
-            extra_args = ''
+            params = '-mode=INSERT -ignoreIdentityColumns=false -removeDefaults=true -commitEvery=10000 '
             if args.sql_type == 'sqlite':
-                extra_args = '-preTableStatement="PRAGMA foreign_keys=OFF;" '
-            copy_data_str = 'WbCopy ' + extra_args + '-targetProfile=' + args.target + ' -targetTable="' + table_name.text + '" -sourceQuery=' + source_query + ';'
+                params = params + '-preTableStatement="PRAGMA foreign_keys=OFF;PRAGMA journal_mode=OFF;PRAGMA synchronous=0;PRAGMA locking_mode=EXCLUSIVE;PRAGMA temp_store=MEMORY;" '
+            copy_data_str = 'WbCopy ' + params + '-targetProfile=' + args.target + ' -targetTable="' + table_name.text + '" -sourceQuery=' + source_query + ';'
 
             with open(wbcopy_file, "a") as file:
                 file.write("\n" + copy_data_str)
