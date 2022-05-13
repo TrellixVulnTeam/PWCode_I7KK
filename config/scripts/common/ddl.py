@@ -172,6 +172,11 @@ def add_foreign_keys(table_defs, schema, empty_tables):
 
 def get_empty_tables(table_defs, schema, include_tables=[]):
     empty_tables = []
+    include_dict = {}
+
+    if include_tables:
+        include_dict = dict([s.split(':') for s in include_tables])
+
     for table_def in table_defs:
         if schema:
             table_schema = table_def.find('table-schema')
@@ -184,7 +189,7 @@ def get_empty_tables(table_defs, schema, include_tables=[]):
             if disposed.text == 'true':
                 empty_tables.append(table_name.text)
         elif include_tables:
-            if table_name.text not in include_tables:
+            if table_name.text not in include_dict or include_dict[table_name.text] == '0':
                 empty_tables.append(table_name.text)
 
     return empty_tables
