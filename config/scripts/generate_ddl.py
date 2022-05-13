@@ -25,6 +25,7 @@ import xml.etree.ElementTree as ET
 from argparse import ArgumentParser, SUPPRESS
 from common.ddl import get_primary_keys, get_foreign_keys, get_fk_str, get_empty_tables
 import petl as etl
+from distutils.util import strtobool
 
 
 # WAIT: Mangler denne for å ha alle i JDBC 4.0: SQLXML=2009
@@ -157,8 +158,8 @@ def parse_arguments(argv):
 
     required.add_argument('-p', dest='path', type=str, help='Path of metadata.xml file', required=True)
     optional.add_argument('-s', dest='sql_type', choices=['sqlite', 'h2', 'iso'], help='SQL dialect (default: %(default)s)', default='iso')
-    optional.add_argument('-c', dest='constraints', choices=['true', 'false'], help='Include constraints (default: %(default)s)', default='false')
-    optional.add_argument('-d', dest='drop', choices=['true', 'false'], help='Drop existing table (default: %(default)s)', default='false')
+    optional.add_argument('-c', dest='constraints', choices=[True, False], type=lambda x: bool(strtobool(x)), help='Include constraints (default: %(default)s)', default='False')
+    optional.add_argument('-d', dest='drop', choices=[True, False], type=lambda x: bool(strtobool(x)), help='Drop existing table (default: %(default)s)', default='False')
     optional.add_argument('-l', dest='table_list', type=str, help='Path of file with list of tables to include.')
 
     return parser.parse_args()

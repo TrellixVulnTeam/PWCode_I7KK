@@ -22,6 +22,7 @@ from argparse import ArgumentParser, SUPPRESS
 from pathlib import Path
 import xml.etree.ElementTree as ET
 from common.ddl import get_empty_tables
+from distutils.util import strtobool
 
 
 def get_columns(table_defs, schema, empty_tables, quote):
@@ -69,7 +70,7 @@ def parse_arguments(argv):
 
     required.add_argument('-p', dest='path', type=str, help='Path of metadata.xml file', required=True)
     required.add_argument('-t', dest='target', type=str, help='SQL Workbench/J target profile', required=True)
-    optional.add_argument('-q', dest='quote', choices=['true', 'false'], help='Quote table/fields in source query (default: %(default)s)', default='true')
+    optional.add_argument('-q', dest='quote', choices=[True, False],  type=lambda x: bool(strtobool(x)), help='Quote table/fields in source query (default: %(default)s)', default='True')
     optional.add_argument('-s', dest='sql_type', choices=['sqlite', 'h2', 'iso'], help='SQL dialect (default: %(default)s)', default='iso')
     optional.add_argument('-l', dest='table_list', type=str, help='Path of file with list of tables to include.')
 
