@@ -8,7 +8,7 @@ PIP_DONE=$SCRIPTPATH/vendor/linux/python/pip_done
 JAVA_BIN=$SCRIPTPATH/vendor/linux/jre/bin/java
 OJDBC10=$SCRIPTPATH/vendor/jars/ojdbc10.jar
 JARS=$SCRIPTPATH/vendor/jars/sqlworkbench.jar
-CONVERTER=$(dirname $SCRIPTPATH)/config/scripts/convert.py
+CONVERTER=$(dirname $SCRIPTPATH)/config/scripts/external/convert.py
 
 source $SCRIPTPATH/installers.sh
 
