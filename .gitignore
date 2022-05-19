@@ -5,6 +5,7 @@ bin/vendor/linux/*
 bin/vendor/windows/*
 bin/vendor/jars/*
 config/tmp/*
+config/scripts/external/*
 Python.desktop
 SQLWB.desktop
 
