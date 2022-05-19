@@ -8,7 +8,7 @@ PIP_DONE=$BINPATH/vendor/linux/python/pip_done
 JAVA_BIN=$BINPATH/vendor/linux/jre/bin/java
 OJDBC10=$BINPATH/vendor/jars/ojdbc10.jar
 JARS=$BINPATH/vendor/jars/sqlworkbench.jar
-
+CONVERTER=$(dirname $BINPATH)/config/scripts/convert.py
 
 install_python_runtime() {
     if [ ! -f $PYTHON_BIN ]; then
@@ -52,18 +52,22 @@ install_java() {
     fi
 }
 
-
 install_ojdbc() {
     if [ ! -f $OJDBC10 ]; then
         wget https://repo1.maven.org/maven2/com/oracle/database/jdbc/ojdbc10/19.6.0.0/ojdbc10-19.6.0.0.jar -O $BINPATH/vendor/jars/ojdbc10.jar;
     fi
 }
 
-
 install_jars() {
     if [ ! -f $JARS ]; then
         wget https://github.com/Preservation-Workbench/deps/releases/latest/download/deps.zip -O /tmp/deps.zip;
         cd $BINPATH/vendor/jars && unzip -j /tmp/deps.zip;
+    fi
+}
+
+install_converter() {
+    if [ ! -f $CONVERTER ]; then
+        wget https://raw.githubusercontent.com/Preservation-Workbench/PWConvert/b1669577c7415f521f88a32dba82ec0e35c98300/convert.py -O $CONVERTER;
     fi
 }
 
@@ -73,6 +77,7 @@ main() {
     install_java;
     install_jars;
     install_ojdbc;
+    install_converter;
 }
 
 if [ "${1}" == "--install" ]; then

@@ -8,6 +8,7 @@ PIP_DONE=$SCRIPTPATH/vendor/linux/python/pip_done
 JAVA_BIN=$SCRIPTPATH/vendor/linux/jre/bin/java
 OJDBC10=$SCRIPTPATH/vendor/jars/ojdbc10.jar
 JARS=$SCRIPTPATH/vendor/jars/sqlworkbench.jar
+CONVERTER=$(dirname $SCRIPTPATH)/config/scripts/convert.py
 
 source $SCRIPTPATH/installers.sh
 
@@ -23,7 +24,7 @@ run_pwcode() {
 
 
 # WAIT: Add more linear progress
-if [ -e $PYTHON_BIN -a -e $PIP_DONE -a -e $JAVA_BIN -a -e $OJDBC10 -a -e $JARS ]; then
+if [ -e $PYTHON_BIN -a -e $PIP_DONE -a -e $JAVA_BIN -a -e $OJDBC10 -a -e $JARS -a -e $CONVERTER]; then
     run_pwcode
 else
     (
@@ -32,24 +33,29 @@ else
     install_python_runtime
     sleep 1
 
-    echo 20
+    echo 15
     echo "# Installing python packages..."
     install_python_packages
     sleep 1
 
-    echo 40
+    echo 30
     echo "# Installing java 11..."
     install_java
     sleep 1
 
-    echo 80
+    echo 45
     echo "# Installing open source drivers..."
     install_jars
-    sleep 1    
+    sleep 1
 
-    echo 80
+    echo 60
     echo "# Installing oracle driver..."
     install_ojdbc
+    sleep 1
+
+    echo 75
+    echo "# Installing file converter..."
+    install_converter
     sleep 1
 
     echo 100
