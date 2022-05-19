@@ -8,7 +8,7 @@ PIP_DONE=$SCRIPTPATH/vendor/linux/python/pip_done
 JAVA_BIN=$SCRIPTPATH/vendor/linux/jre/bin/java
 OJDBC10=$SCRIPTPATH/vendor/jars/ojdbc10.jar
 JARS=$SCRIPTPATH/vendor/jars/sqlworkbench.jar
-CONVERTER=$(dirname $SCRIPTPATH)/config/scripts/external/convert.py
+CONVERTER=$(dirname $SCRIPTPATH)/config/scripts/PWConvert/convert.py
 
 install_python_runtime() {
     if [ ! -f $PYTHON_BIN ]; then
@@ -67,7 +67,11 @@ install_jars() {
 
 install_converter() {
     if [ ! -f $CONVERTER ]; then
-        wget https://raw.githubusercontent.com/Preservation-Workbench/PWConvert/b1669577c7415f521f88a32dba82ec0e35c98300/convert.py -O $CONVERTER;
+        REPOSRC="https://github.com/Preservation-Workbench/PWConvert.git"
+        LOCALREPO=$(dirname $CONVERTER)
+        # LOCALREPO="/home/pwb/bin/PWCode/config/scripts/PWConvert/"
+        # # echo "test"
+        git clone --depth 1 "$REPOSRC" "$LOCALREPO" 2> /dev/null || git -C "$LOCALREPO" pull;
     fi
 }
 
