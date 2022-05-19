@@ -18,6 +18,7 @@ SQLWB.desktop
 !bin/vendor/jars/WbDrivers.xml
 !bin/vendor/jars/WbMacros.xml
 !bin/vendor/config/*.desktop
+!config/scripts/external/.gitkeep
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
