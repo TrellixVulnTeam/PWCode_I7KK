@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from multiprocessing.sharedctypes import Value
 import os
 from subprocess import check_output, STDOUT
 import tarfile
@@ -145,7 +146,7 @@ def export_schema(class_paths, max_java_heap, subsystem_dir, jdbc, schema_names)
     schema_file = os.path.join(subsystem_dir, 'header', 'metadata.xml')
 
     if os.path.isfile(schema_file):
-        return
+        return     
 
     init_jvm(class_paths, max_java_heap)
     WbManager = jp.JPackage('workbench').WbManager
@@ -215,7 +216,7 @@ def test_db_connect(JDBC_URL, bin_dir, class_path,  java_path, MAX_JAVA_HEAP, DB
                 if not db_tables:
                     return "Database '" + DB_NAME + "', schema '" + DB_SCHEMA + "' returns no tables."
 
-                export_tables, overwrite_tables = table_check(INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, db_tables)
+                export_tables, overwrite_tables = table_check(INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, db_tables, jdbc)
 
                 if not export_tables:
                     return 'No table data to export. Exiting.'
@@ -240,9 +241,10 @@ def export_db_schema(JDBC_URL, bin_dir, class_path, java_path, MAX_JAVA_HEAP, DB
             if jdbc:
                 # Get database metadata:
                 db_tables, table_columns = get_db_meta(jdbc)  # WAIT: Fiks så ikke henter to ganger (også i test)
+
                 export_schema(class_paths, MAX_JAVA_HEAP, subsystem_dir, jdbc, schema_names)
-                add_row_count_to_schema_file(subsystem_dir, db_tables, DB_SCHEMA)
-                export_tables, overwrite_tables = table_check(INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, db_tables)
+                # add_row_count_to_schema_file(subsystem_dir, db_tables, DB_SCHEMA)
+                export_tables, overwrite_tables = table_check(INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, db_tables, jdbc)                        
 
             if export_tables:
                 # Copy schema data:
@@ -269,9 +271,6 @@ def get_db_meta(jdbc):
     cursor = conn.cursor()
     tables = get_tables(conn, jdbc.db_name, jdbc.db_schema)
 
-    # if 'oracle' in jdbc.url:
-    #     cursor.execute('ALTER SESSION SET CURRENT_SCHEMA = ' + jdbc.db_schema + ';')
-
     # Get row count per table:
     for table in tables:
         if jdbc.driver_class != 'interbase.interclient.Driver':
@@ -281,15 +280,16 @@ def get_db_meta(jdbc):
                 table = '"' + table + '"'
 
         get_count = 'SELECT COUNT(*) from ' + table
-        print(get_count)
+        # print(get_count)
         cursor.execute(get_count)
         (row_count,) = cursor.fetchone()
+        # print (table + ': ' + str(row_count))
         db_tables[table] = row_count
 
         # Get column names of table:
         # TODO: Finnes db-uavhengig måte å begrense til kun en linje hentet ut?
         get_columns = 'SELECT * from ' + table
-        print(get_columns)
+        # print(get_columns)
         cursor.execute(get_columns)
         table_columns[table] = [str(desc[0]) for desc in cursor.description]
 
@@ -330,28 +330,48 @@ def add_row_count_to_schema_file(subsystem_dir, db_tables, schema):
     tree.write(schema_file, encoding='utf-8')
 
 
-def table_check(incl_tables, skip_tables, overwrite_tables, db_tables):
+def table_check(incl_tables, skip_tables, overwrite_tables, db_tables, jdbc):
     non_empty_tables = {k: v for (k, v) in db_tables.items() if v > 0}
-    if incl_tables:
-        for tbl in incl_tables:
+    # TODO: Feil i henting av tabeller i kode under -> fiks
+    incl_list = incl_tables.split(",")
+    skip_list = skip_tables.split(",")
+    overwrite_list = overwrite_tables.split(",")
+
+    # table = '"' + jdbc.db_schema + '"."EDOKFILES"'  
+    # del non_empty_tables[table] 
+
+    # TODO: Blir tilfeller av tom verdi på table i kode under. Fiks etter bksak eksport
+    # for list in (incl_list, skip_list, overwrite_list):
+    #     if list:
+    #         for index, table in enumerate(list):
+    #             if jdbc.driver_class != 'interbase.interclient.Driver':
+    #                 if len(jdbc.db_schema) != 0:
+    #                     table = '"' + jdbc.db_schema + '"."' + table + '"'
+    #                 else:
+    #                     table = '"' + table + '"'
+
+    #                 list[index] = table
+
+    if incl_list:
+        for tbl in incl_list:
             if tbl not in non_empty_tables:
                 print_and_exit("Table '" + tbl + "' is empty or not in schema. Exiting.")
         for tbl in list(non_empty_tables):
             if tbl not in incl_tables:
                 del non_empty_tables[tbl]
-    elif skip_tables:
-        for tbl in skip_tables:
+    elif skip_list:
+        for tbl in skip_list:
             if tbl in non_empty_tables:
                 del non_empty_tables[tbl]
             else:
                 print_and_exit("Table '" + tbl + "' is empty or not in schema. Exiting.")
 
-    if overwrite_tables:
-        for tbl in overwrite_tables:
+    if overwrite_list:
+        for tbl in overwrite_list:
             if tbl not in non_empty_tables:
                 print_and_exit("Table '" + tbl + "' is empty or not in source schema. Exiting.")
 
-    return non_empty_tables, overwrite_tables
+    return non_empty_tables, overwrite_list
 
 
 def get_target_tables(jdbc):
@@ -473,17 +493,19 @@ def create_index(table, pk_dict, unique_dict, ddl, t_count, schema):
     # -> Gjør så om til streng helt nederst før return bare
 
     ddl_list = []
-    target_table = schema + '"."' + table
+    # target_table = schema + '"."' + table
+    #print('!' + target_table + '!')
     if table in pk_dict:
+        print(table)
         for col in pk_dict[table]:
             # TODO: Beholde \n her
-            ddl_list.append('\nCREATE INDEX c_' + col + '_' + str(t_count) + ' ON "' + target_table + '" ("' + col + '");')
+            ddl_list.append('\nCREATE INDEX c_' + col + '_' + str(t_count) + ' ON "' + table + '" ("' + col + '");')
 
             # ddl = ddl + '\nCREATE INDEX c_' + col + '_' + str(t_count) + ' ON "' + table + '" ("' + col + '");'
     if table in unique_dict:
         for col in unique_dict[table]:
             # TODO: Beholde \n her
-            ddl_list.append('\nCREATE INDEX c_' + col + '_' + str(t_count) + ' ON "' + target_table + '" ("' + col + '");')
+            ddl_list.append('\nCREATE INDEX c_' + col + '_' + str(t_count) + ' ON "' + table + '" ("' + col + '");')
             # ddl = ddl + '\nCREATE INDEX c_' + col + '_' + str(t_count) + ' ON "' + table + '" ("' + col + '");'
 
     ddl = ddl + ''.join(set(ddl_list))
@@ -506,14 +528,16 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
     pk_dict = get_primary_keys(subsystem_dir, export_tables)
     unique_dict = get_unique_indexes(subsystem_dir, export_tables)
 
+    ddl_columns = {}
     if DDL_GEN == 'Native':
-        ddl_columns = get_ddl_columns(subsystem_dir, s_jdbc.db_schema, pk_dict, unique_dict)
+        ddl_columns = get_ddl_columns(subsystem_dir, s_jdbc, pk_dict, unique_dict)                     
 
     mode = '-mode=INSERT'
     std_params = ' -ignoreIdentityColumns=false -removeDefaults=true -commitEvery=1000 '
     previous_export = []
     t_count = 0
     for table, row_count in export_tables.items():
+        print('|' + table + '|')
         t_count += 1
         insert = True
         params = mode + std_params
@@ -529,7 +553,7 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
         source_table = table
         source_columns = ','.join(table_columns[table]) + col_query
         if s_jdbc.driver_class != 'interbase.interclient.Driver':
-            source_table = '"' + s_jdbc.db_schema + '"."' + table + '"'
+            # source_table = '"' + s_jdbc.db_schema + '"."' + table + '"'
             source_columns = '"' + '","'.join(table_columns[table]) + '"' + col_query
 
         source_query = ' '.join((
@@ -553,18 +577,17 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
                 source_query = gen_sync_table(table, unique_dict[table], target_url, driver_jar, driver_class, source_query, target_schema)
                 insert = False
 
-        target_table = target_schema + '"."' + table
+        # target_table = target_schema + '"."' + table
         if insert:
-            print("Copying table '" + table + "':")
+            print('Copying table ' + table + ':')
             if DDL_GEN == 'SQL Workbench':
                 params = mode + std_params + ' -createTarget=true -dropTarget=true'
             elif DDL_GEN == 'Native':
-                print(ddl_columns[table][:-1])
                 t_jdbc = Jdbc(target_url, '', '', '', target_schema, driver_jar, driver_class, True, True)
-                ddl = '\nCREATE TABLE "' + target_table + '"\n(\n' + ddl_columns[table][:-1] + '\n);'
+                ddl = '\nCREATE TABLE ' + table + '\n(\n' + ddl_columns[table][:-1] + '\n);'
                 ddl = create_index(table, pk_dict, unique_dict, ddl, t_count, target_schema)
                 print(ddl)
-                sql = 'DROP TABLE IF EXISTS "' + target_table + '"; ' + ddl
+                sql = 'DROP TABLE IF EXISTS ' + table + '; ' + ddl
                 run_ddl(t_jdbc, sql)
 
             # WAIT: Endre kode på blob length så virker også på mssql mm senere
@@ -574,7 +597,7 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
             #         sql = 'ALTER TABLE "' + table + '" ADD COLUMN ' + column.upper() + '_BLOB_LENGTH_PWCODE VARCHAR(255);'
             #         run_ddl(t_jdbc, sql)
 
-        target_table = '"' + target_table + '"'
+        # target_table = '"' + target_table + '"'
         connect_str = ' '.join((
             "WbConnect -url=" + s_jdbc.url,
             "-username=" + s_jdbc.usr,
@@ -586,7 +609,7 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
         batch.runScript(connect_str)
         # batch.runScript("WbConnect -url='" + s_jdbc.url + "' -username='" + s_jdbc.usr + "' -password=" + s_jdbc.pwd + ";")
         target_conn = '"username=,password=,url=' + target_url + '" ' + params
-        copy_data_str = "WbCopy -targetConnection=" + target_conn + " -targetTable=" + target_table + " -sourceQuery=" + source_query + ";"
+        copy_data_str = "WbCopy -targetConnection=" + target_conn + " -targetTable=" + table + " -sourceQuery=" + source_query + ";"
         print(copy_data_str)
         result = batch.runScript(copy_data_str)
         batch.runScript("WbDisconnect;")
@@ -650,12 +673,11 @@ jdbc_to_iso_data_type = {
 #         ddl_list.append('\nCREATE INDEX c_' + col + '_' + str(t_count) + ' ON "' + target_table + '" ("' + col + '");')
 
 
-def get_ddl_columns(subsystem_dir, schema, pk_dict, unique_dict):
+def get_ddl_columns(subsystem_dir, jdbc, pk_dict, unique_dict):
     ddl_columns = {}
+    schema = jdbc.db_schema
     schema_file = os.path.join(subsystem_dir, 'header', 'metadata.xml')
     tree = ET.parse(schema_file)
-
-    print(schema)
 
     table_defs = tree.findall("table-def")
     for table_def in table_defs:
@@ -665,12 +687,14 @@ def get_ddl_columns(subsystem_dir, schema, pk_dict, unique_dict):
                 if table_schema.text != schema:
                     continue
 
+
         disposed = table_def.find("disposed")
         if disposed is not None:
             if disposed.text == "true":
                 continue
 
         table_name = table_def.find("table-name")
+        # print(table_name.text)
         pk_list = []
         if table_name.text in pk_dict:
             pk_list = pk_dict[table_name.text]
@@ -696,8 +720,15 @@ def get_ddl_columns(subsystem_dir, schema, pk_dict, unique_dict):
             if column_name.text in pk_list or column_name.text in unique_list:
                 column_text = column_text + ' NOT NULL'
 
-            print(column_text)
+            # print(column_text)
             ddl_columns_list.append(column_text + ',')
+        
+        if jdbc.driver_class != 'interbase.interclient.Driver':
+            if len(schema) != 0:
+                table_name.text = '"' + schema + '"."' + table_name.text + '"'
+            else:
+                table_name.text = '"' + table_name.text + '"'
+
         ddl_columns[table_name.text] = '\n'.join(ddl_columns_list)
 
     return ddl_columns
