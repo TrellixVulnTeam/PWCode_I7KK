@@ -16,78 +16,187 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from genericpath import exists
+# from asyncio import exceptions
+# from distutils.log import error
+# from genericpath import exists
+from loguru import logger
 import os
 import sys
 from argparse import ArgumentParser, SUPPRESS
 from pathlib import Path
 from sqlite_utils import Database
+from importlib.metadata import version
+from platform import python_version
 import xml.etree.ElementTree as ET
+from common.ddl import get_db_type
 # from common.ddl import get_empty_tables
 # from distutils.util import strtobool
 
 
+def uniquify(path):
+    filename, extension = os.path.splitext(path)
+    counter = 2
+
+    while os.path.exists(path):
+        path = filename + '(' + str(counter) + ')' + extension
+        counter += 1
+
+    return path
+
+
+def xstr(s):
+    if s is None:
+        return ''
+    else:
+        return str(s)
+
+
 def index_sqlite_foreign_keys(db):
-    print('Adding indexes to any foreign keys without...')
+    logger.info('Adding indexes to any foreign keys without...')
     db.index_foreign_keys()
 
 
-def show_sqlite_version(db):
+def show_versions(db):
     sqlite_version = '.'.join(map(str, db.sqlite_version))
-    print('sqlite_version: ' + sqlite_version)
+    print('\n'.join((('sqlite version: ' + sqlite_version,
+                      'sqlite_utils version: ' + version('sqlite_utils'),
+                      'python version: ' + python_version(),
+                      ''))))
 
 
-def get_date_columns(db, table_columns, table_names):
-    print('get_date_columns not implemented')
-    # for table_name in table_names:
-    #     for column in table_columns[table_name]:
-    #         print(column.name)
+def fix_date_columns(db, date_columns):
+    print('Gjør ferdig')
 
 
-def get_sqlite_tables_remove_empty(db):
-    table_columns = {}
+def get_date_columns(table_defs, schema):
+    date_columns = {}
+
+    for table_def in table_defs:
+        table_schema = table_def.find('table-schema')
+        if table_schema is not None:
+            if table_schema.text is not None and len(schema) > 0:
+                if table_schema.text != schema:
+                    continue
+
+        disposed = table_def.find("disposed")
+        if disposed is not None:
+            if disposed.text == "true":
+                continue
+
+        table_name = table_def.find("table-name")
+        ddl_columns_list = []
+        column_defs = table_def.findall("column-def")
+        column_defs[:] = sorted(column_defs, key=lambda elem: int(elem.findtext('dbms-position')))
+        for column_def in column_defs:
+            column_name = column_def.find('column-name')
+
+            java_sql_type = column_def.find('java-sql-type')
+            if java_sql_type.text in ['91', '92', '93']:
+                ddl_columns_list.append(column_name.text)
+
+        if ddl_columns_list:
+            date_columns[table_name.text] = ddl_columns_list
+
+    return date_columns
+
+
+# def get_date_columns(db, table_columns, table_names):
+#     print('get_date_columns not implemented')
+#     # TODO: MÅ først legge inn lesing av metadata.xml fil
+#     # for table_name in table_names:
+#     #     for column in table_columns[table_name]:
+#     #         print(column.name)
+
+
+def drop_check(db, table_names, columns, foreign_keys):
+    # If problem with any column, none of them can be dropped
+    drop = True
+    for column in columns:
+        for key in foreign_keys:
+            if column.name == key.column:
+                if key.other_table not in table_names:
+                    drop = False
+
+    return drop
+
+
+def get_empty_columns(table, columns, count):
+    empty_columns = []
+    for column in columns:
+        empty_count = table.count_where("ifnull(" + column.name + ", '')=''")
+        if count == empty_count:
+            empty_columns.append(column.name)
+
+    return empty_columns
+
+
+def drop_foreign_keys_on_table(table, foreign_keys):
+    for key in foreign_keys:
+        table.transform(drop_foreign_keys=(key.other_table))
+
+
+def get_sqlite_tables_remove_empty(db, include_tables):
     table_names = db.table_names()
-    table_names.remove('sqlite_sequence')
+    if 'sqlite_sequence' in table_names:
+        table_names.remove('sqlite_sequence')
+
+    table_columns = {}
+    keep_table = True
     for table_name in table_names:
+
+        if include_tables:
+            if table_name not in include_tables:
+                continue
+
+        logger.info('Checking table ' + table_name + '...')
         table = db[table_name]
         foreign_keys = table.foreign_keys
 
         count = table.count
+        columns = table.columns  # list of named tuples (name, type, notnull, default_value, is_pk)
         if count == 0:
-            for key in foreign_keys:
-                table.transform(drop_foreign_keys=(key.other_table))
+            can_drop = drop_check(db, table_names, columns, foreign_keys)
+            if can_drop:
+                logger.info('Removing empty table ' + table_name + ' and any foreign keys referencing it')
+                drop_foreign_keys_on_table(table, foreign_keys)
+                table.drop(ignore=True)
+                keep_table = False
+            else:
+                logger.info('Empty table ' + table_name + ' references missing table(s) and could not be dropped')
 
-            print('Removing empty table ' + table_name + ' and any foreign keys referencing it')
-            table.drop(ignore=True)
         else:
-            columns = table.columns  # list of named tuples (name, type, notnull, default_value, is_pk)
-            for column in columns:
-                empty_count = table.count_where("ifnull(" + column.name + ", '')=''")
-                if count == empty_count:
-                    print(' '.join(('Removing empty column ', column.name, ' in table ',
-                                    table_name, ' and any foreign keys referencing it')))
+            empty_columns = get_empty_columns(table, columns, count)
+            if empty_columns:
+                can_drop = drop_check(db, table_names, columns, foreign_keys)
+                if can_drop:
+                    logger.warning('Removing empty columns in ' + table_name + ' and any foreign keys referencing it')
+                    drop_foreign_keys_on_table(table, foreign_keys)
+                    table.transform(drop={','.join(empty_columns)})
+                else:
+                    logger.warning('Empty columns in table ' + table_name + ' references missing table(s) and could not be dropped')
+            else:
+                logger.info('No empty columns. Nothing done')
 
-                    for key in foreign_keys:
-                        if column == key.column:
-                            if not db[key.other_table].exists():  # Fix for cases where table dropped but fk remains -> TODO: Virker ikke alltid
-                                print('Table: ' + key.other_table)
-                                print('Column: ' + key.other_column)
-                                with db.conn:
-                                    db[key.other_table].create({key.other_column: column.type})
-                                with db.conn:
-                                    table.transform(drop_foreign_keys=(key.other_table))
-                                    # db[key.other_table].drop(ignore=True)
-
-                            table.transform(drop_foreign_keys=(key.other_table))
-                            db[key.other_table].transform(drop={key.other_column})
-
-                    columns.remove(column)  # TODO: Virker ikke hvis koblet til kolonne i tabell som ikke finnes lenger. Løse hvordan?
-                    table.transform(drop={column.name})
-
+        if keep_table:
             table_columns[table_name] = columns
 
-    print('All empty tables removed')
+    logger.info('All empty tables removed')
     return table_columns
+
+
+def configure_logging(log_file):
+    config = {
+        "handlers": [
+            {"sink": sys.stderr,
+             "format": "<green>{time:YYYY-MM-DD HH:mm:ss}</green> <level>{message}</level>"
+             },
+            {"sink": log_file,
+             "format": "{time:YYYY-MM-DD HH:mm:ss}<level> {level: <7}</level> <level>{message}</level>"
+             },
+        ]
+    }
+
+    logger.configure(**config)
 
 
 def parse_arguments(argv):
@@ -105,8 +214,9 @@ def parse_arguments(argv):
         help='show this help message and exit'
     )
 
-    required.add_argument('-x', dest='xml_path', type=str, help='Path of metadata.xml file', required=True)
     required.add_argument('-d', dest='db_path', type=str, help='Path of sqlite database file', required=True)
+    required.add_argument('-x', dest='xml_path', type=str, help='Path of metadata.xml file', required=True)
+    required.add_argument('-s', dest='schema', type=str, help='Name of schema in metadata.xml file', required=True)
     optional.add_argument('-l', dest='table_list', type=str, help='Path of file with list of tables to include.')
 
     return parser.parse_args()
@@ -116,28 +226,76 @@ def main(argv):
     # WAIT: Sjekk konflikter på base hvis data kopiert inn først med PRAGMA foreign_keys=OFF
     # -> sats på det heller enn å legge til fk i etterkant da det er mindre sjanse for korrupt database
     # TODO: legg inn arg for om ta backup av sqlite fil før kjører script
+    log_file = uniquify(os.path.join(Path(__file__).resolve().parents[1], 'tmp', Path(__file__).stem + '.log'))
+    configure_logging(log_file)
+
     msg = ''
     args = parse_arguments(argv)
+    print('')
     for a in args.__dict__:
         print(str(a) + ": " + str(args.__dict__[a]))
 
     metadata_file = args.xml_path
     db_file = args.db_path
+    table_list = args.table_list
 
-    for file_path in [metadata_file, db_file]:
+    files = [metadata_file, db_file]
+    if table_list:
+        files.append(table_list)
+
+    for file_path in files:
         if not os.path.isfile(file_path):
-            print(file_path)
             return "File '" + str(Path(file_path).name) + "' does not exist. Exiting..."
 
-    # dir_path = Path(metadata_file).resolve().parents[0]
-    db = Database(db_file)
-    show_sqlite_version(db)
+    include_tables = []
+    if table_list:
+        with open(table_list) as file:
+            s = file.read()
+            include_tables = [line.strip() for line in s.splitlines()]
 
-    table_columns = get_sqlite_tables_remove_empty(db)
-    # table_columns = get_sqlite_columns_remove_empty(db, sqlite_tables)
-    return 'test_kk'
+    tree = ET.parse(metadata_file)
+    table_defs = tree.findall("table-def")
+
+    schemas = set()
+    for table_def in table_defs:
+        table_schema = table_def.find('table-schema')
+        schema = table_schema.text
+        schemas.add(xstr(schema))
+
+    if args.schema not in schemas:
+        return "Schema '" + args.schema + "' does not exist in metadata file. Exiting..."
+
+    db = Database(db_file)
+    table_columns = get_sqlite_tables_remove_empty(db, include_tables)
+    show_versions(db)
+
+    date_columns = get_date_columns(table_defs, schema)
+    for table, columns in date_columns.items():
+        print(table, ':', columns)
+
+    fix_date_columns(db, date_columns)
+
+    # for x in date_columns:
+    #     print(x)
+
+    # logger.info('Optimizing db file...')
+    # db.vacuum()
     index_sqlite_foreign_keys(db)  # TODO: Bør gjøres etter at keys, kolonner og tabeller fjernet
     # get_date_columns(db, table_columns, sqlite_tables)
+
+    logger.success('Finito')
+
+    # https://sqlite-utils.datasette.io/en/latest/index.html
+
+    # TODO: test for foreign keys:
+    # https: // github.com/simonw/sqlite-utils/issues/2
+    # db["books"].add_foreign_key("author_id", "authors", "id", ignore=True) # Ignore if already exists
+    # Adding multiple foreign keys at once
+    # db.add_foreign_keys([
+    # ("dogs", "breed_id", "breeds", "id"),
+    # ("dogs", "home_town_id", "towns", "id")
+    # ])
+    # https: // github.com/simonw/sqlite-utils/issues/335
 
     # Endte kolonne name til upper i tabell dogs
     # db["dogs"].convert("name", lambda value: value.upper())
@@ -178,20 +336,7 @@ def main(argv):
     # def reverse_string(s):
     #     return s[::-1]
 
-    include_tables = []
-    if args.table_list:
-        with open(args.table_list) as file:
-            include_tables = file.read().splitlines()
-
-    # tree = ET.parse(metadata_file)
-    # table_defs = tree.findall("table-def")
-    # schemas = set()
-    # for table_def in table_defs:
-    #     table_schema = table_def.find('table-schema')
-    #     schema = table_schema.text
-    #     schemas.add(schema)
-
-    return msg[1:]
+    return msg
 
 
 if __name__ == '__main__':

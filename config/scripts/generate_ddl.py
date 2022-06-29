@@ -23,45 +23,8 @@ import sys
 from pathlib import Path
 import xml.etree.ElementTree as ET
 from argparse import ArgumentParser, SUPPRESS
-from common.ddl import get_primary_keys, get_foreign_keys, get_fk_str, get_empty_tables
-import petl as etl
+from common.ddl import get_primary_keys, get_foreign_keys, get_fk_str, get_empty_tables, get_db_type
 from distutils.util import strtobool
-
-
-# WAIT: Mangler denne for å ha alle i JDBC 4.0: SQLXML=2009
-def get_db_type(key_column, value_column, Key_value):
-    db_types = [['jdbc_no', 'jdbc_name', 'iso', 'sqlite'],
-                [-8, 'rowid', 'varchar', 'varchar'],
-                [-16, 'longnvarchar', 'clob', 'clob'],
-                [-15, 'nchar', 'varchar', 'varchar'],
-                [-9, 'nvarchar', 'varchar', 'varchar'],
-                [-7, 'bit', 'boolean', 'boolean'],
-                [-6, 'tinyint', 'integer', 'integer'],
-                [-5, 'bigint', 'bigint', 'bigint'],
-                [-4, 'longvarbinary', 'blob', 'blob'],
-                [-3, 'varbinary', 'blob', 'blob'],
-                [-2, 'binary', 'blob', 'blob'],
-                [-1, 'longvarchar', 'clob', 'clob'],
-                [1, 'char', 'varchar', 'varchar'],
-                [2, 'numeric', 'numeric', 'numeric'],
-                [3, 'decimal', 'decimal', 'decimal'],
-                [4, 'integer', 'integer', 'integer'],
-                [5, 'smallint', 'integer', 'integer'],
-                [6, 'float', 'float', 'float'],
-                [7, 'real', 'real', 'real'],
-                [8, 'double', 'double precision', 'double precision'],
-                [12, 'varchar', 'varchar', 'varchar'],
-                [16, 'boolean', 'boolean', 'boolean'],
-                [91, 'date', 'date', 'date'],
-                [92, 'time', 'time', 'text'],
-                [93, 'timestamp', 'timestamp', 'text'],
-                [2004, 'blob', 'blob', 'blob'],
-                [2005, 'clob', 'clob', 'clob'],
-                [2011, 'nclob', 'clob', 'clob'],
-                ]
-
-    return etl.lookup(db_types, key_column, value_column)[Key_value][0]
-
 
 def get_ddl_columns(table_defs, schema, pk_dict, unique_dict, sql_type):
     ddl_columns = {}
@@ -171,14 +134,20 @@ def main(argv):
         print(str(a) + ": " + str(args.__dict__[a]))
 
     metadata_file = args.path
+    table_list = args.table_list
     dir_path = Path(metadata_file).resolve().parents[0]
 
-    if not os.path.isfile(metadata_file):
-        return "No 'metada.xml' file in script-directory. Exiting..."
+    files = [metadata_file]
+    if table_list:
+        files.append(table_list)
+
+    for file_path in files:
+        if not os.path.isfile(file_path):
+            return "File '" + str(Path(file_path).name) + "' does not exist. Exiting..."
 
     # WAIT: Håndtere table list for flere skjema?
     include_tables = []
-    if args.table_list:
+    if table_list:
         with open(args.table_list) as file:
             include_tables = file.read().splitlines()
 

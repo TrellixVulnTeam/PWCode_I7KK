@@ -112,7 +112,8 @@ def main(argv):
     include_tables = []
     if args.table_list:
         with open(args.table_list) as file:
-            include_tables = file.read().splitlines()
+            s = file.read()
+            include_tables = [line.strip() for line in s.splitlines()]
 
     tree = ET.parse(metadata_file)
     table_defs = tree.findall("table-def")
