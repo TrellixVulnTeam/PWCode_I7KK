@@ -13,7 +13,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from loguru import logger
+import sys
 
-def add_config_section(s, section_name):
-    if not s.has_section(section_name):
-        s.add_section(section_name)
+
+def configure_logging(log_file):
+    config = {
+        "handlers": [
+            {"sink": sys.stderr,
+             "format": "<green>{time:YYYY-MM-DD HH:mm:ss}</green> <level>{message}</level>"
+             },
+            {"sink": log_file,
+             "format": "{time:YYYY-MM-DD HH:mm:ss}<level> {level: <7}</level> <level>{message}</level>"
+             },
+        ]
+    }
+
+    logger.configure(**config)

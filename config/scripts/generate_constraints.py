@@ -17,7 +17,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import xml.etree.ElementTree as ET
-import os
 import sys
 from argparse import ArgumentParser, SUPPRESS
 from pathlib import Path
@@ -106,7 +105,7 @@ def main(argv):
     metadata_file = args.path
     dir_path = Path(metadata_file).resolve().parents[0]
 
-    if not os.path.isfile(metadata_file):
+    if not Path(metadata_file).is_file():
         return "No 'metada.xml' file in script-directory. Exiting..."
 
     # WAIT: Håndtere table list for flere skjema?
@@ -131,7 +130,7 @@ def main(argv):
         else:
             file_name = schema + '_constraints.sql'
 
-        constraints_file = os.path.join(dir_path, file_name)
+        constraints_file = str(Path(dir_path, file_name))
         empty_tables = ddl.get_empty_tables(table_defs, schema, include_tables)
 
         with open(constraints_file, "w") as file:

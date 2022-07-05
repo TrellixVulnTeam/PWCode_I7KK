@@ -26,6 +26,17 @@ import subprocess
 from pathlib import Path
 
 
+def uniquify(path):
+    filename, extension = os.path.splitext(path)
+    counter = 2
+
+    while os.path.exists(path):
+        path = filename + '(' + str(counter) + ')' + extension
+        counter += 1
+
+    return path
+
+
 def print_progress_bar(iteration, total, cust_bar, prefix='', suffix='', decimals=1, length=100, fill='█', printEnd=""):
     """
     Call in a loop to create terminal progress bar

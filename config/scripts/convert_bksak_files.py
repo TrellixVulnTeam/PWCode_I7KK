@@ -1,10 +1,11 @@
 
+from specific_import import import_file
+from pathlib import Path
 import sys
 from argparse import ArgumentParser, SUPPRESS
-from loguru import logger
-from pathlib import Path
-from specific_import import import_file
+pw_log = import_file(str(Path(Path(__file__).resolve().parents[2], 'bin', 'common', 'log.py')))
 pw_convert = import_file(str(Path(Path(__file__).resolve().parents[2], 'bin', 'common', 'convert.py')))
+pw_file = import_file(str(Path(Path(__file__).resolve().parents[2], 'bin', 'common', 'file.py')))
 
 
 def make_unique_dir(directory):
@@ -38,6 +39,9 @@ def parse_arguments(argv):
 
 
 def main(argv):
+    log_file = pw_file.uniquify(Path(Path(__file__).resolve().parents[1], 'tmp', Path(__file__).stem + '.log'))
+    pw_log.configure_logging(log_file)
+
     args = parse_arguments(argv)
     for a in args.__dict__:
         if str(a) == 'source_dir':

@@ -19,7 +19,6 @@
 # Only tested against H2-databases
 
 from distutils.util import strtobool
-import os
 import sys
 from pathlib import Path
 import xml.etree.ElementTree as ET
@@ -144,7 +143,7 @@ def main(argv):
         files.append(table_list)
 
     for file_path in files:
-        if not os.path.isfile(file_path):
+        if not Path(file_path).is_file():
             return "File '" + str(Path(file_path).name) + "' does not exist. Exiting..."
 
     # WAIT: Håndtere table list for flere skjema?
@@ -168,7 +167,7 @@ def main(argv):
         else:
             file_name = schema + '_ddl.sql'
 
-        ddl_file = os.path.join(dir_path, file_name)
+        ddl_file = str(Path(dir_path, file_name))
         empty_tables = pw_ddl.get_empty_tables(table_defs, schema, include_tables)
 
         with open(ddl_file, "w") as file:

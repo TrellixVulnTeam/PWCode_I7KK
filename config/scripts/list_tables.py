@@ -16,8 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-import os
 import sys
 from argparse import ArgumentParser, SUPPRESS
 from pathlib import Path
@@ -73,9 +71,9 @@ def main(argv):
     for a in args.__dict__:
         print(str(a) + ": " + str(args.__dict__[a]))
 
-    jars_dir = os.path.join(Path(__file__).resolve().parents[2], 'bin', 'vendor', 'jars')
+    jars_dir = Path(Path(__file__).resolve().parents[2], 'bin', 'vendor', 'jars')
     # TODO: lag grid med jar og class for div dbtyper -> se generate_ddl.py for lignende
-    driver_jar = os.path.join(jars_dir, 'h2.jar')
+    driver_jar = str(Path(jars_dir, 'h2.jar'))
     driver_class = 'org.h2.Driver'
     msg = ''
 
@@ -85,7 +83,7 @@ def main(argv):
         file_name = args.schema + '_' + file_name
         header = "-- Tables for schema '" + args.schema + "': " + header
 
-    table_file = os.path.join(Path(__file__).resolve().parents[3], file_name)
+    table_file = str(Path(Path(__file__).resolve().parents[3], file_name))
     with open(table_file, "w") as file:
         file.write(header)
 

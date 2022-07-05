@@ -17,7 +17,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from loguru import logger
-import os
 import sys
 from argparse import ArgumentParser, SUPPRESS
 from pathlib import Path
@@ -25,17 +24,9 @@ from sqlite_utils import Database
 from importlib.metadata import version
 from platform import python_version
 import xml.etree.ElementTree as ET
-
-
-def uniquify(path):
-    filename, extension = os.path.splitext(path)
-    counter = 2
-
-    while os.path.exists(path):
-        path = filename + '(' + str(counter) + ')' + extension
-        counter += 1
-
-    return path
+from specific_import import import_file
+pw_log = import_file(str(Path(Path(__file__).resolve().parents[2], 'bin', 'common', 'log.py')))
+pw_file = import_file(str(Path(Path(__file__).resolve().parents[2], 'bin', 'common', 'file.py')))
 
 
 def xstr(s):
@@ -178,21 +169,6 @@ def get_sqlite_tables_remove_empty(db, include_tables):
     return table_columns
 
 
-def configure_logging(log_file):
-    config = {
-        "handlers": [
-            {"sink": sys.stderr,
-             "format": "<green>{time:YYYY-MM-DD HH:mm:ss}</green> <level>{message}</level>"
-             },
-            {"sink": log_file,
-             "format": "{time:YYYY-MM-DD HH:mm:ss}<level> {level: <7}</level> <level>{message}</level>"
-             },
-        ]
-    }
-
-    logger.configure(**config)
-
-
 def parse_arguments(argv):
     if len(argv) == 1:
         argv.append('-h')
@@ -220,8 +196,8 @@ def main(argv):
     # WAIT: Sjekk konflikter på base hvis data kopiert inn først med PRAGMA foreign_keys=OFF
     # -> sats på det heller enn å legge til fk i etterkant da det er mindre sjanse for korrupt database
     # TODO: legg inn arg for om ta backup av sqlite fil før kjører script
-    log_file = uniquify(os.path.join(Path(__file__).resolve().parents[1], 'tmp', Path(__file__).stem + '.log'))
-    configure_logging(log_file)
+    log_file = pw_file.uniquify(Path(Path(__file__).resolve().parents[1], 'tmp', Path(__file__).stem + '.log'))
+    pw_log.configure_logging(log_file)
 
     msg = ''
     args = parse_arguments(argv)
@@ -238,7 +214,7 @@ def main(argv):
         files.append(table_list)
 
     for file_path in files:
-        if not os.path.isfile(file_path):
+        if not Path(file_path).is_file():
             return "File '" + str(Path(file_path).name) + "' does not exist. Exiting..."
 
     include_tables = []
