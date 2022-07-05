@@ -1,22 +1,10 @@
 
-# from defs import file_convert  # .defs.py
 import sys
 from argparse import ArgumentParser, SUPPRESS
-# import shutil
 from loguru import logger
-# import os
 from pathlib import Path
 from specific_import import import_file
-# import xml.etree.ElementTree as ET
-# import subprocess
-# import csv
-# from common.xml_settings import XMLSettings
-# from common.convert import convert_folder
-# from distutils.util import strtobool
-# from petl import extendheader, rename, appendtsv
-
-# WAIT: Lage egen plugin.py som setter paths mm så slipper å repetere i plugin kode
-# sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+pw_convert = import_file(str(Path(Path(__file__).resolve().parents[2], 'bin', 'common', 'convert.py')))
 
 
 def make_unique_dir(directory):
@@ -50,9 +38,6 @@ def parse_arguments(argv):
 
 
 def main(argv):
-    # TODO: Endre gui-kode til å lese fra config-fil og så kjøre kommando med args så likt uansett om fra gui eller cli?
-    pwcode_dir = Path(__file__).resolve().parents[2]
-
     args = parse_arguments(argv)
     for a in args.__dict__:
         if str(a) == 'source_dir':
@@ -63,15 +48,16 @@ def main(argv):
     if not Path(source_dir).is_dir():
         return "'" + source_dir + "' is not a directory. Exiting..."
 
+    pwcode_dir = Path(__file__).resolve().parents[2]
+
     tmp_dir = str(Path(pwcode_dir, 'config', 'tmp'))
     print('tmp_dir:    ' + tmp_dir)
 
     target_dir = make_unique_dir(Path(pwcode_dir, 'projects', 'convert_project'))
     print('target_dir: ' + target_dir)
 
-    convert = import_file(str(Path(pwcode_dir, 'bin', 'common', 'convert.py')))
-    msg, file_count, errors, originals = convert.convert_folder(source_dir, target_dir, tmp_dir, merge=False, keep_file_name=True)
-    print(msg)
+    msg, file_count, errors, originals = pw_convert.convert_folder(source_dir, target_dir, tmp_dir, merge=False, keep_file_name=True)
+    return msg
 
 
 if __name__ == '__main__':

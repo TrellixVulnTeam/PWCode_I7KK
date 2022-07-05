@@ -16,12 +16,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import xml.etree.ElementTree as ET
 import os
 import sys
 from argparse import ArgumentParser, SUPPRESS
 from pathlib import Path
-import xml.etree.ElementTree as ET
-from common.ddl import add_primary_keys, add_foreign_keys, get_empty_tables
+from specific_import import import_file
+ddl = import_file(str(Path(Path(__file__).resolve().parents[2], 'bin', 'common', 'ddl.py')))
 
 
 def add_unique(table_defs, schema, empty_tables):
@@ -131,15 +132,15 @@ def main(argv):
             file_name = schema + '_constraints.sql'
 
         constraints_file = os.path.join(dir_path, file_name)
-        empty_tables = get_empty_tables(table_defs, schema, include_tables)
+        empty_tables = ddl.get_empty_tables(table_defs, schema, include_tables)
 
         with open(constraints_file, "w") as file:
             if schema:
                 file.write("-- Constraints for schema '" + schema + "': \n")
 
-        add_constraints(add_primary_keys, table_defs, schema, empty_tables, constraints_file)
+        add_constraints(ddl.add_primary_keys, table_defs, schema, empty_tables, constraints_file)
         add_constraints(add_unique, table_defs, schema, empty_tables, constraints_file)
-        add_constraints(add_foreign_keys, table_defs, schema, empty_tables, constraints_file)
+        add_constraints(ddl.add_foreign_keys, table_defs, schema, empty_tables, constraints_file)
 
         msg = msg + "\nConstraints written to '" + constraints_file + "'"
 

@@ -16,13 +16,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from distutils.util import strtobool
 import os
 import sys
 from argparse import ArgumentParser, SUPPRESS
 from pathlib import Path
 import xml.etree.ElementTree as ET
-from common.ddl import get_empty_tables
-from distutils.util import strtobool
+from specific_import import import_file
+pw_ddl = import_file(str(Path(Path(__file__).resolve().parents[2], 'bin', 'common', 'ddl.py')))
 
 
 def get_columns(table_defs, schema, empty_tables, quote):
@@ -110,7 +111,7 @@ def main(argv):
             file_name = schema + '_wbcopy.sql'
 
         wbcopy_file = os.path.join(dir_path, file_name)
-        empty_tables = get_empty_tables(table_defs, schema, include_tables)
+        empty_tables = pw_ddl.get_empty_tables(table_defs, schema, include_tables)
         columns = get_columns(table_defs, schema, empty_tables, args.quote)
 
         with open(wbcopy_file, "w") as file:

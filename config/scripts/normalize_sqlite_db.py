@@ -16,9 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# from asyncio import exceptions
-# from distutils.log import error
-# from genericpath import exists
 from loguru import logger
 import os
 import sys
@@ -28,9 +25,6 @@ from sqlite_utils import Database
 from importlib.metadata import version
 from platform import python_version
 import xml.etree.ElementTree as ET
-from common.ddl import get_db_type
-# from common.ddl import get_empty_tables
-# from distutils.util import strtobool
 
 
 def uniquify(path):
@@ -283,7 +277,7 @@ def main(argv):
     index_sqlite_foreign_keys(db)  # TODO: Bør gjøres etter at keys, kolonner og tabeller fjernet
     # get_date_columns(db, table_columns, sqlite_tables)
 
-    logger.success('Finito')
+    logger.success('Done')
 
     # https://sqlite-utils.datasette.io/en/latest/index.html
 

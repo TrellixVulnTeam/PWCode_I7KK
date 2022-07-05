@@ -18,13 +18,15 @@
 
 # Only tested against H2-databases
 
+from distutils.util import strtobool
 import os
 import sys
 from pathlib import Path
 import xml.etree.ElementTree as ET
 from argparse import ArgumentParser, SUPPRESS
-from common.ddl import get_primary_keys, get_foreign_keys, get_fk_str, get_empty_tables, get_db_type
-from distutils.util import strtobool
+from specific_import import import_file
+pw_ddl = import_file(str(Path(Path(__file__).resolve().parents[2], 'bin', 'common', 'ddl.py')))
+
 
 def get_ddl_columns(table_defs, schema, pk_dict, unique_dict, sql_type):
     ddl_columns = {}
@@ -59,7 +61,7 @@ def get_ddl_columns(table_defs, schema, pk_dict, unique_dict, sql_type):
             java_sql_type = column_def.find('java-sql-type')
             dbms_data_size = column_def.find('dbms-data-size')
             # TODO: Sjekk hvorfor det ikke blir antall tegn i parentes for varchar fra systemx metadata.xml
-            db_type = get_db_type('jdbc_no', 'sqlite', int(java_sql_type.text))
+            db_type = pw_ddl.get_db_type('jdbc_no', 'sqlite', int(java_sql_type.text))
             if '()' in db_type:
                 db_type = db_type.replace('()', '(' + dbms_data_size.text + ')')
 
@@ -167,18 +169,18 @@ def main(argv):
             file_name = schema + '_ddl.sql'
 
         ddl_file = os.path.join(dir_path, file_name)
-        empty_tables = get_empty_tables(table_defs, schema, include_tables)
+        empty_tables = pw_ddl.get_empty_tables(table_defs, schema, include_tables)
 
         with open(ddl_file, "w") as file:
             if schema:
                 file.write("-- DDL for schema '" + schema + "': \n")
 
-        pk_dict, pk_tables = get_primary_keys(table_defs, schema, empty_tables)
+        pk_dict, pk_tables = pw_ddl.get_primary_keys(table_defs, schema, empty_tables)
         unique_dict = get_unique_indexes(table_defs, schema, empty_tables)
         ddl_columns = get_ddl_columns(table_defs, schema, pk_dict, unique_dict, args.sql_type)
 
         if args.constraints:
-            constraint_dict, fk_columns_dict, fk_ref_dict = get_foreign_keys(table_defs, schema, empty_tables)
+            constraint_dict, fk_columns_dict, fk_ref_dict = pw_ddl.get_foreign_keys(table_defs, schema, empty_tables)
 
         for table_def in table_defs:
             table_schema = table_def.find('table-schema')
@@ -202,7 +204,7 @@ def main(argv):
                     for key, value in unique_constraints.items():
                         unique_str = unique_str + ',\nCONSTRAINT ' + key[1] + ' UNIQUE (' + ', '.join(value) + ')'
 
-                fk_str = get_fk_str(constraint_dict, fk_columns_dict, fk_ref_dict, table_name.text, schema)
+                fk_str = pw_ddl.get_fk_str(constraint_dict, fk_columns_dict, fk_ref_dict, table_name.text, schema)
                 ddl = ddl + pk_str + unique_str + fk_str
 
             if args.drop:

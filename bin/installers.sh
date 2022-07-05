@@ -28,7 +28,7 @@ install_python_runtime() {
 install_python_packages() {
     if [ -e $PYTHON_BIN ]; then
         if [ ! -f $PIP_DONE ]; then
-            $SCRIPTPATH/vendor/linux/python/AppRun -m pip install --no-warn-script-location -U  JayDeBeApi JPype1 blake3 \
+            $SCRIPTPATH/vendor/linux/python/AppRun -m pip install --no-warn-script-location -U  JayDeBeApi JPype1 blake3 specific_import \
             psutil toposort flake8 autopep8 rope beautifulsoup4 lxml pygments petl wand ocrmypdf img2pdf pdfy cchardet dulwich filetype
             # TODO: Fjerne wand og img2pdf?
             touch $PIP_DONE
