@@ -17,17 +17,22 @@ from multiprocessing.sharedctypes import Value
 import os
 from subprocess import check_output, STDOUT
 import tarfile
+import sys
 import jpype as jp
 import jpype.imports
 from pathlib import Path
 import xml.etree.ElementTree as ET
 from database.jdbc import Jdbc
 from common.jvm import init_jvm, wb_batch
-from common.print import print_and_exit
 from common.xml import indent
 from common.database import run_select
 import re
 import shutil
+
+
+def print_and_exit(msg):
+    print(msg)
+    sys.exit()
 
 
 # TODO: Bytt ut print_and_exit og fjern så den (må sjekke at da avslutter hele med return heller)
@@ -146,7 +151,7 @@ def export_schema(class_paths, max_java_heap, subsystem_dir, jdbc, schema_names)
     schema_file = os.path.join(subsystem_dir, 'header', 'metadata.xml')
 
     if os.path.isfile(schema_file):
-        return     
+        return
 
     init_jvm(class_paths, max_java_heap)
     WbManager = jp.JPackage('workbench').WbManager
@@ -244,7 +249,7 @@ def export_db_schema(JDBC_URL, bin_dir, class_path, java_path, MAX_JAVA_HEAP, DB
 
                 export_schema(class_paths, MAX_JAVA_HEAP, subsystem_dir, jdbc, schema_names)
                 # add_row_count_to_schema_file(subsystem_dir, db_tables, DB_SCHEMA)
-                export_tables, overwrite_tables = table_check(INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, db_tables, jdbc)                        
+                export_tables, overwrite_tables = table_check(INCL_TABLES, SKIP_TABLES, OVERWRITE_TABLES, db_tables, jdbc)
 
             if export_tables:
                 # Copy schema data:
@@ -337,8 +342,8 @@ def table_check(incl_tables, skip_tables, overwrite_tables, db_tables, jdbc):
     skip_list = skip_tables.split(",")
     overwrite_list = overwrite_tables.split(",")
 
-    # table = '"' + jdbc.db_schema + '"."EDOKFILES"'  
-    # del non_empty_tables[table] 
+    # table = '"' + jdbc.db_schema + '"."EDOKFILES"'
+    # del non_empty_tables[table]
 
     # TODO: Blir tilfeller av tom verdi på table i kode under. Fiks etter bksak eksport
     # for list in (incl_list, skip_list, overwrite_list):
@@ -530,7 +535,7 @@ def copy_db_schema(subsystem_dir, s_jdbc, class_path, max_java_heap, export_tabl
 
     ddl_columns = {}
     if DDL_GEN == 'Native':
-        ddl_columns = get_ddl_columns(subsystem_dir, s_jdbc, pk_dict, unique_dict)                     
+        ddl_columns = get_ddl_columns(subsystem_dir, s_jdbc, pk_dict, unique_dict)
 
     mode = '-mode=INSERT'
     std_params = ' -ignoreIdentityColumns=false -removeDefaults=true -commitEvery=1000 '
@@ -687,7 +692,6 @@ def get_ddl_columns(subsystem_dir, jdbc, pk_dict, unique_dict):
                 if table_schema.text != schema:
                     continue
 
-
         disposed = table_def.find("disposed")
         if disposed is not None:
             if disposed.text == "true":
@@ -722,7 +726,7 @@ def get_ddl_columns(subsystem_dir, jdbc, pk_dict, unique_dict):
 
             # print(column_text)
             ddl_columns_list.append(column_text + ',')
-        
+
         if jdbc.driver_class != 'interbase.interclient.Driver':
             if len(schema) != 0:
                 table_name.text = '"' + schema + '"."' + table_name.text + '"'

@@ -13,27 +13,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# from PIL import Image
-import os
-import subprocess
-import shutil
-import signal
-import zipfile
-import re
-import pathlib
-# import img2pdf
-import petl as etl
-import base64
-from os.path import relpath
 from pathlib import Path
-from common.metadata import run_tika, run_siegfried
-from common.file import append_tsv_row, append_txt_file, replace_text_in_file, delete_file_or_dir, check_for_files
+from os.path import relpath
+import base64
+import petl as etl
+import pathlib
+import re
+import zipfile
+import signal
+import shutil
+from specific_import import import_file
+import subprocess
+import os
 import cchardet as chardet
-# from pathlib import Path
-# from functools import reduce
-# import wand
-# from wand.image import Image, Color
-# from wand.exceptions import BlobError
+file = import_file('file.py')
+metadata = import_file('metadata.py')
+
 if os.name == "posix":
     import ocrmypdf
     from pdfy import Pdfy
@@ -183,7 +178,7 @@ def zip_to_norm(args):
 
     def rm_tmp(paths):
         for path in paths:
-            delete_file_or_dir(path)
+            file.delete_file_or_dir(path)
 
     norm_base_path = os.path.splitext(args['norm_file_path'])[0]
     norm_zip_path = norm_base_path + '_zip'
@@ -192,7 +187,7 @@ def zip_to_norm(args):
 
     extract_nested_zip(args['source_file_path'], norm_zip_path)
 
-    msg, file_count, errors, originals = convert_folder(norm_zip_path, norm_dir_path, args['tmp_dir'], zip=True)
+    msg, file_count, errors, originals = convert_folder(norm_zip_path, norm_dir_path, args['tmp_dir'], zip=True, keep_file_name=False)
 
     if 'succcessfully' in msg:
         func = copy
@@ -454,7 +449,7 @@ def file_convert(source_file_path, mime_type, function, target_dir, tmp_dir, nor
     # TODO: Endre så returneres file paths som starter med prosjektmappe? Alltid, eller bare når genereres arkivpakke?
     normalized = {'result': None, 'norm_file_path': norm_file_path, 'error': None, 'original_file_copy': None}
 
-    if not check_for_files(norm_file_path + '*'):
+    if not file.check_for_files(norm_file_path + '*'):
         if mime_type == 'n/a':
             normalized['result'] = 5  # Not a file
             normalized['norm_file_path'] = None
@@ -535,7 +530,7 @@ def add_fields(fields, table):
     return table
 
 
-def convert_folder(base_source_dir, base_target_dir, tmp_dir, tika=False, ocr=False, merge=False, tsv_source_path=None, tsv_target_path=None, make_unique=True, sample=False, zip=False):
+def convert_folder(base_source_dir, base_target_dir, tmp_dir, tika=False, ocr=False, merge=False, tsv_source_path=None, tsv_target_path=None, make_unique=True, sample=False, zip=False, keep_file_name=False):
     # WAIT: Legg inn i gui at kan velge om skal ocr-behandles
     txt_target_path = base_target_dir + '_result.txt'
     json_tmp_dir = base_target_dir + '_tmp'
@@ -562,14 +557,15 @@ def convert_folder(base_source_dir, base_target_dir, tmp_dir, tika=False, ocr=Fa
     # TODO: Viser mime direkte om er pdf/a eller må en sjekke mot ekstra felt i de to under? Forsjekk om Tika og siegfried?
 
     # TODO: Trengs denne sjekk om tsv her. Gjøres sjekk før kaller denne funskjonen og slik at unødvendig?
+    print(tsv_source_path)
     if not os.path.isfile(tsv_source_path):
         if tika:
-            run_tika(tsv_source_path, base_source_dir, json_tmp_dir, zip)
+            metadata.run_tika(tsv_source_path, base_source_dir, json_tmp_dir, zip)
         else:
-            run_siegfried(base_source_dir, tmp_dir, tsv_source_path, zip)
+            metadata.run_siegfried(base_source_dir, tmp_dir, tsv_source_path, zip)
 
     # TODO: Legg inn test på at tsv-fil ikke er tom
-    replace_text_in_file(tsv_source_path, '\0', '')
+    file.replace_text_in_file(tsv_source_path, '\0', '')
 
     table = etl.fromtsv(tsv_source_path)
     table = etl.rename(table,
@@ -621,7 +617,7 @@ def convert_folder(base_source_dir, base_target_dir, tmp_dir, tika=False, ocr=Fa
     table = remove_fields(cut_fields, table)
 
     header = etl.header(table)
-    append_tsv_row(tsv_target_path, header)
+    file.append_tsv_row(tsv_target_path, header)
 
     # Treat csv (detected from extension only) as plain text:
     table = etl.convert(table, 'mime_type', lambda v, row: 'text/plain' if row.id == 'x-fmt/18' else v, pass_row=True)
@@ -669,7 +665,7 @@ def convert_folder(base_source_dir, base_target_dir, tmp_dir, tika=False, ocr=Fa
             errors = True
             converted_now = True
             result = 'Conversion not supported'
-            append_txt_file(txt_target_path, result + ': ' + source_file_path + ' (' + mime_type + ')')
+            file.append_txt_file(txt_target_path, result + ': ' + source_file_path + ' (' + mime_type + ')')
             row['norm_file_path'] = ''
             row['original_file_copy'] = ''
         else:
@@ -696,14 +692,14 @@ def convert_folder(base_source_dir, base_target_dir, tmp_dir, tika=False, ocr=Fa
             if normalized['result'] == 0:
                 errors = True
                 result = 'Conversion failed'
-                append_txt_file(txt_target_path, result + ': ' + source_file_path + ' (' + mime_type + ')')
+                file.append_txt_file(txt_target_path, result + ': ' + source_file_path + ' (' + mime_type + ')')
             elif normalized['result'] == 1:
                 result = 'Converted successfully'
                 converted_now = True
             elif normalized['result'] == 2:
                 errors = True
                 result = 'Conversion not supported'
-                append_txt_file(txt_target_path, result + ': ' + source_file_path + ' (' + mime_type + ')')
+                file.append_txt_file(txt_target_path, result + ': ' + source_file_path + ' (' + mime_type + ')')
             elif normalized['result'] == 3:
                 if old_result not in ('Converted successfully', 'Manually converted'):
                     result = 'Manually converted'
@@ -714,7 +710,7 @@ def convert_folder(base_source_dir, base_target_dir, tmp_dir, tika=False, ocr=Fa
                 converted_now = True
                 errors = True
                 result = normalized['error']
-                append_txt_file(txt_target_path, result + ': ' + source_file_path + ' (' + mime_type + ')')
+                file.append_txt_file(txt_target_path, result + ': ' + source_file_path + ' (' + mime_type + ')')
             elif normalized['result'] == 5:
                 result = 'Not a document'
 
@@ -731,7 +727,7 @@ def convert_folder(base_source_dir, base_target_dir, tmp_dir, tika=False, ocr=Fa
 
         # TODO: Fikset med å legge inn escapechar='\\' i append_tsv_row -> vil det skal problemer senere?
         # row_values = [r.replace('\n', ' ') for r in row_values if r is not None]
-        append_tsv_row(tsv_target_path, row_values)
+        file.append_tsv_row(tsv_target_path, row_values)
 
         if sample and count > 9:
             break

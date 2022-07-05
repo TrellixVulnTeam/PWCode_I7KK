@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
+import sys
 from subprocess import check_output, STDOUT
 import tarfile
 import jpype as jp
@@ -22,7 +23,6 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 from database.jdbc import Jdbc
 from common.jvm import init_jvm, wb_batch
-from common.print import print_and_exit
 from common.xml import indent
 from dataclasses import dataclass
 
@@ -39,6 +39,11 @@ class Connection:
 
 # TODO: Bytt ut print_and_exit og fjern så den (må sjekke at da avslutter hele med return heller)
 # WAIT: Har path til schema file som arg heller enn at hardkodet flere steder
+
+def print_and_exit(msg):
+    print(msg)
+    sys.exit()
+
 
 def get_db_details(jdbc_url, bin_dir):
     # TODO: Legg inn støtte for flere dbtyper
