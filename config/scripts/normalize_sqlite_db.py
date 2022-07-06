@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# Python Library Imports
 from loguru import logger
 import sys
 from argparse import ArgumentParser, SUPPRESS
@@ -25,8 +26,11 @@ from importlib.metadata import version
 from platform import python_version
 import xml.etree.ElementTree as ET
 from specific_import import import_file
-pw_log = import_file(str(Path(Path(__file__).resolve().parents[2], 'bin', 'common', 'log.py')))
-pw_file = import_file(str(Path(Path(__file__).resolve().parents[2], 'bin', 'common', 'file.py')))
+
+# Local Library Imports
+LIB_PATH = str(Path(Path(__file__).resolve().parents[2], 'bin', 'common'))
+pw_log = import_file(str(Path(LIB_PATH, 'log.py')))
+pw_file = import_file(str(Path(LIB_PATH, 'file.py')))
 
 
 def xstr(s):
@@ -198,10 +202,10 @@ def main(argv):
     # TODO: legg inn arg for om ta backup av sqlite fil før kjører script
     log_file = pw_file.uniquify(Path(Path(__file__).resolve().parents[1], 'tmp', Path(__file__).stem + '.log'))
     pw_log.configure_logging(log_file)
-
     msg = ''
-    args = parse_arguments(argv)
+
     print('')
+    args = parse_arguments(argv)
     for a in args.__dict__:
         print(str(a) + ": " + str(args.__dict__[a]))
 

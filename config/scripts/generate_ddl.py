@@ -18,13 +18,18 @@
 
 # Only tested against H2-databases
 
+# Python Library Imports
 from distutils.util import strtobool
+from loguru import logger
 import sys
 from pathlib import Path
 import xml.etree.ElementTree as ET
 from argparse import ArgumentParser, SUPPRESS
 from specific_import import import_file
-pw_ddl = import_file(str(Path(Path(__file__).resolve().parents[2], 'bin', 'common', 'ddl.py')))
+
+# Local Library Imports
+LIB_PATH = str(Path(Path(__file__).resolve().parents[2], 'bin', 'common'))
+pw_ddl = import_file(str(Path(LIB_PATH, 'ddl.py')))
 
 
 def get_ddl_columns(table_defs, schema, pk_dict, unique_dict, sql_type):

@@ -16,13 +16,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# Python Library Imports
 from distutils.util import strtobool
 import sys
 from argparse import ArgumentParser, SUPPRESS
 from pathlib import Path
 import xml.etree.ElementTree as ET
+from loguru import logger
 from specific_import import import_file
-pw_ddl = import_file(str(Path(Path(__file__).resolve().parents[2], 'bin', 'common', 'ddl.py')))
+
+# Local Library Imports
+LIB_PATH = str(Path(Path(__file__).resolve().parents[2], 'bin', 'common'))
+pw_ddl = import_file(str(Path(LIB_PATH, 'ddl.py')))
 
 
 def get_columns(table_defs, schema, empty_tables, quote):
