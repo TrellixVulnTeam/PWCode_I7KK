@@ -18,10 +18,16 @@
 
 # Python Library Imports
 import sys
-from argparse import ArgumentParser, SUPPRESS
+# from argparse import ArgumentParser, SUPPRESS
+import typer
 from pathlib import Path
 from loguru import logger
+from rich.console import Console
 import jaydebeapi
+
+# Paths:
+PWCODE_DIR = Path(__file__).resolve().parents[2]
+JARS_DIR = Path(PWCODE_DIR, 'bin', 'vendor', 'jars')
 
 
 def get_tables(conn, schema, driver_class):
@@ -73,9 +79,8 @@ def main(argv):
     for a in args.__dict__:
         print(str(a) + ": " + str(args.__dict__[a]))
 
-    jars_dir = Path(Path(__file__).resolve().parents[2], 'bin', 'vendor', 'jars')
     # TODO: lag grid med jar og class for div dbtyper -> se generate_ddl.py for lignende
-    driver_jar = str(Path(jars_dir, 'h2.jar'))
+    driver_jar = str(Path(JARS_DIR, 'h2.jar'))
     driver_class = 'org.h2.Driver'
     msg = ''
 

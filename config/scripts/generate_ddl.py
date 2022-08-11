@@ -24,7 +24,8 @@ from loguru import logger
 import sys
 from pathlib import Path
 import xml.etree.ElementTree as ET
-from argparse import ArgumentParser, SUPPRESS
+# from argparse import ArgumentParser, SUPPRESS
+import typer
 from specific_import import import_file
 
 # Local Library Imports

@@ -20,7 +20,8 @@
 import xml.etree.ElementTree as ET
 import sys
 from loguru import logger
-from argparse import ArgumentParser, SUPPRESS
+# from argparse import ArgumentParser, SUPPRESS
+import typer
 from pathlib import Path
 from specific_import import import_file
 

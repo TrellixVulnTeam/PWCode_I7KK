@@ -19,7 +19,8 @@
 # Python Library Imports
 from distutils.util import strtobool
 import sys
-from argparse import ArgumentParser, SUPPRESS
+# from argparse import ArgumentParser, SUPPRESS
+import typer
 from pathlib import Path
 import xml.etree.ElementTree as ET
 from loguru import logger

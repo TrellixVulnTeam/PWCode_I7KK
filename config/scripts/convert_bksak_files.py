@@ -22,13 +22,14 @@ from pathlib import Path
 from loguru import logger
 import sys
 from argparse import ArgumentParser, SUPPRESS
+from cprint import *
 
 # Local Library Imports
 LIB_PATH = str(Path(Path(__file__).resolve().parents[2], 'bin', 'common'))
 pw_log = import_file(str(Path(LIB_PATH, 'log.py')))
 pw_convert = import_file(str(Path(LIB_PATH, 'convert.py')))
 pw_file = import_file(str(Path(LIB_PATH, 'file.py')))
-pw_print = import_file(str(Path(LIB_PATH, 'print.py')))
+# pw_print = import_file(str(Path(LIB_PATH, 'print.py')))
 
 
 def make_unique_dir(directory):
@@ -66,7 +67,8 @@ def main(argv):
     pw_log.configure_logging(log_file)
     msg = ''
 
-    pw_print.cprint('tekst', 'RED')
+    # pw_print.cprint('tekst', 'RED')
+    cprint.ok('test')		
     # print(Style.RESET_ALL)
     # def print(*args, level="INFO"):
     #     message = " ".join(map(str, args))

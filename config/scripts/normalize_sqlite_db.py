@@ -19,18 +19,29 @@
 # Python Library Imports
 from loguru import logger
 import sys
-from argparse import ArgumentParser, SUPPRESS
+import typer
 from pathlib import Path
 from sqlite_utils import Database
 from importlib.metadata import version
 from platform import python_version
 import xml.etree.ElementTree as ET
 from specific_import import import_file
+from rich.console import Console
+
+# Paths:
+PWCODE_DIR = Path(__file__).resolve().parents[2]
+LIB_DIR = Path(PWCODE_DIR, 'bin', 'common')
+PROJECT_DIR = Path(PWCODE_DIR, 'projects')
+TMP_DIR = Path(PWCODE_DIR, 'config', 'tmp')
 
 # Local Library Imports
-LIB_PATH = str(Path(Path(__file__).resolve().parents[2], 'bin', 'common'))
-pw_log = import_file(str(Path(LIB_PATH, 'log.py')))
-pw_file = import_file(str(Path(LIB_PATH, 'file.py')))
+pw_log = import_file(str(Path(LIB_DIR, 'log.py')))
+pw_file = import_file(str(Path(LIB_DIR, 'file.py')))
+
+# Initialize:
+console = Console()
+log_file = pw_file.uniquify(Path(TMP_DIR, Path(__file__).stem + '.log'))
+pw_log.configure_logging(log_file)
 
 
 def xstr(s):
@@ -200,8 +211,6 @@ def main(argv):
     # WAIT: Sjekk konflikter på base hvis data kopiert inn først med PRAGMA foreign_keys=OFF
     # -> sats på det heller enn å legge til fk i etterkant da det er mindre sjanse for korrupt database
     # TODO: legg inn arg for om ta backup av sqlite fil før kjører script
-    log_file = pw_file.uniquify(Path(Path(__file__).resolve().parents[1], 'tmp', Path(__file__).stem + '.log'))
-    pw_log.configure_logging(log_file)
     msg = ''
 
     print('')
