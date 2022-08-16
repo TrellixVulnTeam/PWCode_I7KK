@@ -31,8 +31,8 @@ from rich.console import Console
 # Paths:
 PWCODE_DIR = Path(__file__).resolve().parents[2]
 LIB_DIR = Path(PWCODE_DIR, 'bin', 'common')
-PROJECT_DIR = Path(PWCODE_DIR, 'projects')
 TMP_DIR = Path(PWCODE_DIR, 'config', 'tmp')
+paths = [PWCODE_DIR, LIB_DIR, TMP_DIR]
 
 # Local Library Imports
 pw_log = import_file(str(Path(LIB_DIR, 'log.py')))
@@ -40,8 +40,6 @@ pw_file = import_file(str(Path(LIB_DIR, 'file.py')))
 
 # Initialize:
 console = Console()
-log_file = pw_file.uniquify(Path(TMP_DIR, Path(__file__).stem + '.log'))
-pw_log.configure_logging(log_file)
 
 
 def xstr(s):
@@ -218,6 +216,9 @@ def main(argv):
     for a in args.__dict__:
         print(str(a) + ": " + str(args.__dict__[a]))
 
+    log_file = pw_file.uniquify(Path(TMP_DIR, Path(__file__).stem + '.log'))
+    pw_log.configure_logging(log_file)
+
     metadata_file = args.xml_path
     db_file = args.db_path
     table_list = args.table_list
@@ -322,5 +323,8 @@ def main(argv):
     return msg
 
 
-if __name__ == '__main__':
-    print(main(sys.argv))
+# if __name__ == '__main__':
+#     print(main(sys.argv))
+
+if __name__ == "__main__":
+    typer.run(main)

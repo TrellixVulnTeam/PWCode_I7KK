@@ -27,41 +27,49 @@ from rich.console import Console
 
 # Paths:
 PWCODE_DIR = Path(__file__).resolve().parents[2]
-LIB_DIR = Path(PWCODE_DIR, 'bin', 'common')
-PROJECT_DIR = Path(PWCODE_DIR, 'projects')
-TMP_DIR = Path(PWCODE_DIR, 'config', 'tmp')
+LIB_DIR = Path(PWCODE_DIR, "bin", "common")
+PROJECT_DIR = Path(PWCODE_DIR, "projects")
+TMP_DIR = Path(PWCODE_DIR, "config", "tmp")
+paths = [PWCODE_DIR, LIB_DIR, PROJECT_DIR, TMP_DIR]
 
 # Local Library Imports:
-pw_log = import_file(str(Path(LIB_DIR, 'log.py')))
-pw_file = import_file(str(Path(LIB_DIR, 'file.py')))
+pw_log = import_file(str(Path(LIB_DIR, "log.py")))
+pw_file = import_file(str(Path(LIB_DIR, "file.py")))
 
 # Initialize:
 console = Console()
-log_file = pw_file.uniquify(Path(TMP_DIR, Path(__file__).stem + '.log'))
-pw_log.configure_logging(log_file)
+
+
+def initlialize():
+    for path in paths:
+        if not path.is_dir():
+            console.print(
+                "Directory '" + str(path) + "' missing. Aborted", style="bold red"
+            )
+            raise typer.Exit(code=1)
+
+    log_file = pw_file.uniquify(Path(TMP_DIR, Path(__file__).stem + ".log"))
+    pw_log.configure_logging(log_file)
 
 
 def main(name: str):
-    msg = 'Done'
-
+    initlialize()
 
     # TODO: Kode som lager arkivpakkestruktur i PROJECT_DIR
 
     # console.print("Hello", "World!", style="bold red")
     # print(name + 3)
-    console.print(version('typer'))
-
-
+    console.print(version("typer"))
 
     # args = parse_arguments(argv)
     # print('\n'.join((('python version: ' + python_version(),
     #                     'loguru version: ' + version('loguru'),
-    #                     ))))    
+    #                     ))))
     # for a in args.__dict__:
     #     print(str(a) + ": " + str(args.__dict__[a]))
 
-    console.print(msg)
+    console.print("Done")
+
 
 if __name__ == "__main__":
     typer.run(main)
- 

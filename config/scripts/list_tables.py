@@ -23,11 +23,22 @@ import typer
 from pathlib import Path
 from loguru import logger
 from rich.console import Console
+from specific_import import import_file
 import jaydebeapi
 
 # Paths:
 PWCODE_DIR = Path(__file__).resolve().parents[2]
+LIB_DIR = Path(PWCODE_DIR, 'bin', 'common')
 JARS_DIR = Path(PWCODE_DIR, 'bin', 'vendor', 'jars')
+TMP_DIR = Path(PWCODE_DIR, 'config', 'tmp')
+paths = [PWCODE_DIR, LIB_DIR, JARS_DIR, TMP_DIR]
+
+# Local Library Imports:
+pw_log = import_file(str(Path(LIB_DIR, 'log.py')))
+pw_file = import_file(str(Path(LIB_DIR, 'file.py')))
+
+# Initialize:
+console = Console()
 
 
 def get_tables(conn, schema, driver_class):
@@ -83,6 +94,9 @@ def main(argv):
     driver_jar = str(Path(JARS_DIR, 'h2.jar'))
     driver_class = 'org.h2.Driver'
     msg = ''
+    log_file = pw_file.uniquify(Path(TMP_DIR, Path(__file__).stem + '.log'))
+    pw_log.configure_logging(log_file)
+
 
     header = '\n'
     file_name = 'table_list.txt'
@@ -106,5 +120,8 @@ def main(argv):
     return msg[1:]
 
 
-if __name__ == '__main__':
-    print(main(sys.argv))
+# if __name__ == '__main__':
+#     print(main(sys.argv))
+
+if __name__ == "__main__":
+    typer.run(main)

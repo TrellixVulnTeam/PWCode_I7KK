@@ -13,30 +13,21 @@ cmd = PYTHON_BIN & " " & PWCODE_BIN
 paths = Array(PYTHON_BIN, JAVA_BIN, OJDBC10, WIM_BIN, JARS)
 
 Installed = vbTrue
-For Each path In paths
-    If Not FSO.FileExists(path) Then
-		  Installed = vbFalse
-    End If
+	For Each path In paths
+		If Not FSO.FileExists(path) Then
+		Installed = vbFalse
+	End If
 Next
 
 
 WshShell.CurrentDirectory = SCRIPTPATH
-If Not Installed Then
-  Answer = Msgbox("Missing dependencies! Download now?", vbYesNo+vbCritical, "PWCode Installer")
-  If Answer = vbYes Then
-    WshShell.run("powershell -executionpolicy bypass -noexit -file vendor\windows\download_deps.ps1")
-  End If
+	If Not Installed Then
+	Answer = Msgbox("Missing dependencies! Download now?", vbYesNo+vbCritical, "PWCode Installer")
+		If Answer = vbYes Then
+		WshShell.run("powershell -executionpolicy bypass -noexit -file vendor\windows\download_deps.ps1")
+	End If
 Else
-  ' WScript.Echo cmd
-  ' WAIT: Find method for waiting for completion of powershell script so that pwcode can be launched immediately after install
-  wshShell.Run cmd, 1
+	' WScript.Echo cmd
+	' WAIT: Find method for waiting for completion of powershell script so that pwcode can be launched immediately after install
+	wshShell.Run cmd, 1
 End If
-
-
-
-
-
-
-
-
-

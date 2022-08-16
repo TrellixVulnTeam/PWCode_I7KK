@@ -24,13 +24,24 @@ from loguru import logger
 import sys
 from pathlib import Path
 import xml.etree.ElementTree as ET
+from specific_import import import_file
 # from argparse import ArgumentParser, SUPPRESS
 import typer
-from specific_import import import_file
+from rich.console import Console
+
+# Paths:
+PWCODE_DIR = Path(__file__).resolve().parents[2]
+LIB_DIR = Path(PWCODE_DIR, 'bin', 'common')
+TMP_DIR = Path(PWCODE_DIR, 'config', 'tmp')
+paths = [PWCODE_DIR, LIB_DIR, TMP_DIR]
 
 # Local Library Imports
-LIB_PATH = str(Path(Path(__file__).resolve().parents[2], 'bin', 'common'))
-pw_ddl = import_file(str(Path(LIB_PATH, 'ddl.py')))
+pw_ddl = import_file(str(Path(LIB_DIR, 'ddl.py')))
+pw_log = import_file(str(Path(LIB_DIR, 'log.py')))
+pw_file = import_file(str(Path(LIB_DIR, 'file.py')))
+
+# Initialize:
+console = Console()
 
 
 def get_ddl_columns(table_defs, schema, pk_dict, unique_dict, sql_type):
@@ -167,6 +178,9 @@ def main(argv):
         schemas.add(schema)
 
     msg = ''
+    log_file = pw_file.uniquify(Path(TMP_DIR, Path(__file__).stem + '.log'))
+    pw_log.configure_logging(log_file)
+
     for schema in schemas:
         if not schema:
             file_name = 'ddl.sql'
@@ -223,5 +237,8 @@ def main(argv):
     return msg[1:]
 
 
-if __name__ == '__main__':
-    print(main(sys.argv))
+# if __name__ == '__main__':
+#     print(main(sys.argv))
+
+if __name__ == "__main__":
+    typer.run(main)
